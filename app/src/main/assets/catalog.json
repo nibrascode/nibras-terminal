@@ -28,15 +28,15 @@
       "summary": "arm64 kök sistemi. Tətbiqin içinə qoyulmayıb.",
       "version": "arm64",
       "abi": "arm64-v8a",
-      "filename": "debian-rootfs-arm64.tar.xz",
-      "checksumOrigin": "mirror",
-      "sourceUrl": "https://github.com/EXALAB/AnLinux-Resources/raw/master/Rootfs/Debian/arm64/debian-rootfs-arm64.tar.xz",
-      "sourceNote": "AnLinux ayrıca checksum dərc etməyib. Bu SHA-256 güzgü faylının özüdür, 2026-11-19.",
-      "license": "Debian azad proqram təminatı; güzgü: EXALAB/AnLinux-Resources",
-      "sizeBytes": 77966184,
-      "sha256": "b9f1fbc28cad7984d3a9bac86bf86895c388a3ea398261cc3f761145d5c366dc",
+      "filename": "debian-stable-slim-arm64.tar.xz",
+      "checksumOrigin": "official",
+      "sourceUrl": "https://hub.docker.com/_/debian",
+      "sourceNote": "Rəsmi debian:stable-slim arm64 imici. Actions run 44418186928. SHA-256 bu ixracın özüdür.",
+      "license": "Debian azad proqram təminatı",
+      "sizeBytes": 17883916,
+      "sha256": "28263ad4441b0f67d4e88f46db53ee5f99e51ab6cf763ada8dc43f0d2578c880",
       "kind": "archive",
-      "url": "https://github.com/nibrascode/nibras-terminal/releases/download/payloads-0.1/debian-rootfs-arm64.tar.xz"
+      "url": "https://github.com/nibrascode/nibras-terminal/releases/download/payloads-0.1/debian-stable-slim-arm64.tar.xz"
     },
     {
       "id": "rootfs-ubuntu",

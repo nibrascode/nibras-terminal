@@ -22,7 +22,7 @@ Minimum: Android 8 (API 26), ABI arm64-v8a
 | Seçim | Harada | Checksum |
 | --- | --- | --- |
 | Alpine 3.24.1 minirootfs | release | Alpine-in rəsmi SHA-256 |
-| Debian arm64 kök sistemi | release | güzgü SHA-256, mənbə AnLinux |
+| Debian stable-slim arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
 | Ubuntu arm64 kök sistemi | release | güzgü SHA-256, mənbə AnLinux |
 | Python 3.12.16 aarch64 | release | python-build-standalone SHA256SUMS |
 | Node.js 26.13.1 linux-arm64 | release | nodejs.org SHASUMS256.txt |
@@ -44,9 +44,8 @@ Debug APK Actions-da yığılır. Köhnə `tools` SDK paketi artıq verilmir, on
 `android-actions/setup-android@v4` ilə `platform-tools`, `platforms;android-35` və
 `build-tools;35.0.0` quraşdırır.
 
-Official rootfs iş axını rəsmi `debian:stable-slim` arm64 imicindən kök sistemi çıxarır
-və SHA-256 ilə birlikdə artefakt yükləyir. Release-dəki Debian arxivi hələ AnLinux
-güzgüsüdür; yeni artefakt yoxlanmadan manifest dəyişmir.
+Official rootfs iş axını rəsmi `debian:stable-slim` arm64 imicindən kök sistemi çıxarır.
+Hazır ixrac release-dədir: `debian-stable-slim-arm64.tar.xz`.
 
 GitHub tokeni kodda yoxdur. Yükləmə yalnız `github.com` və
 `githubusercontent.com` ünvanlarından gedir.
