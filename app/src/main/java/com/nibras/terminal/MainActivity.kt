@@ -219,7 +219,7 @@ private fun FilesTab(state: UiState, model: TerminalViewModel) {
             Text(state.editorId, color = Gold, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
             Text(state.editorText, color = Ink, fontFamily = FontFamily.Monospace, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
         } else {
-            Text("Mətn paketi yükləyəndən sonra Buradan bax.", color = Muted, fontSize = 14.sp)
+            Text("Mətn paketi yükləndikdən sonra burada açılır.", color = Muted, fontSize = 14.sp)
             state.installed.keys.forEach { id ->
                 val component = state.components.firstOrNull { it.id == id } ?: return@forEach
                 if (component.kind != "archive") {
