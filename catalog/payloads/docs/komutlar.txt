@@ -1,0 +1,317 @@
+NIBRAS TERMINAL TEXNIKI KOMUTLAR TOPLUSU Versiya: 0.1 — başlanğıc və
+prototip mərhələsi
+
+VACİB QEYD Bu sənəd Nibras Terminal layihəsinin ilkin qurulması, Android
+build, Git, test və Linux mühiti prototipi üçün komutları bir yerə
+toplayır. Bu, hələ mövcud olmayan tətbiqin bütün funksiyalarını hazır
+edən sehrli komut siyahısı deyil. Komutlar müvafiq kod modulları
+yaradıldıqdan sonra işləyəcək. Layihənin real qovluq adları və Gradle
+modul adları yaradılan Android layihəsinə uyğunlaşdırılmalıdır.
+
+TƏHLÜKƏSİZLİK - Naməlum mənbədən rootfs və executable fayl yükləməyin. -
+Rootfs arxivinin SHA-256 dəyərini rəsmi mənbə ilə yoxlayın. - sudo, su
+və root tələb edən komutları bu layihənin normal iş axınına daxil
+etməyin. - İstifadəçinin fayllarını silən komutları təsdiqsiz icra
+etməyin. - GitHub tokenini kodun içinə yazmayın. - Aşağıdakı
+nümunələrdəki URL, paket və versiyaları real buraxılışdan əvvəl
+yoxlayın.
+
+============================================================ 1. İNKİŞAF
+MÜHİTİNİN YOXLAMASI
+============================================================
+
+java -version javac -version git –version adb version gradle –version
+
+Android SDK dəyişənlərini yoxlamaq: echo “$ANDROID_HOME"
+echo "$ANDROID_SDK_ROOT”
+
+SDK platformalarını görmək: sdkmanager –list
+
+ADB ilə telefonu yoxlamaq: adb devices adb shell getprop
+ro.product.cpu.abi adb shell getprop ro.build.version.release
+
+Gözlənilən əsas ABI: arm64-v8a
+
+============================================================ 2. GIT
+REPOZİTORİYASININ YARADILMASI
+============================================================
+
+mkdir NibrasTerminal cd NibrasTerminal
+
+git init git branch -M main
+
+Əsas qovluqlar: mkdir -p documentation mkdir -p scripts mkdir -p
+rootfs-config mkdir -p linux-engine mkdir -p tests
+
+İlkin commit: git add . git commit -m “Initialize Nibras Terminal
+project”
+
+Git vəziyyəti: git status git log –oneline git remote -v
+
+GitHub remote əlavə etmək (URL-ni öz repozitoriyanızla əvəz edin): git
+remote add origin https://github.com/USERNAME/NibrasTerminal.git git
+push -u origin main
+
+Sonrakı dəyişikliklər: git add . git commit -m “Describe changes” git
+push
+
+============================================================ 3. ANDROID
+LAYİHƏSİNİN YARADILMASI
+============================================================
+
+TÖVSİYƏ: Android Studio-da yeni layihə yaradın: - Template: Empty
+Activity - Language: Kotlin - UI: Jetpack Compose - Minimum SDK:
+layihənin test hədəfinə uyğun seçin - Package: com.nibras.terminal
+
+Layihə yaradıldıqdan sonra terminalda: ./gradlew –version ./gradlew
+tasks ./gradlew assembleDebug ./gradlew test ./gradlew lint
+
+Debug APK: app/build/outputs/apk/debug/app-debug.apk
+
+Telefona quraşdırmaq: adb install -r
+app/build/outputs/apk/debug/app-debug.apk
+
+Tətbiqi açmaq üçün (package adı uyğunlaşdırılmalıdır): adb shell monkey
+-p com.nibras.terminal 1
+
+Logları izləmək: adb logcat adb logcat | grep -i nibras
+
+Təmiz build: ./gradlew clean ./gradlew assembleDebug
+
+Release build (signing konfiqurasiyası tələb edir): ./gradlew
+assembleRelease
+
+AAB: ./gradlew bundleRelease
+
+QEYD: Release signing məlumatlarını Git-ə göndərməyin. Keystore və
+parolları təhlükəsiz yerdə saxlayın.
+
+============================================================ 4. TERMUX
+ÜZƏRİNDƏ LAZIM OLA BİLƏN ALƏTLƏR
+============================================================
+
+Bu komutlar yalnız Termux mühitində istifadə üçündür. Android Studio
+build-i üçün hər paket Termux-da uyğun olmaya bilər.
+
+pkg update pkg upgrade pkg install git pkg install curl pkg install wget
+pkg install unzip pkg install zip pkg install python pkg install
+openjdk-17 pkg install clang pkg install cmake pkg install make pkg
+install nano
+
+Quraşdırmaları yoxlamaq: git –version curl –version python –version java
+-version clang –version
+
+============================================================ 5. ROOTFS
+YÜKLƏMƏ VƏ YOXLAMA ŞABLONU
+============================================================
+
+XƏBƏRDARLIQ: Debian və Ubuntu rootfs arxivlərinin konkret URL-ləri,
+arxiv formatları və SHA-256 dəyərləri rəsmi buraxılışa görə dəyişir.
+Burada uydurma URL və checksum verilmir. Yalnız rəsmi, yoxlanıla bilən
+mənbədən götürülmüş dəyərlərdən istifadə edin.
+
+Rootfs qovluğu: mkdir -p downloads mkdir -p rootfs/debian mkdir -p
+rootfs/ubuntu
+
+Yüklənmiş arxivin checksum yoxlaması: sha256sum
+downloads/ROOTFS_ARCHIVE.tar.* # Nəticəni rəsmi mənbədə göstərilən
+SHA-256 ilə müqayisə edin.
+
+Arxivin məzmununa baxmaq: tar -tf downloads/ROOTFS_ARCHIVE.tar.*
+
+Arxivi açmaq nümunəsi: tar -xf downloads/ROOTFS_ARCHIVE.tar.* -C
+rootfs/debian
+
+QEYD: Yuxarıdakı açma komutu arxivin formatına və qovluq strukturuna
+görə dəyişə bilər. Android tətbiqində rootfs quraşdırılması üçün ayrıca
+təhlükəsiz installer kodu yazılmalıdır. Bu shell komutunu birbaşa
+tətbiqə köçürmək kifayət deyil.
+
+============================================================ 6. LINUX
+MÜHİTİ İŞLƏDİKDƏN SONRA YOXLAMA KOMUTLARI
+============================================================
+
+Bu komutlar yalnız Debian/Ubuntu mühiti həqiqətən başladıqdan sonra
+həmin Linux shell-ində işlədilməlidir.
+
+Sistem: uname -a uname -m cat /etc/os-release id pwd df -h free -h
+
+Paket indekslərini yeniləmək: apt update
+
+Əsas paketlər: apt install -y ca-certificates curl wget git unzip zip
+nano
+
+Python: apt install -y python3 python3-pip python3-venv python3 –version
+python3 -m pip –version
+
+Node.js: apt install -y nodejs npm node –version npm –version
+
+Git: git –version git config –global user.name “Your Name” git config
+–global user.email “you@example.com”
+
+C/C++: apt install -y build-essential gcc –version g++ –version
+
+PHP: apt install -y php-cli php –version
+
+QEYD: Paket versiyaları distributivə və repozitoriyaya görə dəyişə
+bilər. Bəzi paketlər proot/Android mühitində əlavə uyğunlaşdırma tələb
+edə bilər.
+
+============================================================ 7. PYTHON
+LAYİHƏSİ ============================================================
+
+mkdir -p ~/Projects/PythonDemo cd ~/Projects/PythonDemo
+
+python3 -m venv .venv . .venv/bin/activate
+
+pip install –upgrade pip
+
+Yeni fayl: cat > main.py <<‘PY’ print(“Salam, Nibras Terminal!”) PY
+
+İşə salmaq: python main.py
+
+Virtual mühitdən çıxmaq: deactivate
+
+============================================================ 8. NODE.JS
+LAYİHƏSİ ============================================================
+
+mkdir -p ~/Projects/NodeDemo cd ~/Projects/NodeDemo
+
+npm init -y
+
+cat > server.js <<‘JS’ const http = require(“http”);
+
+const server = http.createServer((req, res) => { res.writeHead(200,
+{“Content-Type”: “text/plain; charset=utf-8”}); res.end(“Salam, Nibras
+Terminal!”); });
+
+server.listen(3000, “127.0.0.1”, () => { console.log(“Server:
+http://127.0.0.1:3000”); }); JS
+
+node server.js
+
+Başqa terminal sessiyasında yoxlama: curl http://127.0.0.1:3000
+
+Dayandırmaq: Ctrl + C
+
+============================================================ 9. HTML /
+CSS / JAVASCRIPT ÖNİZLƏMƏSİ
+============================================================
+
+mkdir -p ~/Projects/WebDemo cd ~/Projects/WebDemo
+
+cat > index.html <<‘HTML’ <!doctype html>
+Nibras Terminal Demo
+Salam, Nibras Terminal!
+HTML
+
+Sadə Python serveri: python3 -m http.server 8000 –bind 127.0.0.1
+
+Brauzerdə: http://127.0.0.1:8000
+
+============================================================ 10. GIT /
+GITHUB ƏSAS KOMUTLARI
+============================================================
+
+git init git status git add . git commit -m “Initial project” git branch
+git switch -c feature/example git switch main git log –oneline git diff
+git pull git push git clone REPOSITORY_URL
+
+Tokeni URL-ə yazmayın. GitHub autentifikasiyası üçün təhlükəsiz
+credential mexanizmi və ya SSH açarı istifadə edin.
+
+SSH açarının yaradılması: ssh-keygen -t ed25519 -C “you@example.com”
+
+Açarın public hissəsi: cat ~/.ssh/id_ed25519.pub
+
+Private key faylını heç kimlə paylaşmayın.
+
+============================================================ 11. ANDROID
+TƏTBİQİ ÜÇÜN YOXLAMA VƏ DEBUG
+============================================================
+
+Gradle: ./gradlew tasks ./gradlew assembleDebug ./gradlew
+testDebugUnitTest ./gradlew lintDebug
+
+ADB: adb devices adb install -r
+app/build/outputs/apk/debug/app-debug.apk adb logcat -c adb logcat |
+grep -i -E “nibras|exception|fatal”
+
+Telefon məlumatları: adb shell getprop ro.product.model adb shell
+getprop ro.product.cpu.abi adb shell getprop ro.build.version.sdk
+
+============================================================ 12. LINUX
+ENGINE ÜÇÜN TƏTBİQ DAXİLİ ƏMƏLİYYAT SİYAHISI
+============================================================
+
+Aşağıdakılar istifadəçinin görəcəyi funksional əməliyyatlardır. Bunlar
+hazır shell komutları deyil; Android/Kotlin modulunda implementasiya
+edilməlidir.
+
+EnvironmentManager: - listEnvironments() -
+installEnvironment(distribution) - startEnvironment(environmentId) -
+stopEnvironment(environmentId) - restartEnvironment(environmentId) -
+removeEnvironment(environmentId) - getEnvironmentStatus(environmentId) -
+getDiskUsage(environmentId) - backupEnvironment(environmentId) -
+restoreEnvironment(backupFile)
+
+ProcessManager: - startProcess(command, workingDirectory) -
+stopProcess(processId) - listProcesses() - streamOutput(processId)
+
+PackageManager: - searchPackages(query) - installPackage(packageName) -
+removePackage(packageName) - updatePackageIndex() - upgradePackages() -
+listInstalledPackages()
+
+ProjectManager: - createProject(template, name) - importProject(uri) -
+exportProject(projectId, destination) - openProject(projectId) -
+deleteProject(projectId)
+
+ServerManager: - startServer(projectId, host, port) -
+stopServer(serverId) - listServers() - getServerLogs(serverId)
+
+Bu API-lər üçün Kotlin interface-ləri, implementasiyalar, testlər və
+təhlükəsizlik yoxlamaları ayrıca yazılmalıdır.
+
+============================================================ 13.
+BURAXILIŞDAN ƏVVƏL YOXLAMA SİYAHISI
+============================================================
+
+[ ] ARM64 cihazda tətbiq quraşdırılır. [ ] Debian rootfs rəsmi mənbədən
+alınır. [ ] SHA-256 yoxlaması işləyir. [ ] Debian mühiti açılır. [ ]
+Terminal sessiyası açılır. [ ] Python işləyir. [ ] Node.js işləyir. [ ]
+Git işləyir. [ ] Kod redaktoru faylı saxlayır. [ ] Redaktordakı fayl
+Linux mühitində görünür. [ ] HTML preview işləyir. [ ] Lokal server
+dayandırıla bilir. [ ] Tətbiq bağlananda proses davranışı yoxlanıb. [ ]
+Backup və restore test edilib. [ ] İcazələr və token saxlanması
+yoxlanıb. [ ] Açıq mənbə lisenziyaları sənədləşdirilib.
+
+============================================================ 14. RƏSMİ
+SƏNƏDLƏR ============================================================
+
+Android Developers: https://developer.android.com/
+
+Jetpack Compose: https://developer.android.com/compose
+
+Gradle: https://docs.gradle.org/
+
+Debian: https://www.debian.org/
+
+Ubuntu: https://ubuntu.com/
+
+proot: https://github.com/proot-me/proot
+
+CodeMirror: https://codemirror.net/
+
+Git: https://git-scm.com/doc
+
+Python: https://docs.python.org/3/
+
+Node.js: https://nodejs.org/docs/
+
+Android Storage Access Framework:
+https://developer.android.com/guide/topics/providers/document-provider
+
+SON QEYD Bu sənəd Nibras Terminal üçün başlanğıc komut kitabçasıdır. Tam
+tətbiq hazır olduqca hər modulun konkret komutları, konfiqurasiya
+faylları, build variantları və test ssenariləri bu sənədin növbəti
+versiyalarına əlavə edilməlidir.
