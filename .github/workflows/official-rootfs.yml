@@ -1,0 +1,22 @@
+name: Official rootfs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debian-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Minbase from deb.debian.org
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debootstrap qemu-user-static
+          sudo debootstrap --arch=arm64 --variant=minbase stable /tmp/debian http://deb.debian.org/debian
+          sudo tar -C /tmp/debian -cJf "$RUNNER_TEMP/debian-arm64-minbase.tar.xz" .
+          sha256sum "$RUNNER_TEMP/debian-arm64-minbase.tar.xz" | tee "$RUNNER_TEMP/SHA256SUMS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: debian-arm64-minbase
+          path: |
+            ${{ runner.temp }}/debian-arm64-minbase.tar.xz
+            ${{ runner.temp }}/SHA256SUMS

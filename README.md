@@ -1,6 +1,13 @@
 # Nibras Terminal
 
-Yüngül Android qabığı. İçində Linux, Python və Node **yoxdur**.
+Üç yol, eyni əməliyyat:
+
+- Terminal: `nibras install alpine`, `python3 main.py`, `git commit`
+- Seçimlər: eyni addımlar düymə ilə
+- Xana: token, ad, layihə adı və böyük yükləmə təsdiqi əmr sətrinə yazılmır
+
+Eyni anda bir mühit saxlanılır. Debian və ya Ubuntu seçiləndə həcm və qalan yer göstərilir.
+Redaktorda saxlanan fayl terminaldakı `cat` ilə görünür.
 
 İstifadəçi nəyi seçsə, yalnız onu yükləyir. Yüklənəcək hər şey bu repoda və
 [`payloads-0.1`](https://github.com/nibrascode/nibras-terminal/releases/tag/payloads-0.1)
@@ -26,11 +33,13 @@ Minimum: Android 8 (API 26), ABI arm64-v8a
 Siyahı: [`catalog/manifest.json`](catalog/manifest.json). Tətbiq əvvəl bu faylın
 cihazdakı nüsxəsini oxuyur, şəbəkə varsa GitHub-dakı nüsxə ilə yeniləyir.
 
-## Nə bu versiyada yoxdur
+## Nə telefon APK-sında hələ yoxdur
 
-PRoot mühərriki APK-ya qoyulmayıb və ayrıca binary də paylanmayıb. Arxiv
-yüklənir. SHA-256 uyğun gəlmirsə fayl silinir. İstəsən arxiv açılır. Shell
-sessiyası açılmır. Bax: `linux-engine/README.md`.
+PRoot binary APK-ya qoyulmayıb. APK arxivi yükləyir. SHA-256 uyğun gəlmirsə faylı silir.
+Native Linux prosesi açılmır. Bax: `linux-engine/README.md`.
+
+Interfeysin terminalı isə əmr, seçim düyməsi və xana ilə işləyir. Fayl redaktoru
+həmin ağacı görür. Python və Node seçiləndən sonra əmr icra olunur.
 
 GitHub tokeni kodda yoxdur. Yükləmə yalnız `github.com` və
 `githubusercontent.com` ünvanlarından gedir.
