@@ -6,17 +6,21 @@ on:
 jobs:
   debian-arm64:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - name: Minbase from deb.debian.org
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Debian stable arm64 from the official image
         run: |
-          sudo apt-get update
-          sudo apt-get install -y debootstrap qemu-user-static
-          sudo debootstrap --arch=arm64 --variant=minbase stable /tmp/debian http://deb.debian.org/debian
-          sudo tar -C /tmp/debian -cJf "$RUNNER_TEMP/debian-arm64-minbase.tar.xz" .
-          sha256sum "$RUNNER_TEMP/debian-arm64-minbase.tar.xz" | tee "$RUNNER_TEMP/SHA256SUMS"
+          mkdir -p rootfs
+          docker buildx build --platform linux/arm64 -f - -o type=local,dest=./rootfs . <<'EOF'
+          FROM debian:stable-slim
+          EOF
+          tar -C rootfs -cJf debian-arm64-minbase.tar.xz .
+          sha256sum debian-arm64-minbase.tar.xz | tee SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: debian-arm64-minbase
           path: |
-            ${{ runner.temp }}/debian-arm64-minbase.tar.xz
-            ${{ runner.temp }}/SHA256SUMS
+            debian-arm64-minbase.tar.xz
+            SHA256SUMS

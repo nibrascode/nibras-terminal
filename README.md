@@ -35,11 +35,18 @@ cihazdakı nüsxəsini oxuyur, şəbəkə varsa GitHub-dakı nüsxə ilə yenil�
 
 ## Nə telefon APK-sında hələ yoxdur
 
-PRoot binary APK-ya qoyulmayıb. APK arxivi yükləyir. SHA-256 uyğun gəlmirsə faylı silir.
+PRoot binary APK-ya qoyulmayıb. APK arxivi yükləyir və SHA-256 uyğun gəlmirsə faylı silir.
 Native Linux prosesi açılmır. Bax: `linux-engine/README.md`.
 
-Interfeysin terminalı isə əmr, seçim düyməsi və xana ilə işləyir. Fayl redaktoru
-həmin ağacı görür. Python və Node seçiləndən sonra əmr icra olunur.
+## İş axını
+
+Debug APK Actions-da yığılır. Köhnə `tools` SDK paketi artıq verilmir, ona görə iş axını
+`android-actions/setup-android@v4` ilə `platform-tools`, `platforms;android-35` və
+`build-tools;35.0.0` quraşdırır.
+
+Official rootfs iş axını rəsmi `debian:stable-slim` arm64 imicindən kök sistemi çıxarır
+və SHA-256 ilə birlikdə artefakt yükləyir. Release-dəki Debian arxivi hələ AnLinux
+güzgüsüdür; yeni artefakt yoxlanmadan manifest dəyişmir.
 
 GitHub tokeni kodda yoxdur. Yükləmə yalnız `github.com` və
 `githubusercontent.com` ünvanlarından gedir.
