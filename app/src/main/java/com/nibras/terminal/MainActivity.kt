@@ -204,7 +204,7 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
         Spacer(Modifier.height(12.dp))
         Text(
             if (env.isEmpty()) "Mühit arxivini Yükləmələrdən gətir və Aç. Sonra əmr həmin mühitin içində bir dəfə işləyir."
-            else "Mühit: ${env.joinToString()}. Əmr bir dəfə işləyir, ekran açıq qalmır.",
+            else "Mühit: ${env.joinToString()}. Hər əmr bir dəfə işləyir. Nəticələr yuxarıda qalır.",
             color = Ink,
             fontSize = 15.sp,
             lineHeight = 21.sp,
@@ -239,6 +239,11 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
             enabled = state.busyId == null && env.isNotEmpty() && line.isNotBlank(),
         ) {
             Text(if (state.busyId == "session") "İşləyir…" else "İşlət", color = Gold)
+        }
+        if (state.sessionLog.isNotBlank()) {
+            TextButton(onClick = { model.clearLog() }, enabled = state.busyId == null) {
+                Text("Təmizlə", color = Muted)
+            }
         }
         if (state.sessionLog.isNotBlank()) {
             Text(

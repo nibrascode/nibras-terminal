@@ -174,6 +174,10 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun clearLog() {
+        _state.update { it.copy(sessionLog = "") }
+    }
+
     fun run(command: String) {
         val line = command.trim()
         if (line.isEmpty() || _state.value.busyId != null) return
@@ -182,7 +186,10 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
             val text = withContext(Dispatchers.IO) {
                 runCatching { execInProot(line) }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
             }
-            _state.update { it.copy(busyId = null, sessionLog = text, tab = Tab.Session) }
+            val previous = _state.value.sessionLog
+            val joined = listOf(previous, "$ $line", text).filter { it.isNotBlank() }.joinToString("\n")
+            val capped = if (joined.length > 8000) joined.takeLast(8000) else joined
+            _state.update { it.copy(busyId = null, sessionLog = capped, tab = Tab.Session) }
         }
     }
 
