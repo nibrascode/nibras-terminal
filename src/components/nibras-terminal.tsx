@@ -958,11 +958,32 @@ export function NibrasTerminal() {
                   ))}
                   {busy ? <p className="text-[#8a8a8a]">{say(lang, busy)}</p> : null}
                   {copied ? <p className="text-[#8fbf8a]">{say(lang, copied)}</p> : null}
-                  <p className="mt-3 font-mono text-[#3dff9a]">
-                    $ <span className="inline-block h-4 w-2 translate-y-0.5 bg-[#e7eef3]" />
-                    {hunt ? <span className="ml-2 text-[#6d6d6d]">keçmiş</span> : null}
+                  <form
+                    className="mt-3 flex min-h-6 items-center font-mono"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      submit(draft);
+                    }}
+                  >
+                    <span className="shrink-0 text-[#3dff9a]">{repl === "python" ? ">>> " : repl === "node" ? "> " : "$ "}</span>
+                    {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="mr-1 text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
+                    <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
+                    <input
+                      ref={box}
+                      id="cmd"
+                      className="nt-input caret-[#e7eef3]"
+                      value={draft}
+                      disabled={Boolean(busy)}
+                      autoFocus
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      onChange={(event) => setDraft(event.target.value)}
+                      onKeyDown={onKey}
+                    />
+                    {hunt ? <span className="text-[#6d6d6d]">keçmiş</span> : null}
                     {mark ? <span className="ml-2 text-[#6d6d6d]">{mark}</span> : null}
-                  </p>
+                  </form>
                 </div>
               </div>
               {past && recent.length ? (
@@ -1056,33 +1077,6 @@ export function NibrasTerminal() {
                   ))}
                 </div>
               ) : null}
-              <form
-                className="nt-composer"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submit(draft);
-                }}
-              >
-                <span className="font-mono text-lg text-[#3dff9a]">{"\u003e_"}</span>
-                <span className="h-5 w-px bg-[#24303a]" />
-                <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
-                <input
-                  ref={box}
-                  id="cmd"
-                  className="nt-input"
-                  value={draft}
-                  disabled={Boolean(busy)}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  placeholder={say(lang, "Əmr yazın...")}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={onKey}
-                />
-                <button className="nt-send" type="submit" disabled={Boolean(busy)} aria-label={say(lang, "Yaz")}>
-                  <ArrowIcon />
-                </button>
-              </form>
             </div>
           ) : null}
           {tab === "pick" ? (
@@ -1598,13 +1592,6 @@ function GridIcon() {
 }
 function StarIcon() {
   return svg("M12 4l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z");
-}
-function ArrowIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
 }
 function Crown() {
   return (
