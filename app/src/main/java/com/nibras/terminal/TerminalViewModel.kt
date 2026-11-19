@@ -26,6 +26,7 @@ data class UiState(
     val notice: String? = null,
     val editorId: String? = null,
     val editorText: String = "",
+    val sessionLog: String = "",
 )
 
 class TerminalViewModel(app: Application) : AndroidViewModel(app) {
@@ -162,8 +163,8 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openFile(id: String) {
         val component = _state.value.components.firstOrNull { it.id == id } ?: return
-        if (component.kind == "archive") {
-            _state.update { it.copy(notice = "Arxiv mətn kimi açılmır. İstəsən onu aça bilərsən.") }
+        if (component.kind != "file") {
+            _state.update { it.copy(notice = "Bu fayl mətn kimi açılmır.") }
             return
         }
         val file = payloadFile(getApplication(), component)
@@ -171,5 +172,64 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         _state.update {
             it.copy(tab = Tab.Files, editorId = id, editorText = file.readText())
         }
+    }
+
+    fun run(command: String) {
+        val line = command.trim()
+        if (line.isEmpty() || _state.value.busyId != null) return
+        viewModelScope.launch {
+            _state.update { it.copy(busyId = "session", notice = null) }
+            val text = withContext(Dispatchers.IO) {
+                runCatching { execInProot(line) }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
+            }
+            _state.update { it.copy(busyId = null, sessionLog = text, tab = Tab.Session) }
+        }
+    }
+
+    private fun execInProot(command: String): String {
+        val app = getApplication<Application>()
+        val proot = prootBinary(app)
+        val root = listOf("rootfs-alpine", "rootfs-debian", "rootfs-ubuntu").firstNotNullOfOrNull { id ->
+            val record = _state.value.installed[id]
+            val dir = File(app.filesDir, "unpacked/$id")
+            if (record?.extracted == true && dir.isDirectory) dir else null
+        } ?: error("Əvvəl mühit arxivini yüklə və aç")
+        val tmp = File(app.cacheDir, "proot-tmp").apply { mkdirs() }
+        val process = ProcessBuilder(
+            proot.absolutePath,
+            "--link2symlink",
+            "-0",
+            "-r",
+            root.absolutePath,
+            "-b",
+            "/dev/",
+            "-b",
+            "/proc/",
+            "-b",
+            "/sys/",
+            "-w",
+            "/root",
+            "/bin/sh",
+            "-c",
+            command,
+        )
+            .redirectErrorStream(true)
+            .apply { environment()["PROOT_TMP_DIR"] = tmp.absolutePath }
+            .start()
+        val output = process.inputStream.bufferedReader().readText().trim()
+        val code = process.waitFor()
+        if (code == 0) return output.ifBlank { "çıxdı 0" }
+        return listOf(output, "çıxdı $code").filter { it.isNotBlank() }.joinToString("\n")
+    }
+
+    private fun prootBinary(app: Application): File {
+        val bundled = File(app.applicationInfo.nativeLibraryDir, "libproot.so")
+        if (bundled.exists()) return bundled
+        val component = _state.value.components.firstOrNull { it.id == "tool-proot" }
+            ?: error("PRoot siyahıda yoxdur")
+        val downloaded = payloadFile(app, component)
+        if (!downloaded.exists()) error("PRoot tapılmadı")
+        downloaded.setExecutable(true, false)
+        return downloaded
     }
 }

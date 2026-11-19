@@ -17,12 +17,19 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -62,7 +69,7 @@ private fun NibrasApp(state: UiState, model: TerminalViewModel) {
             when (state.tab) {
                 Tab.Home -> HomeTab(state) { model.select(Tab.Downloads) }
                 Tab.Downloads -> DownloadsTab(state, model)
-                Tab.Session -> SessionTab(state)
+                Tab.Session -> SessionTab(state, model)
                 Tab.Files -> FilesTab(state, model)
             }
         }
@@ -109,7 +116,7 @@ private fun HomeTab(state: UiState, onDownloads: () -> Unit) {
         Text("0.1  ·  arm64  ·  boş qabıq", color = Muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         Spacer(Modifier.height(28.dp))
         Text(
-            "Linux, Python, Node və şablonlar tətbiqin içində deyil. Hər biri GitHub-da ayrı dayanır. Nəyi seçsən, yalnız o yüklənir və SHA-256 ilə yoxlanır.",
+            "Linux, Python, Node və şablonlar tətbiqin içində deyil. Hər biri GitHub-da ayrı dayanır. Nəyi seçsən, yalnız o yüklənir və SHA-256 ilə yoxlanır. Kiçik mühərrik tətbiqin içindədir, çünki telefon yüklənmiş əmri başqa qovluqdan işlətməyə icazə vermir.",
             color = Ink,
             fontSize = 16.sp,
             lineHeight = 22.sp,
@@ -145,7 +152,7 @@ private fun DownloadsTab(state: UiState, model: TerminalViewModel) {
                 }
                 Text(component.summary, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                 Text(
-                    component.sha256.take(16) + "…  " + if (component.checksumOrigin == "official") "rəsmi checksum" else "güzgü checksum",
+                    component.sha256.take(16) + "…  " + checksumLabel(component.checksumOrigin),
                     color = Muted,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
@@ -171,7 +178,7 @@ private fun DownloadsTab(state: UiState, model: TerminalViewModel) {
                                 Text("Aç", color = Ink)
                             }
                         }
-                        if (component.kind != "archive") {
+                        if (component.kind == "file") {
                             TextButton(onClick = { model.openFile(component.id) }) {
                                 Text("Bax", color = Ink)
                             }
@@ -187,26 +194,62 @@ private fun DownloadsTab(state: UiState, model: TerminalViewModel) {
 }
 
 @Composable
-private fun SessionTab(state: UiState) {
-    val env = state.installed.keys.filter { it.startsWith("rootfs-") }
+private fun SessionTab(state: UiState, model: TerminalViewModel) {
+    val env = state.installed.keys.filter { id ->
+        id.startsWith("rootfs-") && state.installed[id]?.extracted == true
+    }
+    var line by remember { mutableStateOf("echo salam") }
     Column(Modifier.fillMaxSize().padding(top = 20.dp)) {
         Text("Sessiya", color = Ink, fontFamily = FontFamily.Serif, fontSize = 28.sp)
         Spacer(Modifier.height(12.dp))
         Text(
-            if (env.isEmpty()) "Mühit arxivi yoxdur. Alpine, Debian və ya Ubuntu-nu Yükləmələrdən seç."
-            else "Yoxlanmış mühit: ${env.joinToString()}. PRoot bu versiyada tətbiqin içinə qoyulmayıb, ona görə shell açılmır.",
+            if (env.isEmpty()) "Mühit arxivini Yükləmələrdən gətir və Aç. Sonra əmr həmin mühitin içində bir dəfə işləyir."
+            else "Mühit: ${env.joinToString()}. Əmr bir dəfə işləyir, ekran açıq qalmır.",
             color = Ink,
             fontSize = 15.sp,
             lineHeight = 21.sp,
         )
-        Spacer(Modifier.height(18.dp))
-        Text("nibras:~$  status", color = Gold, fontFamily = FontFamily.Monospace, fontSize = 13.sp)
-        Text(
-            "seçilmiş ${state.installed.size} / ${state.components.size}",
-            color = Muted,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 13.sp,
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            listOf("echo salam", "uname -a", "ls /").forEach { sample ->
+                TextButton(onClick = { line = sample }, enabled = state.busyId == null) {
+                    Text(sample, color = Muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                }
+            }
+        }
+        OutlinedTextField(
+            value = line,
+            onValueChange = { line = it },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.busyId == null,
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = Ink, fontFamily = FontFamily.Monospace, fontSize = 14.sp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Ink,
+                unfocusedTextColor = Ink,
+                focusedBorderColor = Gold,
+                unfocusedBorderColor = Line,
+                cursorColor = Gold,
+                disabledBorderColor = Line,
+                disabledTextColor = Muted,
+            ),
         )
+        TextButton(
+            onClick = { model.run(line) },
+            enabled = state.busyId == null && env.isNotEmpty() && line.isNotBlank(),
+        ) {
+            Text(if (state.busyId == "session") "İşləyir…" else "İşlət", color = Gold)
+        }
+        if (state.sessionLog.isNotBlank()) {
+            Text(
+                state.sessionLog,
+                color = Ink,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            )
+        }
     }
 }
 
@@ -222,7 +265,7 @@ private fun FilesTab(state: UiState, model: TerminalViewModel) {
             Text("Mətn paketi yükləndikdən sonra burada açılır.", color = Muted, fontSize = 14.sp)
             state.installed.keys.forEach { id ->
                 val component = state.components.firstOrNull { it.id == id } ?: return@forEach
-                if (component.kind != "archive") {
+                if (component.kind == "file") {
                     TextButton(onClick = { model.openFile(id) }) {
                         Text(component.name, color = Gold)
                     }
@@ -230,6 +273,13 @@ private fun FilesTab(state: UiState, model: TerminalViewModel) {
             }
         }
     }
+}
+
+private fun checksumLabel(origin: String) = when (origin) {
+    "official" -> "rəsmi checksum"
+    "repo" -> "repo checksum"
+    "vendor" -> "vendor checksum"
+    else -> "güzgü checksum"
 }
 
 private fun formatBytes(bytes: Long): String {

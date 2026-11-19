@@ -51,7 +51,7 @@ interface ServerManager {
 }
 
 private const val NOT_READY =
-    "PRoot mühərriki bu versiyada tətbiqin içinə qoyulmayıb. Arxivi yükləyib SHA-256 ilə yoxlamaq olar, sessiya açılmır."
+    "Bu köhnə interfeys sessiya açmır. Sessiya ekranı açılmış mühitdə bir əmr işlədir."
 
 class PendingEnvironmentManager(
     private val installedRootfs: List<Environment>,
@@ -68,7 +68,7 @@ class PendingEnvironmentManager(
     }
     override fun getEnvironmentStatus(environmentId: String): String {
         val found = installedRootfs.any { it.id == environmentId && it.installed }
-        return if (found) "arxiv yoxlanıb, mühərrik yoxdur" else "yüklənməyib"
+        return if (found) "arxiv açılıb" else "yüklənməyib"
     }
     override fun getDiskUsage(environmentId: String): Long =
         installedRootfs.firstOrNull { it.id == environmentId }?.let { 0L } ?: 0L

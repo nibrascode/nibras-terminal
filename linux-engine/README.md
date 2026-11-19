@@ -1,12 +1,12 @@
 # Linux mühərriki
 
-0.1 buraxılışında PRoot və ya başqa native mühərrik tətbiqin içinə qoyulmayıb.
-Səbəb: mühərrik ayrıca native kitabxanalar tələb edir və APK-nı böyütmədən,
-yoxlanmamış binary paylamadan mühit açmaq olmaz.
+PRoot statik aarch64 binary-dir (GPL-3.0, portable Termux yığımı). APK-da
+`libproot.so` kimi durur, çünki Android 10 və sonrası tətbiqin data qovluğundan
+`exec` etməyə qoymur. Eyni baytlar release-də `proot-aarch64` adlanır.
 
-`app/src/main/java/com/nibras/terminal/engine/Managers.kt` sənədindəki
-interfeyslər hazırdır. `startEnvironment` hazırda aydın xəta qaytarır:
-arxiv yüklənə və SHA-256 ilə yoxlana bilər, amma sessiya açılmır.
+Sessiya ekranı açılmış kök sistemin içində bir `sh -c` işlədir. Kök sistem
+APK-da yoxdur: istifadəçi Alpine, Debian və ya Ubuntu arxivini özü yükləyib açır.
 
-Növbəti mərhələ: arm64 PRoot-u ayrıca yükləmə seçimi kimi, rəsmi checksum ilə
-əlavə etmək. Tətbiqin içinə gömmək lazım deyil.
+`Managers.kt` köhnə interfeysdir və sessiya açmır. İşlək yol
+`TerminalViewModel.run`.
+
