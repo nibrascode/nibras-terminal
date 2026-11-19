@@ -295,6 +295,24 @@ export function usedBytes(session: Session) {
   return total;
 }
 
+export function screenFetch(session: Session) {
+  const host = session.env ?? "nibras";
+  const user = session.user || "root";
+  const mins = Math.max(0, Math.floor((Date.now() - (session.started || Date.now())) / 60000));
+  const uptime = mins < 60 ? `${mins}m` : `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  const logo = ["#     #", "##    #", "# #   #", "#  #  #", "#   # #", "#    ##", "#     #"];
+  const info = [
+    `${user}@${host}`,
+    `OS: ${session.env ?? "seçilməyib"}`,
+    `Uptime: ${uptime}`,
+    `Shell: nibras`,
+    `Packages: ${session.pkgs.length}`,
+    `Home: ${session.home || "/root"}`,
+    `Disk: ${formatBytes(usedBytes(session))}`,
+  ];
+  return logo.map((row, index) => `${row}   ${info[index] ?? ""}`).join("\n");
+}
+
 export function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
@@ -426,6 +444,9 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return helpTopic(session, args[0]);
     case "clear":
       return ok(session, "\u0000clear");
+    case "screenfetch":
+    case "neofetch":
+      return ok(session, screenFetch(session));
     case "pwd":
       return ok(session, session.cwd);
     case "ls":
@@ -3111,7 +3132,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];

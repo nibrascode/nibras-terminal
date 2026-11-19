@@ -24,7 +24,9 @@ import {
   isMarked,
   listHere,
   packHere,
+  prompt,
   runLine,
+  screenFetch,
   runNode,
   storeZip,
   complete,
@@ -288,7 +290,7 @@ export function NibrasTerminal() {
   const [hunt, setHunt] = useState("");
   const [mark, setMark] = useState("");
   const [bell, setBell] = useState(false);
-  const [sheet, setSheet] = useState<"" | "cmd" | "tools" | "fav" | "jump" | "more">("");
+  const [bar, setBar] = useState<"" | "file" | "edit" | "tabs" | "help">("");
   const [keysOn, setKeysOn] = useState(false);
   const [favs, setFavs] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
@@ -316,7 +318,9 @@ export function NibrasTerminal() {
   useEffect(() => {
     const loaded = loadSession();
     setSession(loaded);
-    setLines(loadLines());
+    const stored = loadLines();
+    const fresh = stored.length <= 3 && stored.some((line) => line.text.includes(GREETING) || line.text.startsWith("Nibras Terminal"));
+    setLines(fresh || !stored.length ? [{ kind: "in", text: `${prompt(loaded)} screenfetch` }, { kind: "out", text: screenFetch(loaded) }] : stored);
     const first = Object.keys(loaded.files).sort()[0];
     if (first) setEditing(first);
     const savedSize = Number(localStorage.getItem(SIZE_KEY));
@@ -553,7 +557,7 @@ export function NibrasTerminal() {
     if (!typed || busy) return;
     const shown = visibleCommand(typed);
     const base = { ...baseSession, history: [...baseSession.history, shown].slice(-80) };
-    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : "$";
+    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(base);
     push([{ kind: "in", text: `${lead} ${shown}` }]);
     setDraft("");
     setHunt("");
@@ -882,73 +886,66 @@ export function NibrasTerminal() {
     ? lines.filter((line) => say(lang, line.text).toLowerCase().includes(look) || line.text.toLowerCase().includes(look))
     : lines;
   const sizeClass = size === 0 ? "text-xs leading-5" : size === 2 ? "text-base leading-7" : "text-sm leading-6";
-  const facts = readDevice();
-  const jumps = [...new Set([session.home || "/root", session.cwd, ...session.stack])];
-  const commandMenu = [
-    { label: "Siyahı", line: "ls" },
-    { label: "Təmizlə", line: "clear" },
-    { label: "Kömək", line: "help" },
-    { label: "Ubuntu", line: "nibras install ubuntu" },
-    { label: "Python", line: "nibras install python" },
-    { label: "Git", line: "git status" },
-  ];
-  const toolMenu = [
-    { label: "Paketlər", line: "pkg list-all" },
-    { label: "Mühit", line: "nibras-distro list" },
-    { label: "Ping", line: "ping github.com" },
-    { label: "Batareya", line: "nibras-battery-status" },
-    { label: "Şəbəkə", line: "nibras-wifi-connectioninfo" },
-    { label: "Disk", line: "df" },
-  ];
-  const runMenu = (line: string) => {
-    setSheet("");
-    setTab("term");
-    submit(line);
-  };
-  const keepFav = (line: string) => {
-    setFavs((prev) => {
-      const next = prev.includes(line) ? prev.filter((item) => item !== line) : [...prev, line].slice(-24);
-      localStorage.setItem("nibras.favs", JSON.stringify(next));
-      return next;
-    });
-  };
 
   return (
     <div className="nt-app">
-      <div className={`nt-phone ${bell ? "outline outline-1 outline-[#ff6b6b]" : ""}`}>
-        <header className="flex items-center gap-2.5">
-          <Mark />
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[1.05rem] font-semibold leading-none tracking-tight text-white">Nibras Terminal</h1>
-            <p className="mt-1 truncate text-[0.7rem] text-[#8b98a5]">Powerful Terminal · No Ads</p>
-          </div>
-          <button className="inline-flex h-8 items-center gap-1 rounded-full border border-[#8a6a1d] bg-[#1a1408] px-2.5 text-[0.72rem] font-semibold text-[#f0c14a]" type="button" onClick={() => setCopied("Reklamsız tam terminal")}>
-            <Crown />
-            Premium
-          </button>
-          <IconButton label={say(lang, "Fayl")} onClick={() => setTab("file")}><FolderIcon /></IconButton>
-          <IconButton label={say(lang, "Keçmiş")} onClick={() => setPast((value) => !value)}><ClockIcon /></IconButton>
-          <IconButton label="Daha çox" onClick={() => setSheet((value) => (value === "more" ? "" : "more"))}><GearIcon /></IconButton>
-        </header>
-        <section className="nt-banner flex items-center gap-3">
-          <span className="relative z-10 grid h-11 w-11 place-items-center rounded-xl bg-[#123222] font-mono text-lg text-[#3dff9a]">{"\u003e_"}</span>
-          <div className="relative z-10 min-w-0">
-            <p className="text-[1.02rem] font-semibold text-white">Nibras Terminal <span className="text-[#3dff9a]">v2.0.0</span></p>
-            <p className="text-sm text-[#9aa7b2]">Sadə. Güclü. Peşəkar.</p>
-          </div>
-        </section>
-        <section className="grid grid-cols-5 gap-1 rounded-2xl border border-[#1c2830] bg-[#0c1218] px-1 py-2">
-          <Stat icon={<PhoneIcon />} label="Device" value={facts.device} />
-          <Stat icon={<BotIcon />} label={facts.system === "Web" ? "OS" : "Android"} value={facts.system} />
-          <Stat icon={<ChipIcon />} label="Arch" value={facts.arch} />
-          <Stat icon={<HomeIcon />} label="Home" value={session.home || "/root"} />
-          <Stat icon={<ClockIcon />} label="Uptime" value={clock(now - session.started)} />
-        </section>
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className={`nt-window ${bell ? "outline outline-1 outline-[#c04040]" : ""}`}>
+        <div className="nt-caption">
+          <span className="min-w-0 flex-1 truncate">{session.user || "root"}@{session.env ?? "nibras"}: {session.cwd}</span>
+          <span className="nt-lights" aria-hidden="true"><i /><i /><i /></span>
+        </div>
+        <div className="nt-menubar">
+          {([
+            ["file", "File"],
+            ["edit", "Edit"],
+            ["tabs", "Tabs"],
+            ["help", "Help"],
+          ] as const).map(([id, label]) => (
+            <button key={id} className={bar === id ? "on" : ""} type="button" onClick={() => setBar((value) => (value === id ? "" : id))}>{label}</button>
+          ))}
+          {bar ? (
+            <div className="nt-drop">
+              {bar === "file" ? (
+                <>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); addSlot(); }}>New Tab</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>Clear</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("file"); }}>{say(lang, "Fayl")}</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("pick"); }}>{say(lang, "Seçimlər")}</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); box.current?.focus(); }}>Terminal</button>
+                </>
+              ) : null}
+              {bar === "edit" ? (
+                <>
+                  <button type="button" onClick={() => { setBar(""); void navigator.clipboard?.writeText(shown.map((line) => line.text).join("\n")); }}>Copy</button>
+                  <button type="button" onClick={() => { setBar(""); pressKey("PASTE"); }}>Paste</button>
+                  <button type="button" onClick={() => { setBar(""); setPast((value) => !value); }}>{say(lang, "Keçmiş")}</button>
+                  <button type="button" onClick={() => { setBar(""); setKeysOn((value) => !value); }}>Keys</button>
+                </>
+              ) : null}
+              {bar === "tabs" ? (
+                <>
+                  {(slots.length ? slots : [{ name: "1" }]).map((item, index) => (
+                    <button key={`${item.name}-${index}`} type="button" onClick={() => { setBar(""); switchSlot(index); }}>{item.name}</button>
+                  ))}
+                  <button type="button" onClick={() => { setBar(""); addSlot(); }}>+</button>
+                </>
+              ) : null}
+              {bar === "help" ? (
+                <>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("help"); }}>help</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("screenfetch"); }}>screenfetch</button>
+                  {LANGS.map((code) => (
+                    <button key={code} type="button" onClick={() => { setBar(""); void pickLang(code); }}>{langBusy === code ? "…" : code}</button>
+                  ))}
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           {tab === "term" ? (
             <div className="flex min-h-0 flex-1 flex-col gap-2">
-              <div className="nt-term" onClick={() => box.current?.focus()}>
-                <NWatermark />
+              <div className="nt-term" onClick={() => { setBar(""); box.current?.focus(); }}>
                 <div ref={scroller} className={`nt-screen relative z-10 bg-transparent ${sizeClass}`}>
                   {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
                   {shown.map((line, index) => (
@@ -965,7 +962,7 @@ export function NibrasTerminal() {
                       submit(draft);
                     }}
                   >
-                    <span className="shrink-0 text-[#3dff9a]">{repl === "python" ? ">>> " : repl === "node" ? "> " : "$ "}</span>
+                    <span className="shrink-0 text-[#e8e8e8]">{repl === "python" ? ">>> " : repl === "node" ? "> " : `${prompt(session)} `}</span>
                     {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="mr-1 text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
                     <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
                     <input
@@ -981,7 +978,7 @@ export function NibrasTerminal() {
                       onChange={(event) => setDraft(event.target.value)}
                       onKeyDown={onKey}
                     />
-                    {hunt ? <span className="text-[#6d6d6d]">keçmiş</span> : null}
+                    {draft ? null : <span className="nt-block" />}
                     {mark ? <span className="ml-2 text-[#6d6d6d]">{mark}</span> : null}
                   </form>
                 </div>
@@ -1004,64 +1001,9 @@ export function NibrasTerminal() {
                   ))}
                 </div>
               ) : null}
-              {session.server ? <iframe title="Önizləmə" className="h-28 w-full rounded-xl border border-[#1c2830] bg-[#05080b]" sandbox="" srcDoc={session.server.html} /> : null}
-              {sheet ? (
-                <div className="max-h-36 overflow-y-auto rounded-xl border border-[#1c2830] bg-[#0c1218] p-2">
-                  {sheet === "cmd" ? <MenuList items={commandMenu} onPick={runMenu} /> : null}
-                  {sheet === "tools" ? <MenuList items={toolMenu} onPick={runMenu} /> : null}
-                  {sheet === "fav" ? (
-                    favs.length ? (
-                      favs.map((item) => (
-                        <button key={item} className="block w-full px-2 py-1.5 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => runMenu(item)}>
-                          {item}
-                        </button>
-                      ))
-                    ) : (
-                      <p className="px-2 py-1 text-xs text-[#8b98a5]">Ulduzla əmr saxla</p>
-                    )
-                  ) : null}
-                  {sheet === "jump" ? (
-                    jumps.map((item) => (
-                      <button key={item} className="block w-full px-2 py-1.5 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => runMenu(`cd ${item}`)}>
-                        {item}
-                      </button>
-                    ))
-                  ) : null}
-                  {sheet === "more" ? (
-                    <div className="space-y-2 px-1 py-1 text-xs text-[#d7d7d7]">
-                      <div className="flex flex-wrap gap-1">
-                        {LANGS.map((code) => (
-                          <button key={code} className="nt-chip" type="button" onClick={() => void pickLang(code)}>
-                            {langBusy === code ? "…" : code}
-                          </button>
-                        ))}
-                        <button className="nt-chip" type="button" onClick={() => setTab("pick")}>{say(lang, "Seçimlər")}</button>
-                        <button className="nt-chip" type="button" onClick={() => { setScriptOpen(true); setSheet(""); }}>{say(lang, "Skript")}</button>
-                        <button className="nt-chip" type="button" onClick={() => setKeysOn((value) => !value)}>Açarlar</button>
-                        <button className="nt-chip" type="button" onClick={() => draft.trim() && keepFav(draft.trim())}>Ulduz</button>
-                        <button className="nt-chip" type="button" onClick={addSlot}>+</button>
-                        {(slots.length ? slots : [{ name: "1" }]).map((item, index) => (
-                          <button key={`${item.name}-${index}`} className="nt-chip" type="button" onClick={() => switchSlot(index)}>{item.name}</button>
-                        ))}
-                      </div>
-                      <input id="find" className="nt-field w-full" value={needle} placeholder={say(lang, "nəticədə axtar")} onChange={(event) => setNeedle(event.target.value)} />
-                      <p className="text-[#8b98a5]">
-                        {session.env ?? say(lang, "mühit yoxdur")} · {formatBytes(usedBytes(session))} / {formatBytes(DISK_BUDGET)}
-                        {session.hasToken ? " · token" : ""}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className="flex gap-1.5 overflow-x-auto">
-                <button className={`nt-chip ${sheet === "cmd" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "cmd" ? "" : "cmd"))}><BoltIcon /> {say(lang, "Əmrlər")}</button>
-                <button className={`nt-chip ${sheet === "tools" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "tools" ? "" : "tools"))}><GridIcon /> {say(lang, "Alətlər")}</button>
-                <button className={`nt-chip ${sheet === "fav" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "fav" ? "" : "fav"))}><StarIcon /> {say(lang, "Sevimlilər")}</button>
-                <button className={`nt-chip ${sheet === "jump" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "jump" ? "" : "jump"))}><FolderIcon /> {say(lang, "Keçidlər")}</button>
-                <button className={`nt-chip ${sheet === "more" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "more" ? "" : "more"))}>··· {say(lang, "Daha çox")}</button>
-              </div>
+              {session.server ? <iframe title="Önizləmə" className="h-28 w-full border-t border-[#222] bg-black" sandbox="" srcDoc={session.server.html} /> : null}
               {keysOn ? (
-                <div className="nt-keys rounded-xl">
+                <div className="nt-keys">
                   {extraKeyRows(session).map((row, rowIndex) => (
                     <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
                       {row.map((key) => {
@@ -1618,15 +1560,7 @@ function NWatermark() {
 }
 
 function PromptMark({ text }: { text: string }) {
-  const match = /^(.*)@([^:]+):(.*)([#$])$/.exec(text);
-  if (!match) return <span className="text-[#5fdf7a]">{text} </span>;
-  return (
-    <>
-      <span className="text-[#5fdf7a]">{match[1]}@{match[2]}</span>
-      <span className="text-[#6cb6ff]">:{match[3]}</span>
-      <span className="text-[#f2f2f2]">{match[4]} </span>
-    </>
-  );
+  return <span className="text-[#e8e8e8]">{text} </span>;
 }
 
 function paintLine(text: string, kind: "in" | "out" | "err") {
@@ -1645,6 +1579,23 @@ function paintLine(text: string, kind: "in" | "out" | "err") {
             {bit}
           </span>
         ))}
+      </>
+    );
+  }
+  if (kind === "out" && text.includes("#     #")) {
+    return (
+      <>
+        {text.split("\n").map((row, index) => {
+          const cut = row.indexOf("   ");
+          const logo = cut < 0 ? row : row.slice(0, cut);
+          const info = cut < 0 ? "" : row.slice(cut);
+          return (
+            <span key={index} className="block whitespace-pre">
+              <span className="text-[#d8d8d8]">{logo}</span>
+              <span className="text-[#e6d37a]">{info}</span>
+            </span>
+          );
+        })}
       </>
     );
   }
