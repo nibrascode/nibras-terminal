@@ -16,6 +16,7 @@ import {
   ACTIONS,
   applyAnswer,
   emptySession,
+  browserReady,
   extraKeyRows,
   formatBytes,
   hydrate,
@@ -316,7 +317,7 @@ export function NibrasTerminal() {
   }, []);
 
   useEffect(() => {
-    const loaded = loadSession();
+    const loaded = browserReady(loadSession());
     setSession(loaded);
     const stored = loadLines();
     const fresh = stored.length <= 3 && stored.some((line) => line.text.includes(GREETING) || line.text.startsWith("Nibras Terminal"));
@@ -412,7 +413,7 @@ export function NibrasTerminal() {
     }
     try {
       if (result.python) {
-        setBusy("Python yüklənir…");
+        setBusy("Python");
         const py = await loadPython();
         const ran = await execPython(py, current, result.python);
         current = ran.session;
@@ -425,7 +426,7 @@ export function NibrasTerminal() {
         if (ran.output) push([{ kind: "out", text: ran.output }]);
       }
       if (result.php) {
-        setBusy("PHP yüklənir…");
+        setBusy("PHP");
         const php = await loadPhp();
         await php.run(phpSource(current, result.php));
         const text = php.take().replace(/\s+$/, "");

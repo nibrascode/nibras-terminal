@@ -34,6 +34,7 @@ export type Session = {
   jobs: Array<{ id: number; cmd: string; state: string }>;
   oldpwd: string;
   stack: string[];
+  web: boolean;
 };
 
 export type Ask = {
@@ -200,6 +201,7 @@ export function emptySession(): Session {
     jobs: [],
     oldpwd: "",
     stack: [],
+    web: false,
   };
 }
 
@@ -245,6 +247,7 @@ export function hydrate(raw: unknown): Session {
     jobs: jobsFrom(parsed.jobs),
     oldpwd: typeof parsed.oldpwd === "string" ? parsed.oldpwd : "",
     stack: Array.isArray(parsed.stack) ? parsed.stack.filter((item) => typeof item === "string").slice(-20) : [],
+    web: false,
   };
 }
 
@@ -286,13 +289,27 @@ export function suggestions(session: Session): Array<{ label: string; line: stri
 }
 
 export function usedBytes(session: Session) {
+  let total = 0;
+  for (const body of Object.values(session.files)) total += body.length;
+  if (session.web) return total;
   const marked = new Set<string>();
   if (session.env) marked.add(session.env);
   for (const pkg of session.pkgs) marked.add(pkg);
-  let total = 0;
   for (const key of marked) total += SIZES[key] ?? 0;
-  for (const body of Object.values(session.files)) total += body.length;
   return total;
+}
+
+export function browserReady(session: Session): Session {
+  const next = structuredClone(session);
+  next.web = true;
+  if (!next.env) {
+    next.env = "ubuntu";
+    seedSystem(next, "ubuntu");
+  }
+  for (const key of ["python", "node", "php", "git", "build"]) {
+    if (!next.pkgs.includes(key)) next.pkgs.push(key);
+  }
+  return next;
 }
 
 export function screenFetch(session: Session) {
@@ -1548,8 +1565,8 @@ function uname(session: Session) {
 }
 
 function python(session: Session, args: string[], answer?: string): ShellOut {
-  if (!session.pkgs.includes("python")) return fail(session, "Python seçilməyib.\nnibras install python");
-  if (!session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
+  if (!session.web && !session.pkgs.includes("python")) return fail(session, "Python seçilməyib.\nnibras install python");
+  if (!session.web && !session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
   if (!args.length) return { ...ok(session, "Python · çıxış: exit()"), repl: "python" };
   if (args[0] === "-c") {
     const code = args.slice(1).join(" ") || answer;
@@ -1563,8 +1580,8 @@ function python(session: Session, args: string[], answer?: string): ShellOut {
 }
 
 function nodeCmd(session: Session, args: string[], answer?: string): ShellOut {
-  if (!session.pkgs.includes("node")) return fail(session, "Node seçilməyib.\nnibras install node");
-  if (!session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
+  if (!session.web && !session.pkgs.includes("node")) return fail(session, "Node seçilməyib.\nnibras install node");
+  if (!session.web && !session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
   if (!args.length) return { ...ok(session, "Node · çıxış: exit"), repl: "node" };
   if (args[0] === "-e") {
     const code = args.slice(1).join(" ") || answer;
@@ -1578,8 +1595,8 @@ function nodeCmd(session: Session, args: string[], answer?: string): ShellOut {
 }
 
 function php(session: Session, args: string[], answer?: string): ShellOut {
-  if (!session.pkgs.includes("php")) return fail(session, "PHP seçilməyib.\nnibras install php");
-  if (!session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
+  if (!session.web && !session.pkgs.includes("php")) return fail(session, "PHP seçilməyib.\nnibras install php");
+  if (!session.web && !session.env) return fail(session, "Əvvəl mühit seç: nibras install alpine");
   if (!args.length || args[0] === "-v") return { ...ok(session, ""), php: { code: "", version: true } };
   if (args[0] === "-r") {
     const code = args.slice(1).join(" ") || answer;
@@ -1920,6 +1937,18 @@ function install(session: Session, name: string | undefined, yes: boolean): Shel
   if (!name) return fail(session, "nibras install alpine | debian | ubuntu | python | node | php | git | build");
   const key = alias(name);
   if (!key) return fail(session, `naməlum paket: ${name}`);
+  if (session.web) {
+    if (ENVS.includes(key as EnvName)) {
+      const env = key as EnvName;
+      if (session.env !== env) {
+        session.env = env;
+        seedSystem(session, env);
+      }
+      return ok(session, `${env} brauzerdə hazırdır. Kök arxiv yalnız APK-da yüklənir.`);
+    }
+    if (!session.pkgs.includes(key)) session.pkgs.push(key);
+    return ok(session, `${key} brauzerdə hazırdır. Yükləmə yoxdur.`);
+  }
   if (ENVS.includes(key as EnvName)) {
     const env = key as EnvName;
     if (session.env === env) return ok(session, `${env} artıq seçilib`);
@@ -3002,8 +3031,8 @@ function commandCmd(session: Session, args: string[], answer?: string): ShellOut
 const C_MARK = "#!nibras-c\n";
 
 function gcc(session: Session, args: string[], answer?: string): ShellOut {
-  if (!session.pkgs.includes("build")) return fail(session, "C seçilməyib.\nnibras install build");
-  if (!session.env) return fail(session, "Əvvəl mühit seç");
+  if (!session.web && !session.pkgs.includes("build")) return fail(session, "C seçilməyib.\nnibras install build");
+  if (!session.web && !session.env) return fail(session, "Əvvəl mühit seç");
   const file = args.find((arg) => arg.endsWith(".c") || arg.endsWith(".cpp")) || (answer?.endsWith(".c") || answer?.endsWith(".cpp") ? answer : undefined);
   if (!file) return askFor(session, { id: "text", title: "C faylı", label: "məsələn main.c", resume: "gcc" });
   const path = resolve(session.cwd, file);
