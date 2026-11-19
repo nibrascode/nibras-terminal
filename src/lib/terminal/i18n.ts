@@ -96,7 +96,17 @@ const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
   { re: /^bildiriş bağlıdır$/, tr: "bildirim kapalı", en: "notifications are blocked", ru: "уведомления закрыты" },
   { re: /^nibras-distro yaz$/, tr: "nibras-distro yaz", en: "use nibras-distro", ru: "пиши nibras-distro" },
   { re: /^(nibras-\S+) yaz$/, tr: "$1 yaz", en: "use $1", ru: "пиши $1" },
-  { re: /^özəl açar ekrana yazılmır$/, tr: "özel anahtar ekrana yazılmaz", en: "the private key is not shown", ru: "личный ключ не показывается" },
+  { re: /^əvvəlki qovluq yoxdur$/, tr: "önceki klasör yok", en: "no previous directory", ru: "нет предыдущей папки" },
+  { re: /^stək boşdur$/, tr: "yığın boş", en: "the stack is empty", ru: "стек пуст" },
+  { re: /^keçmiş boşdur$/, tr: "geçmiş boş", en: "history is empty", ru: "история пуста" },
+  { re: /^keçmişdə yoxdur$/, tr: "geçmişte yok", en: "not in history", ru: "нет в истории" },
+  { re: /^watch dayandı$/, tr: "watch durdu", en: "watch stopped", ru: "watch остановлен" },
+  { re: /^adb bu ünvanda yoxdur\. Kabel və Android Studio lazımdır$/, tr: "adb bu adreste yok. Kablo ve Android Studio gerekir", en: "adb is not on this site. A cable and Android Studio are required", ru: "adb здесь нет. Нужны кабель и Android Studio" },
+  { re: /^oyaqlıq yoxdur$/, tr: "uyanık tutma yok", en: "no wake lock", ru: "нет блокировки сна" },
+  { re: /^şəbəkə oxunmur$/, tr: "ağ okunamıyor", en: "the network cannot be read", ru: "сеть не читается" },
+  { re: /^paylaşıldı$/, tr: "paylaşıldı", en: "shared", ru: "отправлено" },
+  { re: /^ekran oyaqdır$/, tr: "ekran uyanık", en: "the screen stays awake", ru: "экран не гаснет" },
+  { re: /^ekran buraxıldı$/, tr: "ekran bırakıldı", en: "the screen can sleep", ru: "экран может гаснуть" },
 ];
 
 const MONTHS = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avqust", "sentyabr", "oktyabr", "noyabr", "dekabr"];

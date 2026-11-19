@@ -283,6 +283,9 @@ export function NibrasTerminal() {
   const [copied, setCopied] = useState("");
   const [past, setPast] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [hunt, setHunt] = useState("");
+  const [mark, setMark] = useState("");
+  const [bell, setBell] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
@@ -368,6 +371,7 @@ export function NibrasTerminal() {
   }
 
   async function apply(result: ShellOut) {
+    const started = performance.now();
     let current = result.session;
     if (result.output === "\u0000clear") setLines([]);
     else if (result.output) push([{ kind: result.ok === false ? "err" : "out", text: result.output }]);
@@ -513,6 +517,12 @@ export function NibrasTerminal() {
       if (text) push([{ kind: text.startsWith("!") ? "err" : "out", text: text.replace(/^!/, "") }]);
     }
     setSession(current);
+    const ms = Math.round(performance.now() - started);
+    setMark(result.ok === false ? "xəta" : ms > 400 ? `${ms} ms` : "");
+    if (result.ok === false) {
+      setBell(true);
+      window.setTimeout(() => setBell(false), 160);
+    }
     if (result.ask) {
       setAsk(result.ask);
       setField("");
@@ -529,6 +539,7 @@ export function NibrasTerminal() {
     const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(base);
     push([{ kind: "in", text: `${lead} ${shown}` }]);
     setDraft("");
+    setHunt("");
     if (repl) {
       void runRepl(typed, base);
       return;
@@ -614,6 +625,22 @@ export function NibrasTerminal() {
     }
     if (event.ctrlKey && !event.altKey) {
       const key = event.key.toLowerCase();
+      if (key === "r" && !repl) {
+        event.preventDefault();
+        const query = (hunt || draft).toLowerCase();
+        if (!hunt) setHunt(query);
+        const list = session.history;
+        let start = list.lastIndexOf(draft);
+        if (start < 0) start = list.length;
+        for (let index = start - 1; index >= 0; index -= 1) {
+          const item = list[index] ?? "";
+          if (!query || item.toLowerCase().includes(query)) {
+            setDraft(item);
+            return;
+          }
+        }
+        return;
+      }
       if (key === "l" && !repl) {
         event.preventDefault();
         submit("clear");
@@ -649,6 +676,10 @@ export function NibrasTerminal() {
         setDraft(draft.slice(0, pos));
         return;
       }
+    }
+    if (event.key === "Escape") {
+      setHunt("");
+      return;
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -794,7 +825,12 @@ export function NibrasTerminal() {
       setMods({ ctrl: false, alt: false });
       return;
     }
-    if (name.length === 1) insertText(key);
+    if (name === "PASTE") {
+      void navigator.clipboard?.readText().then((text) => {
+        if (text) insertText(text);
+      });
+      return;
+    }
     box.current?.focus();
   }
 
@@ -832,7 +868,7 @@ export function NibrasTerminal() {
 
   return (
     <div className="nt-app">
-      <div className="nt-phone">
+      <div className={`nt-phone ${bell ? "outline outline-1 outline-[#ff6b6b]" : ""}`}>
         <header className="nt-title">
           <nav className="flex shrink-0 gap-3">
             <Nav label={say(lang, "Terminal")} active={tab === "term"} onClick={() => setTab("term")} />
@@ -897,6 +933,8 @@ export function NibrasTerminal() {
                     <PromptMark text={repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(session)} />
                   </span>
                   {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
+                  {hunt ? <span className="text-[#6d6d6d]">keçmiş</span> : null}
+                  {mark ? <span className="text-[#6d6d6d]">{mark}</span> : null}
                   <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
                   <input
                     ref={box}
@@ -941,6 +979,7 @@ export function NibrasTerminal() {
                     </button>
                   ))}
                   <button className="nt-key" type="button" onClick={addSlot}>+</button>
+                  <button className="nt-key" type="button" onClick={() => pressKey("PASTE")}>PASTE</button>
                 </div>
                 {extraKeyRows(session).map((row, rowIndex) => (
                   <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
@@ -1407,8 +1446,8 @@ function PromptMark({ text }: { text: string }) {
 }
 
 function paintLine(text: string, kind: "in" | "out" | "err") {
-  if (kind === "err") return <span className="text-[#ff6b6b]">{text}</span>;
-  if (kind !== "in") return <span className="text-[#d7d7d7]">{text}</span>;
+  if (kind === "err") return <span className="text-[#ff6b6b]">{linkText(text)}</span>;
+  if (kind !== "in") return <span className="text-[#d7d7d7]">{linkText(text)}</span>;
   const cut = text.indexOf(" ");
   if (cut < 1) return <span className="text-[#f2f2f2]">{text}</span>;
   return (
@@ -1416,6 +1455,19 @@ function paintLine(text: string, kind: "in" | "out" | "err") {
       <PromptMark text={text.slice(0, cut)} />
       <span className="text-[#f2f2f2]">{text.slice(cut + 1)}</span>
     </>
+  );
+}
+
+function linkText(text: string) {
+  const parts = text.split(/(https:\/\/[^\s]+)/g);
+  return parts.map((part, index) =>
+    part.startsWith("https://") ? (
+      <a key={`${index}-${part}`} className="text-[#6cb6ff] underline" href={part} target="_blank" rel="noreferrer">
+        {part}
+      </a>
+    ) : (
+      <span key={`${index}-t`}>{part}</span>
+    ),
   );
 }
 
@@ -1438,6 +1490,8 @@ async function createKey(path: string) {
     fingerprint,
   };
 }
+
+let screenLock: { release: () => Promise<void> } | null = null;
 
 async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "clip-set") {
@@ -1476,6 +1530,43 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "open") {
     window.open(device.url, "_blank", "noopener,noreferrer");
     return device.url;
+  }
+  if (device.kind === "wake-lock") {
+    const nav = navigator as Navigator & { wakeLock?: { request: (kind: "screen") => Promise<{ release: () => Promise<void> }> } };
+    if (!nav.wakeLock) return "!oyaqlıq yoxdur";
+    try {
+      screenLock = await nav.wakeLock.request("screen");
+      return "ekran oyaqdır";
+    } catch {
+      return "!oyaqlıq yoxdur";
+    }
+  }
+  if (device.kind === "wake-unlock") {
+    await screenLock?.release();
+    screenLock = null;
+    return "ekran buraxıldı";
+  }
+  if (device.kind === "share") {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: device.text });
+        return "paylaşıldı";
+      } catch {
+        return "!paylaşılmadı";
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(device.text);
+      return "lövhəyə yazıldı";
+    } catch {
+      return "!paylaşılmadı";
+    }
+  }
+  if (device.kind === "network") {
+    const nav = navigator as Navigator & { connection?: { effectiveType?: string; downlink?: number; rtt?: number } };
+    const link = nav.connection;
+    if (!link) return "!şəbəkə oxunmur";
+    return `${link.effectiveType ?? "şəbəkə"} · ${link.downlink ?? "?"} Mb/s · ${link.rtt ?? "?"} ms`;
   }
   if (!("Notification" in window)) return "!bildiriş yoxdur";
   const permit = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();

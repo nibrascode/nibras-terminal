@@ -32,6 +32,8 @@ export type Session = {
   shadow: Record<string, string>;
   functions: Record<string, string>;
   jobs: Array<{ id: number; cmd: string; state: string }>;
+  oldpwd: string;
+  stack: string[];
 };
 
 export type Ask = {
@@ -73,7 +75,11 @@ export type ShellOut = {
     | { kind: "battery" }
     | { kind: "speak"; text: string }
     | { kind: "open"; url: string }
-    | { kind: "notify"; title: string; body: string };
+    | { kind: "notify"; title: string; body: string }
+    | { kind: "wake-lock" }
+    | { kind: "wake-unlock" }
+    | { kind: "share"; text: string }
+    | { kind: "network" };
   keygen?: { path: string };
 };
 
@@ -148,7 +154,9 @@ export const ACTIONS: Array<{ group: string; label: string; line: string; mark?:
   { group: "Telefon", label: "Yaddaş", line: "nibras-setup-storage" },
   { group: "Telefon", label: "Batareya", line: "nibras-battery-status" },
   { group: "Telefon", label: "Paket", line: "pkg list-all" },
-  { group: "Telefon", label: "Mühitlər", line: "nibras-distro list" },
+  { group: "Telefon", label: "Oyaq", line: "nibras-wake-lock" },
+  { group: "Telefon", label: "Şəbəkə", line: "nibras-wifi-connectioninfo" },
+  { group: "Telefon", label: "Paylaş", line: "nibras-share" },
   { group: "Hesab", label: "Dəyər", line: "read" },
   { group: "Hesab", label: "Ləqəb", line: "alias" },
   { group: "Hesab", label: "Tokeni sil", line: "nibras token sil" },
@@ -190,6 +198,8 @@ export function emptySession(): Session {
     shadow: {},
     functions: {},
     jobs: [],
+    oldpwd: "",
+    stack: [],
   };
 }
 
@@ -233,6 +243,8 @@ export function hydrate(raw: unknown): Session {
     shadow: stringMap(parsed.shadow, 64),
     functions: stringMap(parsed.functions, 500),
     jobs: jobsFrom(parsed.jobs),
+    oldpwd: typeof parsed.oldpwd === "string" ? parsed.oldpwd : "",
+    stack: Array.isArray(parsed.stack) ? parsed.stack.filter((item) => typeof item === "string").slice(-20) : [],
   };
 }
 
@@ -309,11 +321,32 @@ export function visibleCommand(line: string) {
 export function runLine(session: Session, line: string, answer?: string): ShellOut {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("#")) return ok(session, "");
+  const history = session.history.at(-1) === trimmed ? session.history.slice(0, -1) : session.history;
+  const expanded = expandBang(history, trimmed);
+  if (expanded.error) return fail(session, expanded.error);
   try {
-    return runSequence(structuredClone(session), trimmed, answer);
+    return runSequence(structuredClone(session), expanded.line, answer);
   } catch (error) {
     return fail(session, error instanceof Error ? error.message : "xəta");
   }
+}
+
+function expandBang(history: string[], line: string): { line: string; error?: string } {
+  if (!line.includes("!")) return { line };
+  const last = history.at(-1) ?? "";
+  const lastArg = last.split(/\s+/).filter(Boolean).at(-1) ?? "";
+  if ((/(^|\s)!!(?=\s|$)/.test(line) || /(^|\s)!\$/.test(line)) && !last) return { line, error: "keçmiş boşdur" };
+  let missing = false;
+  const next = line
+    .replace(/(^|\s)!!(?=\s|$)/g, `$1${last}`)
+    .replace(/(^|\s)!\$/g, `$1${lastArg}`)
+    .replace(/(^|\s)!(\d+)(?=\s|$)/g, (_all, space: string, n: string) => {
+      const item = history[Number(n) - 1];
+      if (!item) missing = true;
+      return `${space}${item ?? ""}`;
+    });
+  if (missing) return { line, error: "keçmişdə yoxdur" };
+  return { line: next };
 }
 
 function runSequence(session: Session, line: string, answer?: string, depth = 0): ShellOut {
@@ -402,7 +435,25 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
     case "unalias":
       return unaliasCmd(session, args, answer);
     case "cd":
-      return cd(session, args[0] ?? session.envVars.HOME ?? "/root");
+      return cd(session, args[0] ?? "");
+    case "pushd":
+      return pushd(session, args[0]);
+    case "popd":
+      return popd(session);
+    case "dirs":
+      return dirsCmd(session);
+    case "watch":
+      return watchCmd(session, args);
+    case "fc":
+      return ok(session, session.history.at(-1) ?? "");
+    case "open":
+      return openCmd(session, args, answer);
+    case "reset":
+      return ok(session, "\u0000clear");
+    case "logcat":
+      return logcatCmd(session, args);
+    case "adb":
+      return fail(session, "adb bu ünvanda yoxdur. Kabel və Android Studio lazımdır");
     case "cat":
       return cat(session, args, answer, stdin);
     case "mkdir":
@@ -441,6 +492,10 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
     case "export":
       return exportVar(session, args.join(" "));
     case "history":
+      if (args[0] === "-c") {
+        session.history = [];
+        return ok(session, "");
+      }
       return ok(session, session.history.map((item, index) => `${index + 1}  ${item}`).join("\n"));
     case "grep":
     case "egrep":
@@ -813,10 +868,80 @@ function ls(session: Session, args: string[] = []): ShellOut {
 }
 
 function cd(session: Session, arg: string): ShellOut {
-  const dir = at(session, arg || session.home);
+  const home = session.home || session.envVars.HOME || "/root";
+  let asked = arg || home;
+  if (arg === "-") {
+    asked = session.oldpwd || session.envVars.OLDPWD || "";
+    if (!asked) return fail(session, "əvvəlki qovluq yoxdur");
+  }
+  const dir = at(session, asked);
   if (!hasDir(session, dir)) return fail(session, `qovluq yoxdur: ${dir}`);
+  session.oldpwd = session.cwd;
+  session.envVars.OLDPWD = session.cwd;
+  session.envVars.PWD = dir;
   session.cwd = dir;
-  return ok(session, "");
+  return ok(session, arg === "-" ? dir : "");
+}
+
+function pushd(session: Session, arg?: string): ShellOut {
+  if (!arg) return fail(session, "pushd qovluq");
+  const from = session.cwd;
+  const moved = cd(session, arg);
+  if (moved.ok === false) return moved;
+  session.stack.push(from);
+  return dirsCmd(session);
+}
+
+function popd(session: Session): ShellOut {
+  const prev = session.stack.pop();
+  if (!prev) return fail(session, "stək boşdur");
+  const moved = cd(session, prev);
+  if (moved.ok === false) return moved;
+  return dirsCmd(session);
+}
+
+function dirsCmd(session: Session): ShellOut {
+  return ok(session, [session.cwd, ...[...session.stack].reverse()].join(" "));
+}
+
+function watchCmd(session: Session, args: string[]): ShellOut {
+  const seconds = Math.min(3, Math.max(1, Number(args[0]) || 0));
+  const rest = args.slice(1).join(" ").trim();
+  if (!seconds || !rest || /\bwatch\b/.test(rest)) return fail(session, "watch saniyə əmr");
+  const count = Number(session.envVars.WATCH || "0");
+  if (count >= 3) {
+    delete session.envVars.WATCH;
+    return ok(session, "watch dayandı");
+  }
+  const ran = runSequence(session, rest);
+  if (pause(ran) || ran.sleep) return ran;
+  ran.session.envVars.WATCH = String(count + 1);
+  return { ...ran, sleep: seconds * 1000, cont: `watch ${seconds} ${rest}` };
+}
+
+function openCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const name = args[0] || answer;
+  if (!name) return askFor(session, { id: "text", title: "Aç", label: "fayl və ya https://", resume: "open" });
+  if (name.startsWith("https://")) {
+    let parsed: URL;
+    try {
+      parsed = new URL(name);
+    } catch {
+      return fail(session, "ünvan səhvdir");
+    }
+    if (isBlockedHost(parsed.hostname)) return fail(session, "bu ünvan bağlıdır");
+    return { ...ok(session, ""), device: { kind: "open", url: name } };
+  }
+  const path = at(session, name);
+  if (session.files[path] === undefined) return fail(session, `fayl yoxdur: ${path}`);
+  return { ...ok(session, path), open: path };
+}
+
+function logcatCmd(session: Session, args: string[]): ShellOut {
+  const body = session.files["/var/log/nibras.log"] ?? "";
+  const count = Math.min(40, Math.max(1, Number(args.find((arg) => /^\d+$/.test(arg)) || "20")));
+  const lines = body.trim().split("\n").filter(Boolean).slice(-count);
+  return ok(session, ["Nibras terminal jurnalı. Sistem logcat-i bu vebdə yoxdur.", ...lines].join("\n"));
 }
 
 function cat(session: Session, args: string[], answer: string | undefined, stdin?: string): ShellOut {
@@ -2236,7 +2361,15 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
     if (!answer) return askFor(session, { id: "text", title: args[0] || "Dialog", label: "Mətn", resume: "nibras-dialog" });
     return ok(session, answer);
   }
-  return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog");
+  if (cmd === "nibras-wake-lock") return { ...ok(session, ""), device: { kind: "wake-lock" } };
+  if (cmd === "nibras-wake-unlock") return { ...ok(session, ""), device: { kind: "wake-unlock" } };
+  if (cmd === "nibras-share") {
+    const text = args.join(" ") || answer;
+    if (!text) return askFor(session, { id: "text", title: "Paylaş", label: "Mətn", resume: "nibras-share" });
+    return { ...ok(session, ""), device: { kind: "share", text } };
+  }
+  if (cmd === "nibras-wifi-connectioninfo") return { ...ok(session, ""), device: { kind: "network" } };
+  return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog | wake-lock | share");
 }
 
 function pkg(session: Session, cmd: string, args: string[], answer?: string): ShellOut {
@@ -2405,6 +2538,14 @@ function ok(session: Session, output: string): ShellOut {
 }
 
 function fail(session: Session, output: string): ShellOut {
+  const path = "/var/log/nibras.log";
+  const prev = session.files[path] ?? "";
+  const line = output.split("\n")[0]?.slice(0, 180) ?? "";
+  if (line) {
+    session.dirs = session.dirs.includes("/var/log") ? session.dirs : [...session.dirs, "/var", "/var/log"];
+    const body = `${prev}${line}\n`.split("\n").slice(-41).join("\n");
+    session.files[path] = body.endsWith("\n") ? body : `${body}\n`;
+  }
   return { session, output, ok: false };
 }
 
@@ -2970,7 +3111,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
@@ -4086,6 +4227,9 @@ Telefon
   nibras-distro list | login ubuntu
   nibras-setup-storage
   nibras-clipboard-set | nibras-battery-status | nibras-toast
+  nibras-wake-lock | nibras-wifi-connectioninfo | nibras-share
+  cd - | pushd | popd | !! | Ctrl-R
+  logcat terminal jurnalıdır. adb və sistem logcat-i burada yoxdur.
   Açar sırası: ESC TAB CTRL ALT və oxlar. ~/.nibras/nibras.properties
   SMS, zəng və kamera yoxdur.
 
