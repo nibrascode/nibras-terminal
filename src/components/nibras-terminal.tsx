@@ -893,6 +893,7 @@ export function NibrasTerminal() {
       <div className={`nt-window ${bell ? "outline outline-1 outline-[#c04040]" : ""}`}>
         <div className="nt-caption">
           <span className="min-w-0 flex-1 truncate">{session.user || "root"}@{session.env ?? "nibras"}: {session.cwd}</span>
+          <button className="nt-clear" type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>{say(lang, "Təmizlə")}</button>
           <span className="nt-lights" aria-hidden="true"><i /><i /><i /></span>
         </div>
         <div className="nt-menubar">
@@ -909,7 +910,7 @@ export function NibrasTerminal() {
               {bar === "file" ? (
                 <>
                   <button type="button" onClick={() => { setBar(""); setTab("term"); addSlot(); }}>New Tab</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>Clear</button>
+                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>{say(lang, "Təmizlə")}</button>
                   <button type="button" onClick={() => { setBar(""); setTab("file"); }}>{say(lang, "Fayl")}</button>
                   <button type="button" onClick={() => { setBar(""); setTab("pick"); }}>{say(lang, "Seçimlər")}</button>
                   <button type="button" onClick={() => { setBar(""); setTab("term"); box.current?.focus(); }}>Terminal</button>
