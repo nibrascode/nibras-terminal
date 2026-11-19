@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { FileText, LayoutGrid, SquareTerminal } from "lucide-react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { cloneGithub, probeHost, pushGithub, utf8ToBase64 } from "@/lib/terminal/github";
 import { runRemote } from "@/lib/terminal/remote.functions";
 import {
@@ -29,7 +28,6 @@ import {
   runLine,
   runNode,
   storeZip,
-  suggestions,
   complete,
   usedBytes,
   visibleCommand,
@@ -284,6 +282,7 @@ export function NibrasTerminal() {
   const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState("");
   const [past, setPast] = useState(false);
+  const [menu, setMenu] = useState(false);
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
@@ -823,7 +822,6 @@ export function NibrasTerminal() {
     return !query || label.includes(query) || group.includes(query) || item.label.toLowerCase().includes(query) || item.line.includes(query);
   });
   const groups = [...new Set(actions.map((item) => item.group))];
-  const chips = repl ? [{ label: "Çıx", line: "exit" }] : [{ label: "Skript", line: "" }, ...suggestions(session)];
   const hints = repl || !draft.trim() ? [] : complete(session, draft);
   const recent = session.history.slice(-8).reverse();
   const look = needle.trim().toLowerCase();
@@ -835,149 +833,121 @@ export function NibrasTerminal() {
   return (
     <div className="nt-app">
       <div className="nt-phone">
-        <header className="flex items-baseline justify-between gap-3 border-b border-line px-4 py-3">
-          <div>
-            <p className="font-mono text-xs tracking-widest text-gold">NIBRAS</p>
-            <h1 className="font-serif text-2xl leading-none text-fg">{say(lang, "Terminal")}</h1>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex gap-1" role="group" aria-label="language">
+        <header className="nt-title">
+          <nav className="flex shrink-0 gap-3">
+            <Nav label={say(lang, "Terminal")} active={tab === "term"} onClick={() => setTab("term")} />
+            <Nav label={say(lang, "Seçimlər")} active={tab === "pick"} onClick={() => setTab("pick")} />
+            <Nav label={say(lang, "Fayl")} active={tab === "file"} onClick={() => setTab("file")} />
+          </nav>
+          <span className="min-w-0 flex-1 truncate text-xs text-[#6d6d6d]">{prompt(session)}</span>
+          <button className="nt-key on h-7 min-w-7" type="button" onClick={() => setMenu((value) => !value)} aria-label="menu">
+            ≡
+          </button>
+        </header>
+        {menu ? (
+          <div className="shrink-0 space-y-2 border-b border-[#222] bg-[#141414] px-3 py-2 font-mono text-xs text-[#cfcfcf]">
+            <div className="flex flex-wrap items-center gap-2">
               {LANGS.map((code) => (
-                <button
-                  key={code}
-                  className={`min-h-11 min-w-11 border px-1 font-mono text-xs ${code === lang ? "border-gold text-gold" : "border-line text-muted"}`}
-                  type="button"
-                  onClick={() => void pickLang(code)}
-                >
-                  {langBusy === code ? "…" : code.toUpperCase()}
+                <button key={code} className={`nt-key ${code === lang ? "on" : ""}`} type="button" onClick={() => void pickLang(code)}>
+                  {langBusy === code ? "…" : code}
                 </button>
               ))}
+              <button className="nt-key" type="button" onClick={() => setSize((value) => (value === 0 ? 0 : value - 1))}>A−</button>
+              <button className="nt-key" type="button" onClick={() => setSize((value) => (value === 2 ? 2 : value + 1))}>A+</button>
+              <button className="nt-key" type="button" onClick={() => { setScriptOpen(true); setMenu(false); }}>{say(lang, "Skript")}</button>
+              <button className="nt-key" type="button" onClick={() => setPast((value) => !value)}>{say(lang, "Keçmiş")}</button>
+              <button
+                className="nt-key"
+                type="button"
+                onClick={() => {
+                  const body = shown.map((line) => say(lang, line.text)).join("\n");
+                  void navigator.clipboard?.writeText(body);
+                }}
+              >
+                {say(lang, "Kopyala")}
+              </button>
             </div>
-            <p className="text-right font-mono text-xs text-muted">
-              {session.env ?? say(lang, "mühit yoxdur")}
-              <br />
-              {formatBytes(usedBytes(session))} / {formatBytes(DISK_BUDGET)}
+            <input id="find" className="nt-field w-full" value={needle} placeholder={say(lang, "nəticədə axtar")} onChange={(event) => setNeedle(event.target.value)} />
+            <p className="text-[#6d6d6d]">
+              {session.env ?? say(lang, "mühit yoxdur")} · {formatBytes(usedBytes(session))} / {formatBytes(DISK_BUDGET)}
               {session.hasToken ? " · token" : ""}
             </p>
           </div>
-        </header>
+        ) : null}
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {tab === "term" ? (
-            <div className="flex min-h-0 flex-1 flex-col">
-              <div className="nt-chips">
-                {chips.map((item) => (
-                  <button
-                    key={item.label}
-                    className="min-h-11 shrink-0 border border-line bg-surface px-3 text-sm text-fg"
-                    type="button"
-                    onClick={() => {
-                      if (!item.line) {
-                        setScriptOpen(true);
-                        return;
-                      }
-                      if (repl) {
-                        setRepl(null);
-                        push([{ kind: "out", text: "çıxdı" }]);
-                        return;
-                      }
-                      submit(item.line);
-                    }}
-                  >
-                    {say(lang, item.label)}
-                  </button>
+            <div className="flex min-h-0 flex-1 flex-col" onClick={() => box.current?.focus()}>
+              <div ref={scroller} className={`nt-screen ${sizeClass}`}>
+                {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
+                {shown.map((line, index) => (
+                  <div key={`${line.kind}-${index}`} className="whitespace-pre-wrap break-words">
+                    {paintLine(say(lang, line.text), line.kind)}
+                  </div>
                 ))}
-              </div>
-              <div className="flex items-center gap-2 px-4 pt-2">
-                <label className="sr-only" htmlFor="find">
-                  {say(lang, "Nəticədə axtar")}
-                </label>
-                <input
-                  id="find"
-                  className="nt-field min-w-0 flex-1"
-                  value={needle}
-                  placeholder={say(lang, "nəticədə axtar")}
-                  onChange={(event) => setNeedle(event.target.value)}
-                />
-                <button className="min-h-11 shrink-0 border border-line px-3 font-mono text-sm text-fg" type="button" onClick={() => setSize((value) => (value === 0 ? 0 : value - 1))}>
-                  A−
-                </button>
-                <button className="min-h-11 shrink-0 border border-line px-3 font-mono text-sm text-fg" type="button" onClick={() => setSize((value) => (value === 2 ? 2 : value + 1))}>
-                  A+
-                </button>
-                <button
-                  className="min-h-11 shrink-0 border border-line px-3 text-sm text-fg"
-                  type="button"
-                  onClick={() => {
-                    const body = shown.map((line) => say(lang, line.text)).join("\n");
-                    void navigator.clipboard?.writeText(body).then(
-                      () => setCopied("kopyalandı"),
-                      () => setCopied("kopyalanmadı"),
-                    );
-                    window.setTimeout(() => setCopied(""), 1200);
+                {busy ? <p className="text-[#8a8a8a]">{say(lang, busy)}</p> : null}
+                {copied ? <p className="text-[#8fbf8a]">{say(lang, copied)}</p> : null}
+                <form
+                  className="nt-line"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submit(draft);
                   }}
                 >
-                  {say(lang, "Kopyala")}
-                </button>
+                  <span className="shrink-0">
+                    <PromptMark text={repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(session)} />
+                  </span>
+                  {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
+                  <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
+                  <input
+                    ref={box}
+                    id="cmd"
+                    className="nt-input"
+                    value={draft}
+                    disabled={Boolean(busy)}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={onKey}
+                  />
+                </form>
               </div>
-              <div ref={scroller} className={`min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3 font-mono ${sizeClass}`}>
-                {shown.length ? null : <p className="text-muted">{say(lang, "tapılmadı")}</p>}
-                {shown.map((line, index) => (
-                  <button
-                    key={`${line.kind}-${index}`}
-                    className={`block w-full whitespace-pre-wrap text-left font-mono ${sizeClass} ${line.kind === "in" ? "text-gold" : line.kind === "err" ? "text-danger" : "text-fg"}`}
-                    type="button"
-                    onClick={() => {
-                      void navigator.clipboard?.writeText(line.text).then(
-                        () => setCopied("kopyalandı"),
-                        () => setCopied("kopyalanmadı"),
-                      );
-                      window.setTimeout(() => setCopied(""), 1200);
-                    }}
-                  >
-                    {say(lang, line.text)}
-                  </button>
-                ))}
-                {busy ? <p className="text-muted">{say(lang, busy)}</p> : null}
-              </div>
-              {copied ? <p className="px-4 pb-1 font-mono text-xs text-ok">{say(lang, copied)}</p> : null}
               {past && recent.length ? (
-                <div className="max-h-36 overflow-y-auto border-t border-line">
+                <div className="max-h-28 overflow-y-auto border-t border-[#222] bg-[#101010]">
                   {recent.map((item, index) => (
-                    <button key={`${index}-${item}`} className="block min-h-11 w-full px-4 text-left font-mono text-sm text-fg" type="button" onClick={() => { setPast(false); submit(item); }}>
+                    <button key={`${index}-${item}`} className="block w-full px-3 py-1 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => { setPast(false); submit(item); }}>
                       {item}
                     </button>
                   ))}
                 </div>
               ) : null}
               {hints.length ? (
-                <div className="nt-chips border-t border-line">
+                <div className="flex gap-3 overflow-x-auto bg-[#101010] px-3 py-1 font-mono text-xs text-[#8a8a8a]">
                   {hints.map((item) => (
-                    <button key={item} className="min-h-11 shrink-0 border border-line bg-surface px-3 font-mono text-sm text-fg" type="button" onClick={() => { setDraft(item); box.current?.focus(); }}>
+                    <button key={item} className="shrink-0" type="button" onClick={() => { setDraft(item); box.current?.focus(); }}>
                       {item.trim()}
                     </button>
                   ))}
                 </div>
               ) : null}
               {session.server ? (
-                <iframe title="Önizləmə" className="h-40 w-full border-t border-line bg-surface" sandbox="" srcDoc={session.server.html} />
+                <iframe title="Önizləmə" className="h-36 w-full border-t border-[#222] bg-[#0c0c0c]" sandbox="" srcDoc={session.server.html} />
               ) : null}
-              <div className="border-t border-line">
-                <div className="flex gap-1 overflow-x-auto px-2 pt-2">
+              <div className="nt-keys">
+                <div className="mb-1 flex gap-1 overflow-x-auto">
                   {(slots.length ? slots : [{ name: "1", session, lines }]).map((item, index) => (
-                    <button key={`${item.name}-${index}`} className={`min-h-11 min-w-11 border px-2 font-mono text-xs ${index === slot ? "border-gold text-gold" : "border-line text-fg"}`} type="button" onClick={() => switchSlot(index)}>
+                    <button key={`${item.name}-${index}`} className={`nt-key ${index === slot ? "on" : ""}`} type="button" onClick={() => switchSlot(index)}>
                       {item.name}
                     </button>
                   ))}
-                  <button className="min-h-11 min-w-11 border border-line px-2 font-mono text-xs text-fg" type="button" onClick={addSlot}>
-                    +
-                  </button>
+                  <button className="nt-key" type="button" onClick={addSlot}>+</button>
                 </div>
                 {extraKeyRows(session).map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex gap-1 overflow-x-auto px-2 py-1">
+                  <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
                     {row.map((key) => {
                       const on = (key.toUpperCase() === "CTRL" && mods.ctrl) || (key.toUpperCase() === "ALT" && mods.alt);
                       return (
-                        <button key={`${rowIndex}-${key}`} className={`min-h-11 min-w-11 shrink-0 border px-2 font-mono text-xs ${on ? "border-gold text-gold" : "border-line text-fg"}`} type="button" onClick={() => pressKey(key)}>
+                        <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
                           {key}
                         </button>
                       );
@@ -985,40 +955,6 @@ export function NibrasTerminal() {
                   </div>
                 ))}
               </div>
-              <form
-                className="flex items-center gap-2 border-t border-line px-3 py-2"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submit(draft);
-                }}
-              >
-                <label className="sr-only" htmlFor="cmd">
-                  {say(lang, "Əmr")}
-                </label>
-                <span className="max-w-36 shrink-0 truncate font-mono text-xs text-gold">
-                  {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="mr-1 text-danger">{session.envVars["?"]}</span> : null}
-                  {repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(session)}
-                </span>
-                <input
-                  ref={box}
-                  id="cmd"
-                  className="min-h-11 min-w-0 flex-1 bg-transparent font-mono text-base text-fg outline-none"
-                  value={draft}
-                  disabled={Boolean(busy)}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  placeholder={repl ? say(lang, "kod") : say(lang, "əmr")}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onKeyDown={onKey}
-                />
-                <button className="min-h-11 shrink-0 border border-line px-3 text-sm text-fg" type="button" onClick={() => setPast((value) => !value)}>
-                  {say(lang, "Keçmiş")}
-                </button>
-                <button className="min-h-11 shrink-0 bg-gold px-3 text-sm text-bg" type="submit" disabled={Boolean(busy)}>
-                  {say(lang, "Yaz")}
-                </button>
-              </form>
             </div>
           ) : null}
           {tab === "pick" ? (
@@ -1070,11 +1006,6 @@ export function NibrasTerminal() {
             />
           ) : null}
         </main>
-        <nav className="nt-nav grid grid-cols-3 border-t border-line bg-surface">
-          <Nav icon={<SquareTerminal size={18} />} label={say(lang, "Terminal")} active={tab === "term"} onClick={() => setTab("term")} />
-          <Nav icon={<LayoutGrid size={18} />} label={say(lang, "Seçimlər")} active={tab === "pick"} onClick={() => setTab("pick")} />
-          <Nav icon={<FileText size={18} />} label={say(lang, "Fayl")} active={tab === "file"} onClick={() => setTab("file")} />
-        </nav>
       </div>
       {scriptOpen ? (
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-deep/80 p-4" role="dialog" aria-modal="true">
@@ -1085,7 +1016,7 @@ export function NibrasTerminal() {
               runScript();
             }}
           >
-            <h2 className="font-serif text-2xl text-fg">{say(lang, "Skript")}</h2>
+            <h2 className="font-mono text-sm text-[#d7d7d7]">{say(lang, "Skript")}</h2>
             <p className="mt-2 text-sm leading-6 text-muted">{say(lang, "Hər sətir ayrı əmrdir. Boş sətir və # keçilir.")}</p>
             <textarea
               className="mt-4 min-h-40 w-full border border-line bg-bg p-3 font-mono text-sm leading-6 text-fg outline-none"
@@ -1121,7 +1052,7 @@ export function NibrasTerminal() {
               answerAsk();
             }}
           >
-            <h2 className="font-serif text-2xl text-fg">{say(lang, ask.title)}</h2>
+            <h2 className="font-mono text-sm text-[#d7d7d7]">{say(lang, ask.title)}</h2>
             <p className="mt-2 text-sm leading-6 text-muted">{say(lang, ask.label)}</p>
             {ask.id === "confirm" ? null : (
               <input
@@ -1223,7 +1154,7 @@ function FilePane({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-serif text-2xl text-fg">{say(lang, "Fayllar")}</h2>
+        <h2 className="truncate font-mono text-sm text-[#d7d7d7]">{say(lang, "Fayllar")}</h2>
         <div className="flex gap-3">
           <button className="min-h-11 text-sm text-gold" type="button" onClick={() => setBySize((value) => !value)}>
             {say(lang, bySize ? "Ölçü" : "Ad")}
@@ -1455,12 +1386,36 @@ function FilePane({
   );
 }
 
-function Nav({ icon, label, active, onClick }: { icon: ReactNode; label: string; active: boolean; onClick: () => void }) {
+function Nav({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button className={`flex min-h-12 flex-col items-center justify-center gap-1 font-mono text-xs ${active ? "text-gold" : "text-muted"}`} type="button" onClick={onClick}>
-      {icon}
+    <button className={`font-mono text-xs ${active ? "text-[#5fdf7a]" : "text-[#7a7a7a]"}`} type="button" onClick={onClick}>
       {label}
     </button>
+  );
+}
+
+function PromptMark({ text }: { text: string }) {
+  const match = /^(.*)@([^:]+):(.*)([#$])$/.exec(text);
+  if (!match) return <span className="text-[#5fdf7a]">{text} </span>;
+  return (
+    <>
+      <span className="text-[#5fdf7a]">{match[1]}@{match[2]}</span>
+      <span className="text-[#6cb6ff]">:{match[3]}</span>
+      <span className="text-[#f2f2f2]">{match[4]} </span>
+    </>
+  );
+}
+
+function paintLine(text: string, kind: "in" | "out" | "err") {
+  if (kind === "err") return <span className="text-[#ff6b6b]">{text}</span>;
+  if (kind !== "in") return <span className="text-[#d7d7d7]">{text}</span>;
+  const cut = text.indexOf(" ");
+  if (cut < 1) return <span className="text-[#f2f2f2]">{text}</span>;
+  return (
+    <>
+      <PromptMark text={text.slice(0, cut)} />
+      <span className="text-[#f2f2f2]">{text.slice(cut + 1)}</span>
+    </>
   );
 }
 
