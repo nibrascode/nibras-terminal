@@ -292,7 +292,7 @@ export function NibrasTerminal() {
   const [mark, setMark] = useState("");
   const [bell, setBell] = useState(false);
   const [bar, setBar] = useState<"" | "file" | "edit" | "tabs" | "help">("");
-  const [keysOn, setKeysOn] = useState(false);
+  const [keysOn, setKeysOn] = useState(true);
   const [favs, setFavs] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -638,6 +638,52 @@ export function NibrasTerminal() {
     void apply(runLine(next, "sh .nibras.sh"));
   }
 
+  function ctrlAction(key: string) {
+    if (key === "r" && !repl) {
+      const query = (hunt || draft).toLowerCase();
+      if (!hunt) setHunt(query);
+      const list = session.history;
+      let start = list.lastIndexOf(draft);
+      if (start < 0) start = list.length;
+      for (let index = start - 1; index >= 0; index -= 1) {
+        const item = list[index] ?? "";
+        if (!query || item.toLowerCase().includes(query)) {
+          setDraft(item);
+          return;
+        }
+      }
+      return;
+    }
+    if (key === "l" && !repl) {
+      submit("clear");
+      return;
+    }
+    if (key === "c") {
+      if (repl) {
+        setRepl(null);
+        push([{ kind: "out", text: "çıxdı" }]);
+      } else setDraft("");
+      return;
+    }
+    if (key === "a" || key === "e") {
+      const pos = key === "a" ? 0 : draft.length;
+      requestAnimationFrame(() => box.current?.setSelectionRange(pos, pos));
+      return;
+    }
+    if (key === "u") {
+      setDraft("");
+      return;
+    }
+    if (key === "w") {
+      setDraft((value) => value.replace(/\s*\S+\s*$/, ""));
+      return;
+    }
+    if (key === "k") {
+      const pos = box.current?.selectionStart ?? draft.length;
+      setDraft(draft.slice(0, pos));
+    }
+  }
+
   function onKey(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Tab") {
       event.preventDefault();
@@ -647,55 +693,9 @@ export function NibrasTerminal() {
     }
     if (event.ctrlKey && !event.altKey) {
       const key = event.key.toLowerCase();
-      if (key === "r" && !repl) {
+      if ("rclaeuwk".includes(key)) {
         event.preventDefault();
-        const query = (hunt || draft).toLowerCase();
-        if (!hunt) setHunt(query);
-        const list = session.history;
-        let start = list.lastIndexOf(draft);
-        if (start < 0) start = list.length;
-        for (let index = start - 1; index >= 0; index -= 1) {
-          const item = list[index] ?? "";
-          if (!query || item.toLowerCase().includes(query)) {
-            setDraft(item);
-            return;
-          }
-        }
-        return;
-      }
-      if (key === "l" && !repl) {
-        event.preventDefault();
-        submit("clear");
-        return;
-      }
-      if (key === "c") {
-        event.preventDefault();
-        if (repl) {
-          setRepl(null);
-          push([{ kind: "out", text: "çıxdı" }]);
-        } else setDraft("");
-        return;
-      }
-      if (key === "a" || key === "e") {
-        event.preventDefault();
-        const pos = key === "a" ? 0 : draft.length;
-        requestAnimationFrame(() => box.current?.setSelectionRange(pos, pos));
-        return;
-      }
-      if (key === "u") {
-        event.preventDefault();
-        setDraft("");
-        return;
-      }
-      if (key === "w") {
-        event.preventDefault();
-        setDraft((value) => value.replace(/\s*\S+\s*$/, ""));
-        return;
-      }
-      if (key === "k") {
-        event.preventDefault();
-        const pos = box.current?.selectionStart ?? draft.length;
-        setDraft(draft.slice(0, pos));
+        ctrlAction(key);
         return;
       }
     }
@@ -1004,6 +1004,18 @@ export function NibrasTerminal() {
                 </div>
               ) : null}
               {session.server ? <iframe title="Önizləmə" className="h-28 w-full border-t border-[#222] bg-black" sandbox="" srcDoc={session.server.html} /> : null}
+              <div className="nt-phonekeys">
+                <button type="button" onClick={() => pressKey("TAB")}>TAB</button>
+                <button type="button" onClick={() => pressKey("UP")}>↑</button>
+                <button type="button" onClick={() => pressKey("DOWN")}>↓</button>
+                <button type="button" onClick={() => ctrlAction("c")}>{say(lang, "Dur")}</button>
+                <button type="button" onClick={() => ctrlAction("r")}>{say(lang, "Keçmiş")}</button>
+                <button type="button" onClick={() => pressKey("PASTE")}>{say(lang, "Yapışdır")}</button>
+                <button type="button" onClick={() => ctrlAction("u")}>{say(lang, "Sətir")}</button>
+                <button type="button" onClick={() => ctrlAction("w")}>{say(lang, "Söz")}</button>
+                <button type="button" onClick={() => ctrlAction("a")}>{say(lang, "Başa")}</button>
+                <button type="button" onClick={() => ctrlAction("e")}>{say(lang, "Sona")}</button>
+              </div>
               {keysOn ? (
                 <div className="nt-keys">
                   {extraKeyRows(session).map((row, rowIndex) => (
