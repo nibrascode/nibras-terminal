@@ -1,0 +1,20 @@
+{
+  "name": "nibras-terminal-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4173",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "lucide-react": "^0.510.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "tailwindcss": "^4.3.0",
+    "vite": "^8.2.0"
+  }
+}

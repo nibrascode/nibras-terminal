@@ -1,5 +1,7 @@
 # Nibras Terminal
 
+Veb: https://nibrascode.github.io/nibras-terminal/
+
 Üç yol, eyni əməliyyat:
 
 - Terminal: `nibras install alpine`, `python3 main.py`, `git commit`
