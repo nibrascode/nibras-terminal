@@ -211,7 +211,7 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("echo salam", "uname -a", "ls /").forEach { sample ->
+            listOf("echo salam", "uname -a", "cat /etc/os-release").forEach { sample ->
                 TextButton(onClick = { line = sample }, enabled = state.busyId == null) {
                     Text(sample, color = Muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                 }

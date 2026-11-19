@@ -23,7 +23,7 @@ Minimum: Android 8 (API 26), ABI arm64-v8a
 | --- | --- | --- |
 | Alpine 3.24.1 minirootfs | release | Alpine-in rəsmi SHA-256 |
 | Debian stable-slim arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
-| Ubuntu arm64 kök sistemi | release | güzgü SHA-256, mənbə AnLinux |
+| Ubuntu 24.04 arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
 | Python 3.12.16 aarch64 | release | python-build-standalone SHA256SUMS |
 | Node.js 26.13.1 linux-arm64 | release | nodejs.org SHASUMS256.txt |
 | Git, C/C++, PHP, yoxlama skriptləri | `catalog/payloads/scripts` | repo SHA-256 |
@@ -40,15 +40,14 @@ PRoot (~788 KB, statik aarch64) APK-nın içindədir. Telefon, yüklənmiş fayl
 öz data qovluğundan işlətməyə icazə vermir, ona görə mühərrik `libproot.so`
 kimi yığılır. Alpine, Debian və Ubuntu arxivləri APK-da deyil.
 
-Sessiya ekranı açılmış mühitdə bir əmr işlədir (`echo salam`, `uname -a`, `ls /`
-və ya öz əmrin). Bu, açıq qalan interaktiv shell deyil. Əmr bu mühitdə telefonda
-yoxlanmayıb.
+Sessiya ekranı açılmış mühitdə bir əmr işlədir (`echo salam`, `uname -a`,
+`cat /etc/os-release` və ya öz əmrin). Bu, açıq qalan interaktiv shell deyil.
+Əmr bu mühitdə telefonda yoxlanmayıb.
 
 ## Nə telefon APK-sında hələ yoxdur
 
-Tam interaktiv terminal, paket meneceri və Ubuntu-nun rəsmi ixracı yoxdur.
-Ubuntu hələ AnLinux güzgüsüdür. Rəsmi `ubuntu:24.04` iş axını cəmi yoxlanmadan
-kataloqu dəyişmir.
+Tam interaktiv terminal və paket meneceri yoxdur. Sessiya bir əmr işlədib
+nəticəni göstərir.
 
 ## İş axını
 
@@ -57,8 +56,7 @@ Debug APK Actions-da yığılır. Köhnə `tools` SDK paketi artıq verilmir, on
 `build-tools;35.0.0` quraşdırır.
 
 Official rootfs iş axını rəsmi `debian:stable-slim` və `ubuntu:24.04` arm64
-imicindən kök sistemi çıxarır. Kataloqda Debian ixracı dayanır:
-`debian-stable-slim-arm64.tar.xz`. Ubuntu kataloqu hələ köhnə güzgüdür.
+imicindən kök sistemi çıxarır. Hər ikisinin SHA-256-sı yoxlanıb və kataloqdadır.
 
 GitHub tokeni kodda yoxdur. Yükləmə yalnız `github.com` və
 `githubusercontent.com` ünvanlarından gedir.
