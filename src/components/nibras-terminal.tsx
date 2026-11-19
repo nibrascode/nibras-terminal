@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cloneGithub, probeHost, pushGithub, utf8ToBase64 } from "@/lib/terminal/github";
 import { runRemote } from "@/lib/terminal/remote.functions";
 import {
@@ -24,7 +24,6 @@ import {
   isMarked,
   listHere,
   packHere,
-  prompt,
   runLine,
   runNode,
   storeZip,
@@ -50,7 +49,11 @@ const SSH_KEY = "nibras-terminal-ssh";
 const SIZE_KEY = "nibras-terminal-size";
 const LANG_KEY = "nibras-terminal-lang";
 
-const WELCOME = "Nibras Terminal\nƏmr yaz, Seçimlərdən bas, lazım olsa xana açılır.\nİlk addım: mühit seç.";
+const GREETING = "Nibras Terminal ilə çalışmağa xoş gəlmisiniz!";
+const BOOT: Line[] = [
+  { kind: "in", text: `$ echo "${GREETING}"` },
+  { kind: "out", text: GREETING },
+];
 
 declare global {
   interface Window {
@@ -254,13 +257,13 @@ function loadSession() {
 function loadLines(): Line[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(LINES) || "null") as Line[] | null;
-    if (!Array.isArray(parsed) || !parsed.length) return [{ kind: "out", text: WELCOME }];
+    if (!Array.isArray(parsed) || !parsed.length) return BOOT;
     return parsed
       .filter((line) => line && (line.kind === "in" || line.kind === "out" || line.kind === "err") && typeof line.text === "string")
       .slice(-80)
       .map((line) => ({ ...line, text: clipText(line.text) }));
   } catch {
-    return [{ kind: "out", text: WELCOME }];
+    return BOOT;
   }
 }
 
@@ -268,7 +271,7 @@ export function NibrasTerminal() {
   const [session, setSession] = useState<Session>(emptySession);
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<Tab>("term");
-  const [lines, setLines] = useState<Line[]>([{ kind: "out", text: WELCOME }]);
+  const [lines, setLines] = useState<Line[]>(BOOT);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slot, setSlot] = useState(0);
   const [mods, setMods] = useState({ ctrl: false, alt: false });
@@ -282,10 +285,13 @@ export function NibrasTerminal() {
   const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState("");
   const [past, setPast] = useState(false);
-  const [menu, setMenu] = useState(false);
   const [hunt, setHunt] = useState("");
   const [mark, setMark] = useState("");
   const [bell, setBell] = useState(false);
+  const [sheet, setSheet] = useState<"" | "cmd" | "tools" | "fav" | "jump" | "more">("");
+  const [keysOn, setKeysOn] = useState(false);
+  const [favs, setFavs] = useState<string[]>([]);
+  const [now, setNow] = useState(() => Date.now());
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
@@ -295,6 +301,17 @@ export function NibrasTerminal() {
   const scroller = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLInputElement>(null);
   const nodeScope = useRef<Record<string, unknown>>({});
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    try {
+      const saved = JSON.parse(localStorage.getItem("nibras.favs") || "[]") as unknown;
+      if (Array.isArray(saved)) setFavs(saved.filter((item) => typeof item === "string").slice(0, 24));
+    } catch {
+      setFavs([]);
+    }
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const loaded = loadSession();
@@ -536,7 +553,7 @@ export function NibrasTerminal() {
     if (!typed || busy) return;
     const shown = visibleCommand(typed);
     const base = { ...baseSession, history: [...baseSession.history, shown].slice(-80) };
-    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(base);
+    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : "$";
     push([{ kind: "in", text: `${lead} ${shown}` }]);
     setDraft("");
     setHunt("");
@@ -612,7 +629,7 @@ export function NibrasTerminal() {
       files: { ...session.files, [path]: body.endsWith("\n") ? body : `${body}\n` },
       history: [...session.history, "sh .nibras.sh"].slice(-80),
     };
-    push([{ kind: "in", text: `${prompt(next)} ${body}` }]);
+    push([{ kind: "in", text: `$ ${body}` }]);
     void apply(runLine(next, "sh .nibras.sh"));
   }
 
@@ -722,7 +739,7 @@ export function NibrasTerminal() {
     fresh.pkgs = [...session.pkgs];
     fresh.envVars = { ...session.envVars };
     fresh.links = { ...session.links };
-    const next = { name: String(slots.length + 1), session: fresh, lines: [{ kind: "out" as const, text: WELCOME }] };
+    const next = { name: String(slots.length + 1), session: fresh, lines: BOOT.map((line) => ({ ...line })) };
     setSlots((list) => [...list.map((item, index) => (index === slot ? { ...item, session, lines } : item)), next]);
     setSlot(slots.length);
     setSession(fresh);
@@ -865,102 +882,100 @@ export function NibrasTerminal() {
     ? lines.filter((line) => say(lang, line.text).toLowerCase().includes(look) || line.text.toLowerCase().includes(look))
     : lines;
   const sizeClass = size === 0 ? "text-xs leading-5" : size === 2 ? "text-base leading-7" : "text-sm leading-6";
+  const facts = readDevice();
+  const jumps = [...new Set([session.home || "/root", session.cwd, ...session.stack])];
+  const commandMenu = [
+    { label: "Siyahı", line: "ls" },
+    { label: "Təmizlə", line: "clear" },
+    { label: "Kömək", line: "help" },
+    { label: "Ubuntu", line: "nibras install ubuntu" },
+    { label: "Python", line: "nibras install python" },
+    { label: "Git", line: "git status" },
+  ];
+  const toolMenu = [
+    { label: "Paketlər", line: "pkg list-all" },
+    { label: "Mühit", line: "nibras-distro list" },
+    { label: "Ping", line: "ping github.com" },
+    { label: "Batareya", line: "nibras-battery-status" },
+    { label: "Şəbəkə", line: "nibras-wifi-connectioninfo" },
+    { label: "Disk", line: "df" },
+  ];
+  const runMenu = (line: string) => {
+    setSheet("");
+    setTab("term");
+    submit(line);
+  };
+  const keepFav = (line: string) => {
+    setFavs((prev) => {
+      const next = prev.includes(line) ? prev.filter((item) => item !== line) : [...prev, line].slice(-24);
+      localStorage.setItem("nibras.favs", JSON.stringify(next));
+      return next;
+    });
+  };
 
   return (
     <div className="nt-app">
       <div className={`nt-phone ${bell ? "outline outline-1 outline-[#ff6b6b]" : ""}`}>
-        <header className="nt-title">
-          <nav className="flex shrink-0 gap-3">
-            <Nav label={say(lang, "Terminal")} active={tab === "term"} onClick={() => setTab("term")} />
-            <Nav label={say(lang, "Seçimlər")} active={tab === "pick"} onClick={() => setTab("pick")} />
-            <Nav label={say(lang, "Fayl")} active={tab === "file"} onClick={() => setTab("file")} />
-          </nav>
-          <span className="min-w-0 flex-1 truncate text-xs text-[#6d6d6d]">{prompt(session)}</span>
-          <button className="nt-key on h-7 min-w-7" type="button" onClick={() => setMenu((value) => !value)} aria-label="menu">
-            ≡
-          </button>
-        </header>
-        {menu ? (
-          <div className="shrink-0 space-y-2 border-b border-[#222] bg-[#141414] px-3 py-2 font-mono text-xs text-[#cfcfcf]">
-            <div className="flex flex-wrap items-center gap-2">
-              {LANGS.map((code) => (
-                <button key={code} className={`nt-key ${code === lang ? "on" : ""}`} type="button" onClick={() => void pickLang(code)}>
-                  {langBusy === code ? "…" : code}
-                </button>
-              ))}
-              <button className="nt-key" type="button" onClick={() => setSize((value) => (value === 0 ? 0 : value - 1))}>A−</button>
-              <button className="nt-key" type="button" onClick={() => setSize((value) => (value === 2 ? 2 : value + 1))}>A+</button>
-              <button className="nt-key" type="button" onClick={() => { setScriptOpen(true); setMenu(false); }}>{say(lang, "Skript")}</button>
-              <button className="nt-key" type="button" onClick={() => setPast((value) => !value)}>{say(lang, "Keçmiş")}</button>
-              <button
-                className="nt-key"
-                type="button"
-                onClick={() => {
-                  const body = shown.map((line) => say(lang, line.text)).join("\n");
-                  void navigator.clipboard?.writeText(body);
-                }}
-              >
-                {say(lang, "Kopyala")}
-              </button>
-            </div>
-            <input id="find" className="nt-field w-full" value={needle} placeholder={say(lang, "nəticədə axtar")} onChange={(event) => setNeedle(event.target.value)} />
-            <p className="text-[#6d6d6d]">
-              {session.env ?? say(lang, "mühit yoxdur")} · {formatBytes(usedBytes(session))} / {formatBytes(DISK_BUDGET)}
-              {session.hasToken ? " · token" : ""}
-            </p>
+        <header className="flex items-center gap-2.5">
+          <Mark />
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[1.05rem] font-semibold leading-none tracking-tight text-white">Nibras Terminal</h1>
+            <p className="mt-1 truncate text-[0.7rem] text-[#8b98a5]">Powerful Terminal · No Ads</p>
           </div>
-        ) : null}
+          <button className="inline-flex h-8 items-center gap-1 rounded-full border border-[#8a6a1d] bg-[#1a1408] px-2.5 text-[0.72rem] font-semibold text-[#f0c14a]" type="button" onClick={() => setCopied("Reklamsız tam terminal")}>
+            <Crown />
+            Premium
+          </button>
+          <IconButton label={say(lang, "Fayl")} onClick={() => setTab("file")}><FolderIcon /></IconButton>
+          <IconButton label={say(lang, "Keçmiş")} onClick={() => setPast((value) => !value)}><ClockIcon /></IconButton>
+          <IconButton label="Daha çox" onClick={() => setSheet((value) => (value === "more" ? "" : "more"))}><GearIcon /></IconButton>
+        </header>
+        <section className="nt-banner flex items-center gap-3">
+          <span className="relative z-10 grid h-11 w-11 place-items-center rounded-xl bg-[#123222] font-mono text-lg text-[#3dff9a]">{"\u003e_"}</span>
+          <div className="relative z-10 min-w-0">
+            <p className="text-[1.02rem] font-semibold text-white">Nibras Terminal <span className="text-[#3dff9a]">v2.0.0</span></p>
+            <p className="text-sm text-[#9aa7b2]">Sadə. Güclü. Peşəkar.</p>
+          </div>
+        </section>
+        <section className="grid grid-cols-5 gap-1 rounded-2xl border border-[#1c2830] bg-[#0c1218] px-1 py-2">
+          <Stat icon={<PhoneIcon />} label="Device" value={facts.device} />
+          <Stat icon={<BotIcon />} label={facts.system === "Web" ? "OS" : "Android"} value={facts.system} />
+          <Stat icon={<ChipIcon />} label="Arch" value={facts.arch} />
+          <Stat icon={<HomeIcon />} label="Home" value={session.home || "/root"} />
+          <Stat icon={<ClockIcon />} label="Uptime" value={clock(now - session.started)} />
+        </section>
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {tab === "term" ? (
-            <div className="flex min-h-0 flex-1 flex-col" onClick={() => box.current?.focus()}>
-              <div ref={scroller} className={`nt-screen ${sizeClass}`}>
-                {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
-                {shown.map((line, index) => (
-                  <div key={`${line.kind}-${index}`} className="whitespace-pre-wrap break-words">
-                    {paintLine(say(lang, line.text), line.kind)}
-                  </div>
-                ))}
-                {busy ? <p className="text-[#8a8a8a]">{say(lang, busy)}</p> : null}
-                {copied ? <p className="text-[#8fbf8a]">{say(lang, copied)}</p> : null}
-                <form
-                  className="nt-line"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    submit(draft);
-                  }}
-                >
-                  <span className="shrink-0">
-                    <PromptMark text={repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(session)} />
-                  </span>
-                  {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
-                  {hunt ? <span className="text-[#6d6d6d]">keçmiş</span> : null}
-                  {mark ? <span className="text-[#6d6d6d]">{mark}</span> : null}
-                  <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
-                  <input
-                    ref={box}
-                    id="cmd"
-                    className="nt-input"
-                    value={draft}
-                    disabled={Boolean(busy)}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onKeyDown={onKey}
-                  />
-                </form>
+            <div className="flex min-h-0 flex-1 flex-col gap-2">
+              <div className="nt-term" onClick={() => box.current?.focus()}>
+                <NWatermark />
+                <div ref={scroller} className={`nt-screen relative z-10 bg-transparent ${sizeClass}`}>
+                  {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
+                  {shown.map((line, index) => (
+                    <div key={`${line.kind}-${index}`} className="whitespace-pre-wrap break-words">
+                      {paintLine(say(lang, line.text), line.kind)}
+                    </div>
+                  ))}
+                  {busy ? <p className="text-[#8a8a8a]">{say(lang, busy)}</p> : null}
+                  {copied ? <p className="text-[#8fbf8a]">{say(lang, copied)}</p> : null}
+                  <p className="mt-3 font-mono text-[#3dff9a]">
+                    $ <span className="inline-block h-4 w-2 translate-y-0.5 bg-[#e7eef3]" />
+                    {hunt ? <span className="ml-2 text-[#6d6d6d]">keçmiş</span> : null}
+                    {mark ? <span className="ml-2 text-[#6d6d6d]">{mark}</span> : null}
+                  </p>
+                </div>
               </div>
               {past && recent.length ? (
-                <div className="max-h-28 overflow-y-auto border-t border-[#222] bg-[#101010]">
+                <div className="max-h-24 overflow-y-auto rounded-xl border border-[#1c2830] bg-[#0c1218]">
                   {recent.map((item, index) => (
-                    <button key={`${index}-${item}`} className="block w-full px-3 py-1 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => { setPast(false); submit(item); }}>
+                    <button key={`${index}-${item}`} className="block w-full px-3 py-1.5 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => { setPast(false); submit(item); }}>
                       {item}
                     </button>
                   ))}
                 </div>
               ) : null}
               {hints.length ? (
-                <div className="flex gap-3 overflow-x-auto bg-[#101010] px-3 py-1 font-mono text-xs text-[#8a8a8a]">
+                <div className="flex gap-3 overflow-x-auto px-1 font-mono text-xs text-[#8a8a8a]">
                   {hints.map((item) => (
                     <button key={item} className="shrink-0" type="button" onClick={() => { setDraft(item); box.current?.focus(); }}>
                       {item.trim()}
@@ -968,32 +983,106 @@ export function NibrasTerminal() {
                   ))}
                 </div>
               ) : null}
-              {session.server ? (
-                <iframe title="Önizləmə" className="h-36 w-full border-t border-[#222] bg-[#0c0c0c]" sandbox="" srcDoc={session.server.html} />
-              ) : null}
-              <div className="nt-keys">
-                <div className="mb-1 flex gap-1 overflow-x-auto">
-                  {(slots.length ? slots : [{ name: "1", session, lines }]).map((item, index) => (
-                    <button key={`${item.name}-${index}`} className={`nt-key ${index === slot ? "on" : ""}`} type="button" onClick={() => switchSlot(index)}>
-                      {item.name}
-                    </button>
-                  ))}
-                  <button className="nt-key" type="button" onClick={addSlot}>+</button>
-                  <button className="nt-key" type="button" onClick={() => pressKey("PASTE")}>PASTE</button>
-                </div>
-                {extraKeyRows(session).map((row, rowIndex) => (
-                  <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
-                    {row.map((key) => {
-                      const on = (key.toUpperCase() === "CTRL" && mods.ctrl) || (key.toUpperCase() === "ALT" && mods.alt);
-                      return (
-                        <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
-                          {key}
+              {session.server ? <iframe title="Önizləmə" className="h-28 w-full rounded-xl border border-[#1c2830] bg-[#05080b]" sandbox="" srcDoc={session.server.html} /> : null}
+              {sheet ? (
+                <div className="max-h-36 overflow-y-auto rounded-xl border border-[#1c2830] bg-[#0c1218] p-2">
+                  {sheet === "cmd" ? <MenuList items={commandMenu} onPick={runMenu} /> : null}
+                  {sheet === "tools" ? <MenuList items={toolMenu} onPick={runMenu} /> : null}
+                  {sheet === "fav" ? (
+                    favs.length ? (
+                      favs.map((item) => (
+                        <button key={item} className="block w-full px-2 py-1.5 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => runMenu(item)}>
+                          {item}
                         </button>
-                      );
-                    })}
-                  </div>
-                ))}
+                      ))
+                    ) : (
+                      <p className="px-2 py-1 text-xs text-[#8b98a5]">Ulduzla əmr saxla</p>
+                    )
+                  ) : null}
+                  {sheet === "jump" ? (
+                    jumps.map((item) => (
+                      <button key={item} className="block w-full px-2 py-1.5 text-left font-mono text-xs text-[#d7d7d7]" type="button" onClick={() => runMenu(`cd ${item}`)}>
+                        {item}
+                      </button>
+                    ))
+                  ) : null}
+                  {sheet === "more" ? (
+                    <div className="space-y-2 px-1 py-1 text-xs text-[#d7d7d7]">
+                      <div className="flex flex-wrap gap-1">
+                        {LANGS.map((code) => (
+                          <button key={code} className="nt-chip" type="button" onClick={() => void pickLang(code)}>
+                            {langBusy === code ? "…" : code}
+                          </button>
+                        ))}
+                        <button className="nt-chip" type="button" onClick={() => setTab("pick")}>{say(lang, "Seçimlər")}</button>
+                        <button className="nt-chip" type="button" onClick={() => { setScriptOpen(true); setSheet(""); }}>{say(lang, "Skript")}</button>
+                        <button className="nt-chip" type="button" onClick={() => setKeysOn((value) => !value)}>Açarlar</button>
+                        <button className="nt-chip" type="button" onClick={() => draft.trim() && keepFav(draft.trim())}>Ulduz</button>
+                        <button className="nt-chip" type="button" onClick={addSlot}>+</button>
+                        {(slots.length ? slots : [{ name: "1" }]).map((item, index) => (
+                          <button key={`${item.name}-${index}`} className="nt-chip" type="button" onClick={() => switchSlot(index)}>{item.name}</button>
+                        ))}
+                      </div>
+                      <input id="find" className="nt-field w-full" value={needle} placeholder={say(lang, "nəticədə axtar")} onChange={(event) => setNeedle(event.target.value)} />
+                      <p className="text-[#8b98a5]">
+                        {session.env ?? say(lang, "mühit yoxdur")} · {formatBytes(usedBytes(session))} / {formatBytes(DISK_BUDGET)}
+                        {session.hasToken ? " · token" : ""}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="flex gap-1.5 overflow-x-auto">
+                <button className={`nt-chip ${sheet === "cmd" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "cmd" ? "" : "cmd"))}><BoltIcon /> {say(lang, "Əmrlər")}</button>
+                <button className={`nt-chip ${sheet === "tools" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "tools" ? "" : "tools"))}><GridIcon /> {say(lang, "Alətlər")}</button>
+                <button className={`nt-chip ${sheet === "fav" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "fav" ? "" : "fav"))}><StarIcon /> {say(lang, "Sevimlilər")}</button>
+                <button className={`nt-chip ${sheet === "jump" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "jump" ? "" : "jump"))}><FolderIcon /> {say(lang, "Keçidlər")}</button>
+                <button className={`nt-chip ${sheet === "more" ? "on" : ""}`} type="button" onClick={() => setSheet((value) => (value === "more" ? "" : "more"))}>··· {say(lang, "Daha çox")}</button>
               </div>
+              {keysOn ? (
+                <div className="nt-keys rounded-xl">
+                  {extraKeyRows(session).map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
+                      {row.map((key) => {
+                        const on = (key.toUpperCase() === "CTRL" && mods.ctrl) || (key.toUpperCase() === "ALT" && mods.alt);
+                        return (
+                          <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
+                            {key}
+                          </button>
+                        );
+                      })}
+                      <button className="nt-key" type="button" onClick={() => pressKey("PASTE")}>PASTE</button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <form
+                className="nt-composer"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submit(draft);
+                }}
+              >
+                <span className="font-mono text-lg text-[#3dff9a]">{"\u003e_"}</span>
+                <span className="h-5 w-px bg-[#24303a]" />
+                <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
+                <input
+                  ref={box}
+                  id="cmd"
+                  className="nt-input"
+                  value={draft}
+                  disabled={Boolean(busy)}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder={say(lang, "Əmr yazın...")}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={onKey}
+                />
+                <button className="nt-send" type="submit" disabled={Boolean(busy)} aria-label={say(lang, "Yaz")}>
+                  <ArrowIcon />
+                </button>
+              </form>
             </div>
           ) : null}
           {tab === "pick" ? (
@@ -1425,11 +1514,119 @@ function FilePane({
   );
 }
 
-function Nav({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function MenuList({ items, onPick }: { items: Array<{ label: string; line: string }>; onPick: (line: string) => void }) {
   return (
-    <button className={`font-mono text-xs ${active ? "text-[#5fdf7a]" : "text-[#7a7a7a]"}`} type="button" onClick={onClick}>
-      {label}
+    <div>
+      {items.map((item) => (
+        <button key={item.line} className="flex w-full items-center justify-between gap-3 px-2 py-1.5 text-left text-xs text-[#d7dde3]" type="button" onClick={() => onPick(item.line)}>
+          <span>{item.label}</span>
+          <span className="truncate font-mono text-[#8b98a5]">{item.line}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#24303a] bg-[#10161c] text-[#d5dee6]" type="button" aria-label={label} onClick={onClick}>
+      {children}
     </button>
+  );
+}
+
+function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="min-w-0 border-l border-[#1c2830] px-1 text-center first:border-l-0">
+      <div className="mx-auto mb-1 grid h-4 place-items-center text-[#3dff9a]">{icon}</div>
+      <p className="truncate text-[0.6rem] text-[#8b98a5]">{label}</p>
+      <p className="truncate font-mono text-[0.58rem] text-[#e7eef3]">{value}</p>
+    </div>
+  );
+}
+
+function readDevice() {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  const android = /Android\s+(\d+)/.exec(ua);
+  const model = /;\s*([^;)]+)\s+Build\//.exec(ua)?.[1]?.trim();
+  const arch = /aarch64|arm64/i.test(ua) ? "arm64-v8a" : /x86_64|Win64|x64/i.test(ua) ? "x86_64" : "web";
+  return { device: model || "Web", system: android?.[1] ?? "Web", arch };
+}
+
+function clock(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = String(Math.floor(total / 3600)).padStart(2, "0");
+  const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const s = String(total % 60).padStart(2, "0");
+  return `${h}:${m}:${s}`;
+}
+
+function svg(path: string) {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d={path} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return svg("M3 7h6l2 2h10v10H3z");
+}
+function ClockIcon() {
+  return svg("M12 7v5l3 2M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z");
+}
+function GearIcon() {
+  return svg("M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM12 3v2M12 19v2M3 12h2M19 12h2");
+}
+function PhoneIcon() {
+  return svg("M8 3h8v18H8zM11 18h2");
+}
+function BotIcon() {
+  return svg("M9 9h6v8H9zM12 6V3M8 13H5M19 13h-3");
+}
+function ChipIcon() {
+  return svg("M8 8h8v8H8zM12 4v4M12 16v4M4 12h4M16 12h4");
+}
+function HomeIcon() {
+  return svg("M4 11 12 4l8 7v9H4z");
+}
+function BoltIcon() {
+  return svg("M13 3 6 13h5l-1 8 8-12h-5z");
+}
+function GridIcon() {
+  return svg("M5 5h6v6H5zM13 5h6v6h-6zM5 13h6v6H5zM13 13h6v6h-6z");
+}
+function StarIcon() {
+  return svg("M12 4l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z");
+}
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+      <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function Crown() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+      <path d="M3 17h18l-2-9-5 4-2-6-2 6-5-4z" />
+    </svg>
+  );
+}
+function Mark() {
+  return (
+    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[#10261a] text-[#3dff9a]">
+      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">
+        <path fill="currentColor" d="M6 6h6l4 8 4-8h6v20h-6V16l-4 7-4-7v10H6z" />
+      </svg>
+    </span>
+  );
+}
+function NWatermark() {
+  return (
+    <svg className="nt-mark" viewBox="0 0 120 140" aria-hidden="true">
+      <path fill="#147a3d" d="M8 8h28l24 48 24-48h28v124H84V62L60 104 36 62v70H8z" />
+    </svg>
   );
 }
 
@@ -1446,6 +1643,24 @@ function PromptMark({ text }: { text: string }) {
 }
 
 function paintLine(text: string, kind: "in" | "out" | "err") {
+  if (kind === "in" && (text.startsWith("$ ") || text.startsWith(">>> ") || text.startsWith("> "))) {
+    const mark = text.startsWith("$ ") ? "$" : text.startsWith(">>> ") ? ">>>" : ">";
+    const body = text.slice(mark.length + 1);
+    const word = body.split(" ")[0] ?? "";
+    const rest = body.slice(word.length);
+    const bits = rest.split(/(".*?")/g);
+    return (
+      <>
+        <span className="text-[#3dff9a]">{mark} </span>
+        <span className="text-[#e6c84a]">{word}</span>
+        {bits.map((bit, index) => (
+          <span key={`${index}-${bit.slice(0, 12)}`} className={bit.startsWith("\"") ? "text-[#3dff9a]" : "text-[#d7dde3]"}>
+            {bit}
+          </span>
+        ))}
+      </>
+    );
+  }
   if (kind === "err") return <span className="text-[#ff6b6b]">{linkText(text)}</span>;
   if (kind !== "in") return <span className="text-[#d7d7d7]">{linkText(text)}</span>;
   const cut = text.indexOf(" ");
