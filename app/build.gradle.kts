@@ -21,6 +21,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            val store = System.getenv("NIBRAS_STORE_FILE").orEmpty()
+            if (store.isNotEmpty()) {
+                storeFile = file(store)
+                storePassword = System.getenv("NIBRAS_STORE_PASSWORD")
+                keyAlias = System.getenv("NIBRAS_KEY_ALIAS")
+                keyPassword = System.getenv("NIBRAS_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -28,6 +40,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (System.getenv("NIBRAS_STORE_FILE").orEmpty().isNotEmpty()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

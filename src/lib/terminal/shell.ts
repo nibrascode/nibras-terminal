@@ -110,7 +110,7 @@ export type ShellOut = {
     | { kind: "location" };
   pip?: string;
   keygen?: { path: string };
-  apk?: { verb: "qur" | "status" | "endir"; sdk: "35" | "34" | "33" };
+  apk?: { verb: "qur" | "status" | "endir"; sdk: "35" | "34" | "33"; kind: "apk" | "aab" | "sign" };
 };
 
 export const DISK_BUDGET = 2 * 1024 * 1024 * 1024;
@@ -2676,49 +2676,61 @@ function nibras(session: Session, args: string[], answer?: string): ShellOut {
   if (sub === "layihe" || sub === "project") return project(session, args[1], args[2] || answer);
   if (sub === "sil" || sub === "remove") return removePkg(session, args[1] || answer);
   if (sub === "install") return install(session, args[1], args.includes("--yes") || answer === "bəli");
-  if (sub === "apk") return apkCmd(session, args.slice(1).join(" "));
-  return fail(session, "nibras install | sil | disk | token | apk | layihe | serve | md | stop | zibil | qaytar | gitignore");
+  if (sub === "apk") return apkCmd(session, args.slice(1).join(" "), "apk");
+  if (sub === "aab") return apkCmd(session, args.slice(1).join(" "), "aab");
+  if (sub === "sign") return apkCmd(session, args.slice(1).join(" "), "sign");
+  return fail(session, "nibras install | apk | aab | sign | token | layihe | serve | md | stop | disk | zibil | qaytar");
 }
 
-function apkCmd(session: Session, verb?: string): ShellOut {
+function apkCmd(session: Session, verb: string | undefined, kind: "apk" | "aab" | "sign"): ShellOut {
   const parts = (verb ?? "").split(/\s+/).filter(Boolean);
-  const word = parts[0] || "help";
-  const action = word === "build" || word === "qur" ? "qur" : word === "download" || word === "endir" ? "endir" : word;
-  const sdk = parts[1] || "35";
-  if (action === "help") {
-    return ok(
-      session,
-      [
-        "The APK build needs:",
-        "Java 17",
-        "Android SDK 35, 34, or 33",
-        "build-tools 35.0.0, 34.0.0, or 33.0.2",
-        "Gradle assembleDebug",
-        "Java 17 is the lowest version.",
-        "These run on the builder, not on the phone.",
-        "nibras token",
-        "nibras apk build",
-        "nibras apk build 34",
-        "nibras apk build 33",
-        "nibras apk status",
-        "nibras apk download",
-      ].join("\n"),
-    );
+  let word = parts[0] || (kind === "sign" ? "build" : "help");
+  let sdk = parts[1] || "35";
+  if (word === "35" || word === "34" || word === "33") {
+    sdk = word;
+    word = "build";
   }
-  if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, "nibras apk build | status | download");
+  const action = word === "build" || word === "qur" ? "qur" : word === "download" || word === "endir" ? "endir" : word;
+  const title = kind === "aab" ? "AAB" : kind === "sign" ? "signed release" : "APK";
+  if (action === "help") {
+    const lines =
+      kind === "sign"
+        ? [
+            "nibras sign",
+            "nibras sign 34",
+            "nibras sign 33",
+            "nibras sign status",
+            "nibras sign download",
+            "This signs a release APK and an AAB.",
+            "The password is not shown.",
+            "Keep nibras-signing.txt private if the zip contains it.",
+          ]
+        : [
+            `The ${title} build needs:`,
+            "Java 17",
+            "Android SDK 35, 34, or 33",
+            "build-tools 35.0.0, 34.0.0, or 33.0.2",
+            kind === "aab" ? "Gradle bundleDebug" : "Gradle assembleDebug",
+            "Debug packages are signed with the Android debug key.",
+            "nibras token",
+            `nibras ${kind} build`,
+            `nibras ${kind} build 34`,
+            `nibras ${kind} build 33`,
+            `nibras ${kind} status`,
+            `nibras ${kind} download`,
+            "Release signature: nibras sign",
+          ];
+    return ok(session, lines.join("\n"));
+  }
+  if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, `nibras ${kind} build | status | download`);
   if (action === "qur" && sdk !== "35" && sdk !== "34" && sdk !== "33") return fail(session, "SDK 35, 34, or 33");
   const chosen = (action === "qur" ? sdk : "35") as "35" | "34" | "33";
   const spoken = action === "qur" ? "build" : action === "endir" ? "download" : "status";
   if (!session.hasToken) {
-    return askFor(session, {
-      id: "token",
-      title: "Token",
-      label: "GitHub token. It is not shown.",
-      secret: true,
-      resume: spoken === "build" && chosen !== "35" ? `nibras apk build ${chosen}` : `nibras apk ${spoken}`,
-    });
+    const resume = kind === "sign" ? (chosen === "35" ? "nibras sign" : `nibras sign ${chosen}`) : spoken === "build" && chosen !== "35" ? `nibras ${kind} build ${chosen}` : `nibras ${kind} ${spoken}`;
+    return askFor(session, { id: "token", title: "Token", label: "GitHub token. It is not shown.", secret: true, resume });
   }
-  return { ...ok(session, ""), apk: { verb: action, sdk: chosen } };
+  return { ...ok(session, ""), apk: { verb: action, sdk: chosen, kind } };
 }
 
 function install(session: Session, name: string | undefined, yes: boolean): ShellOut {

@@ -143,41 +143,61 @@ function isPrivateAddress(host: string) {
 
 const APK_REPO = "nibrascode/nibras-terminal";
 
-export async function runApk(token: string, verb: "qur" | "status" | "endir", sdk: "35" | "34" | "33" = "35") {
+export async function runApk(
+  token: string,
+  verb: "qur" | "status" | "endir",
+  sdk: "35" | "34" | "33" = "35",
+  kind: "apk" | "aab" | "sign" = "apk",
+) {
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   const tools = sdk === "33" ? "build-tools 33.0.2" : sdk === "34" ? "build-tools 34.0.0" : "build-tools 35.0.0";
+  const command = kind === "sign" ? "nibras sign" : `nibras ${kind}`;
   if (verb === "qur") {
     const sent = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/dispatches`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: "main", inputs: { sdk } }),
+      body: JSON.stringify({ ref: "main", inputs: { sdk, kind } }),
     });
     if (sent.status === 401) throw new Error("Token qəbul edilmədi.");
     if (sent.status !== 204) throw new Error(await githubError(sent));
-    return { text: `Building the APK.\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\nnibras apk status` };
+    const doing = kind === "sign" ? "Signing the release APK and AAB." : kind === "aab" ? "Building the AAB." : "Building the APK.";
+    return { text: `${doing}\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\n${command} status` };
   }
-  const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=1`, { headers });
+  const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=10`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
   if (!listed.ok) throw new Error(await githubError(listed));
-  const body = (await listed.json()) as { workflow_runs?: Array<{ status: string; conclusion: string | null; html_url: string; artifacts_url: string }> };
-  const run = body.workflow_runs?.[0];
-  if (!run) return { text: "No build yet. nibras apk build" };
+  const body = (await listed.json()) as { workflow_runs?: Array<{ name?: string; status: string; conclusion: string | null; html_url: string; artifacts_url: string }> };
+  const run = body.workflow_runs?.find((item) => matchKind(item.name || "", kind));
+  if (!run) return { text: `No build yet. ${command}${kind === "sign" ? "" : " build"}` };
   if (run.status !== "completed") return { text: `${run.status}\n${run.html_url}` };
   if (run.conclusion !== "success") return { text: `failed: ${run.conclusion ?? "error"}\n${run.html_url}` };
-  if (verb === "status") return { text: `ready\n${run.html_url}\ndownload: nibras apk download` };
+  if (verb === "status") return { text: `ready\n${run.html_url}\ndownload: ${command} download` };
   const arts = await fetch(run.artifacts_url, { headers });
   if (!arts.ok) throw new Error(await githubError(arts));
   const packed = (await arts.json()) as { artifacts?: Array<{ name: string; archive_download_url: string }> };
-  const file = packed.artifacts?.find((item) => item.name === "nibras-terminal-debug") ?? packed.artifacts?.[0];
+  const wanted = `nibras-${kind}-${sdk}`;
+  const file = packed.artifacts?.find((item) => item.name === wanted) ?? packed.artifacts?.[0];
   if (!file) return { text: `ready, file was not found\n${run.html_url}` };
   const zip = await fetch(file.archive_download_url, { headers });
   if (zip.status === 401) throw new Error("Token qəbul edilmədi.");
   if (!zip.ok) throw new Error(await githubError(zip));
-  return { text: "APK downloaded. The zip contains app-debug.apk.", file: { name: "nibras-terminal-debug.zip", bytes: await zip.arrayBuffer() } };
+  const text =
+    kind === "sign"
+      ? "Signed release APK and AAB downloaded. The password is not shown. Keep nibras-signing.txt private if it is in the zip."
+      : kind === "aab"
+        ? "AAB downloaded. The zip contains app-debug.aab, signed with the Android debug key."
+        : "APK downloaded. The zip contains app-debug.apk, signed with the Android debug key.";
+  const name = kind === "sign" ? "nibras-signed.zip" : kind === "aab" ? "nibras-aab.zip" : "nibras-terminal-debug.zip";
+  return { text, file: { name, bytes: await zip.arrayBuffer() } };
+}
+
+function matchKind(name: string, kind: "apk" | "aab" | "sign") {
+  if (kind === "apk") return name.startsWith("apk ") || name === "Debug APK" || name === "Android package";
+  return name.startsWith(`${kind} `);
 }
 
 async function githubError(response: Response) {
