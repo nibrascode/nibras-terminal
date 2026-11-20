@@ -2682,38 +2682,40 @@ function nibras(session: Session, args: string[], answer?: string): ShellOut {
 
 function apkCmd(session: Session, verb?: string): ShellOut {
   const parts = (verb ?? "").split(/\s+/).filter(Boolean);
-  const action = parts[0];
+  const word = parts[0] || "help";
+  const action = word === "build" || word === "qur" ? "qur" : word === "download" || word === "endir" ? "endir" : word;
   const sdk = parts[1] || "35";
-  if (!action || action === "help") {
+  if (action === "help") {
     return ok(
       session,
       [
-        "APK üçün bunlar lazımdır:",
+        "The APK build needs:",
         "Java 17",
-        "Android SDK 35, 34 və ya 33",
-        "build-tools 35.0.0, 34.0.0 və ya 33.0.2",
+        "Android SDK 35, 34, or 33",
+        "build-tools 35.0.0, 34.0.0, or 33.0.2",
         "Gradle assembleDebug",
-        "Java 17 ən aşağıdır.",
-        "Bunlar telefonda yox, qurucuda işləyir.",
+        "Java 17 is the lowest version.",
+        "These run on the builder, not on the phone.",
         "nibras token",
-        "nibras apk qur",
-        "nibras apk qur 34",
-        "nibras apk qur 33",
+        "nibras apk build",
+        "nibras apk build 34",
+        "nibras apk build 33",
         "nibras apk status",
-        "nibras apk endir",
+        "nibras apk download",
       ].join("\n"),
     );
   }
-  if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, "nibras apk qur | status | endir");
-  if (action === "qur" && sdk !== "35" && sdk !== "34" && sdk !== "33") return fail(session, "SDK 35, 34 və ya 33");
+  if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, "nibras apk build | status | download");
+  if (action === "qur" && sdk !== "35" && sdk !== "34" && sdk !== "33") return fail(session, "SDK 35, 34, or 33");
   const chosen = (action === "qur" ? sdk : "35") as "35" | "34" | "33";
+  const spoken = action === "qur" ? "build" : action === "endir" ? "download" : "status";
   if (!session.hasToken) {
     return askFor(session, {
       id: "token",
       title: "Token",
-      label: "GitHub tokeni. Ekrana yazılmır.",
+      label: "GitHub token. It is not shown.",
       secret: true,
-      resume: action === "qur" && chosen !== "35" ? `nibras apk qur ${chosen}` : `nibras apk ${action}`,
+      resume: spoken === "build" && chosen !== "35" ? `nibras apk build ${chosen}` : `nibras apk ${spoken}`,
     });
   }
   return { ...ok(session, ""), apk: { verb: action, sdk: chosen } };
