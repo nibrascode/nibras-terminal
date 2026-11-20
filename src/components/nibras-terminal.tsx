@@ -62,6 +62,9 @@ Setup Nibras:
 - Help: help
 
 Working with packages:
+- Phone files: nibras-setup-storage
+- Python: pip install <paket>
+- Run: python3 fayl.py
 - Search: pkg search <query>
 - Install: pkg install <package>
 - Upgrade: pkg upgrade
@@ -100,6 +103,8 @@ declare global {
 
 type Pyodide = {
   runPythonAsync: (code: string) => Promise<unknown>;
+  loadPackage?: (name: string) => Promise<void>;
+  pyimport?: (name: string) => { install: (name: string) => Promise<void> };
   setStdout: (opts: { batched: (msg: string) => void }) => void;
   setStderr: (opts: { batched: (msg: string) => void }) => void;
   FS: {
@@ -466,6 +471,17 @@ export function NibrasTerminal() {
         const text = php.take().replace(/\s+$/, "");
         if (text) push([{ kind: "out", text }]);
       }
+      if (result.pip) {
+        setBusy("pip");
+        try {
+          const py = await loadPython();
+          await installPip(py, result.pip);
+          push([{ kind: "out", text: `${result.pip} quraşdı` }]);
+        } catch (error) {
+          push([{ kind: "err", text: error instanceof Error ? error.message : "quraşmadı" }]);
+        }
+        setBusy("");
+      }
       if (result.fetch) {
         setBusy("Gətirilir…");
         const saved = await pullText(result.fetch.url);
@@ -567,7 +583,29 @@ export function NibrasTerminal() {
         push([{ kind: "err", text: "açar yaradılmadı" }]);
       }
     }
-    if (result.device) {
+    if (result.device?.kind === "storage") {
+      setBusy("Yaddaş");
+      const mounted = await mountPhoneStorage();
+      if (!mounted.ok) push([{ kind: "err", text: mounted.error }]);
+      else {
+        const root = `${current.home || "/root"}/storage/shared`;
+        const files = { ...current.files };
+        const dirs = new Set(current.dirs);
+        dirs.add(root);
+        for (const [rel, body] of Object.entries(mounted.files)) {
+          const path = `${root}/${rel}`;
+          files[path] = body;
+          let folder = path.slice(0, path.lastIndexOf("/"));
+          while (folder && folder !== "/" && !dirs.has(folder)) {
+            dirs.add(folder);
+            folder = folder.slice(0, folder.lastIndexOf("/"));
+          }
+        }
+        current = { ...current, files, dirs: [...dirs] };
+        push([{ kind: "out", text: mounted.message }]);
+      }
+      setBusy("");
+    } else if (result.device) {
       if (result.device.kind === "video") setBusy("Video");
       const text = await runDevice(result.device);
       setBusy("");
@@ -575,6 +613,7 @@ export function NibrasTerminal() {
       if (text) push([{ kind: text.startsWith("!") ? "err" : "out", text: text.replace(/^!/, "") }]);
     }
     setSession(current);
+    void syncPhoneStorage(current);
     const ms = Math.round(performance.now() - started);
     setMark(result.ok === false ? "xəta" : ms > 400 ? `${ms} ms` : "");
     if (result.ok === false) {
@@ -1697,6 +1736,116 @@ async function createKey(path: string) {
 }
 
 let screenLock: { release: () => Promise<void> } | null = null;
+
+type DirHandle = FileSystemDirectoryHandle & {
+  entries: () => AsyncIterable<[string, FileSystemHandle]>;
+  removeEntry: (name: string) => Promise<void>;
+};
+
+type PhoneStore = {
+  prefix: string;
+  root: DirHandle;
+  files: Map<string, FileSystemFileHandle>;
+  dirs: Map<string, DirHandle>;
+  snap: Map<string, string>;
+};
+
+let phoneStore: PhoneStore | null = null;
+
+async function installPip(py: Pyodide, name: string) {
+  if (!py.loadPackage || !py.pyimport) throw new Error("pip yoxdur");
+  await py.loadPackage("micropip");
+  const micropip = py.pyimport("micropip");
+  await micropip.install(name);
+}
+
+async function mountPhoneStorage(): Promise<{ ok: true; files: Record<string, string>; message: string } | { ok: false; error: string }> {
+  const picker = (window as Window & { showDirectoryPicker?: () => Promise<DirHandle> }).showDirectoryPicker;
+  if (!picker) return { ok: false, error: "bu brauzer qovluq açmır" };
+  let root: DirHandle;
+  try {
+    root = await picker();
+  } catch {
+    return { ok: false, error: "qovluq seçilmədi" };
+  }
+  const store: PhoneStore = { prefix: "", root, files: new Map(), dirs: new Map(), snap: new Map() };
+  const files: Record<string, string> = {};
+  const budget = { n: 80 };
+  await walkStore(root, "", store, files, budget);
+  phoneStore = store;
+  const count = Object.keys(files).length;
+  return { ok: true, files, message: budget.n <= 0 ? `${count} fayl açıldı · limiti keçdi` : `${count} fayl açıldı · ~/storage/shared` };
+}
+
+async function walkStore(dir: DirHandle, rel: string, store: PhoneStore, files: Record<string, string>, budget: { n: number }) {
+  store.dirs.set(rel, dir);
+  for await (const [name, handle] of dir.entries()) {
+    if (budget.n <= 0 || name.startsWith(".")) continue;
+    const next = rel ? `${rel}/${name}` : name;
+    if (next.split("/").length > 6) continue;
+    if (handle.kind === "directory") {
+      await walkStore(handle as DirHandle, next, store, files, budget);
+      continue;
+    }
+    const fileHandle = handle as FileSystemFileHandle;
+    const file = await fileHandle.getFile();
+    if (file.size > 150_000) continue;
+    const text = await file.text();
+    if (text.includes("\u0000")) continue;
+    files[next] = text;
+    store.files.set(next, fileHandle);
+    store.snap.set(next, text);
+    budget.n -= 1;
+  }
+}
+
+async function syncPhoneStorage(session: Session) {
+  const store = phoneStore;
+  if (!store) return;
+  const prefix = `${session.home || "/root"}/storage/shared`;
+  store.prefix = prefix;
+  try {
+    for (const [rel, prev] of [...store.snap.entries()]) {
+      const now = session.files[`${prefix}/${rel}`];
+      if (now === undefined) {
+        const folder = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+        const name = rel.slice(folder.length ? folder.length + 1 : 0);
+        await store.dirs.get(folder)?.removeEntry(name);
+        store.snap.delete(rel);
+        store.files.delete(rel);
+        continue;
+      }
+      if (now !== prev) await writeStored(store, rel, now);
+    }
+    for (const [path, body] of Object.entries(session.files)) {
+      if (!path.startsWith(`${prefix}/`)) continue;
+      const rel = path.slice(prefix.length + 1);
+      if (store.snap.get(rel) === body) continue;
+      await writeStored(store, rel, body);
+    }
+  } catch {
+    phoneStore = null;
+  }
+}
+
+async function writeStored(store: PhoneStore, rel: string, body: string) {
+  const folder = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : "";
+  const name = rel.slice(folder.length ? folder.length + 1 : 0);
+  let dir = store.dirs.get(folder);
+  if (!dir) {
+    dir = store.root;
+    if (folder) {
+      for (const part of folder.split("/")) dir = (await dir.getDirectoryHandle(part, { create: true })) as DirHandle;
+      store.dirs.set(folder, dir);
+    }
+  }
+  const handle = await dir.getFileHandle(name, { create: true });
+  const writable = await handle.createWritable();
+  await writable.write(body);
+  await writable.close();
+  store.files.set(rel, handle);
+  store.snap.set(rel, body);
+}
 
 function pickVideos() {
   return new Promise<File[]>((resolve) => {

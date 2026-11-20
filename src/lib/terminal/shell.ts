@@ -81,7 +81,9 @@ export type ShellOut = {
     | { kind: "wake-unlock" }
     | { kind: "share"; text: string }
     | { kind: "network" }
-    | { kind: "video" };
+    | { kind: "video" }
+    | { kind: "storage" };
+  pip?: string;
   keygen?: { path: string };
 };
 
@@ -723,6 +725,9 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return nodeCmd(session, args, answer);
     case "php":
       return php(session, args, answer);
+    case "pip":
+    case "pip3":
+      return pipCmd(session, args, answer);
     case "gcc":
     case "g++":
     case "cc":
@@ -2553,8 +2558,7 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   if (cmd === "nibras-setup-storage") {
     const root = `${session.home || "/root"}/storage`;
     for (const name of ["shared", "downloads", "dcim", "pictures", "music", "movies"]) ensureDir(session, `${root}/${name}`);
-    session.files[`${root}/README.txt`] = "shared  downloads  dcim  pictures  music  movies\n";
-    return ok(session, root);
+    return { ...ok(session, root), device: { kind: "storage" } };
   }
   if (cmd === "nibras-reload-settings") {
     const path = `${session.home || "/root"}/.nibras/nibras.properties`;
@@ -2622,6 +2626,23 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   if (cmd === "nibras-wifi-connectioninfo") return { ...ok(session, ""), device: { kind: "network" } };
   if (cmd === "nibras-video") return { ...ok(session, ""), device: { kind: "video" } };
   return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog | wake-lock | share | video");
+}
+
+function pipCmd(session: Session, args: string[], answer?: string): ShellOut {
+  if (!session.web && !session.pkgs.includes("python")) return fail(session, "Python seçilməyib.\nnibras install python");
+  const verb = args[0];
+  const listPath = `${session.home || "/root"}/.nibras/pip.txt`;
+  const installed = (session.files[listPath] ?? "").split("\n").filter(Boolean);
+  if (verb === "list") return ok(session, installed.join("\n") || "paket yoxdur");
+  if (verb !== "install") return fail(session, "pip install paket");
+  const name = (args[1] || answer || "").trim();
+  if (!name) return askFor(session, { id: "text", title: "pip", label: "paket adı", resume: "pip install" });
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,60}$/.test(name)) return fail(session, "paket adı səhvdir");
+  if (!installed.includes(name)) {
+    ensureDir(session, parent(listPath));
+    session.files[listPath] = [...installed, name].join("\n") + "\n";
+  }
+  return { ...ok(session, ""), pip: name };
 }
 
 function ffmpegCmd(session: Session, args: string[]): ShellOut {
@@ -3370,7 +3391,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
