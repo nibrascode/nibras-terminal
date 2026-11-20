@@ -94,7 +94,13 @@ export type ShellOut = {
     | { kind: "notify-remove"; title: string }
     | { kind: "palette" }
     | { kind: "bright"; level: number }
-    | { kind: "volume"; level: number };
+    | { kind: "volume"; level: number }
+    | { kind: "camera-info" }
+    | { kind: "mic"; seconds: number }
+    | { kind: "play"; url: string }
+    | { kind: "play-stop" }
+    | { kind: "notify-list" }
+    | { kind: "fingerprint" };
   pip?: string;
   keygen?: { path: string };
 };
@@ -548,6 +554,10 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return timeCmd(session, args, answer, stdin);
     case "date":
       return ok(session, new Date().toLocaleString("az-AZ", { hour12: false }));
+    case "uuidgen":
+      return ok(session, crypto.randomUUID());
+    case "pwgen":
+      return ok(session, password(args[0]));
     case "bc":
       return bcCmd(session, args, answer);
     case "banner":
@@ -2676,7 +2686,72 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   if (cmd === "nibras-palette") return { ...ok(session, ""), device: { kind: "palette" } };
   if (cmd === "nibras-brightness") return levelCmd(session, args[0] || answer, "bright", 10, 100, "nibras-brightness");
   if (cmd === "nibras-volume") return levelCmd(session, args[0] || answer, "volume", 0, 100, "nibras-volume");
-  return fail(session, "nibras-info | setup-storage | download | torch | when | brightness | volume | backup");
+  if (cmd === "nibras-job-scheduler") return jobCmd(session, args, answer);
+  if (cmd === "nibras-camera-info") return { ...ok(session, ""), device: { kind: "camera-info" } };
+  if (cmd === "nibras-microphone-record") {
+    const seconds = Math.min(15, Math.max(1, Number(args[0] || answer) || 3));
+    return { ...ok(session, ""), device: { kind: "mic", seconds } };
+  }
+  if (cmd === "nibras-media-player") {
+    if (args[0] === "stop") return { ...ok(session, ""), device: { kind: "play-stop" } };
+    const url = args[0] || answer || "";
+    if (!url) return askFor(session, { id: "text", title: "Səs", label: "https://", resume: "nibras-media-player" });
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return fail(session, "ünvan səhvdir");
+    }
+    if (parsed.protocol !== "https:") return fail(session, "yalnız https");
+    if (isBlockedHost(parsed.hostname)) return fail(session, "bu ünvan bağlıdır");
+    return { ...ok(session, ""), device: { kind: "play", url } };
+  }
+  if (cmd === "nibras-notification-list") return { ...ok(session, ""), device: { kind: "notify-list" } };
+  if (cmd === "nibras-fingerprint") return { ...ok(session, ""), device: { kind: "fingerprint" } };
+  return fail(session, "nibras-info | job-scheduler | camera-info | microphone-record | media-player | fingerprint | torch | backup");
+}
+
+function password(raw?: string) {
+  const count = Math.min(64, Math.max(4, Number(raw) || 16));
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = new Uint8Array(count);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+function jobCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const path = `${session.home || "/root"}/.nibras/jobs`;
+  const rows = (session.files[path] ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((row) => {
+      const [id, period, ...rest] = row.split("\t");
+      return { id: Number(id), period: Number(period), command: rest.join("\t") };
+    })
+    .filter((row) => row.id && row.period && row.command);
+  const verb = args[0] || "list";
+  if (verb === "list") return ok(session, rows.map((row) => `${row.id} ${row.period} ${row.command}`).join("\n") || "iş yoxdur");
+  if (verb === "cancel-all") {
+    delete session.files[path];
+    return ok(session, "silindi");
+  }
+  if (verb === "cancel") {
+    const id = Number(args[1] || answer);
+    if (!rows.some((row) => row.id === id)) return fail(session, "iş yoxdur");
+    const next = rows.filter((row) => row.id !== id);
+    session.files[path] = next.map((row) => `${row.id}\t${row.period}\t${row.command}`).join("\n") + (next.length ? "\n" : "");
+    return ok(session, String(id));
+  }
+  const period = Number(verb);
+  if (!Number.isInteger(period) || period < 15000 || period > 86_400_000) return fail(session, "15000-86400000");
+  const command = args.slice(1).join(" ") || answer || "";
+  if (!command) return askFor(session, { id: "text", title: "İş", label: "əmr", resume: `nibras-job-scheduler ${period}` });
+  if (rows.length >= 5) return fail(session, "çox iş");
+  const id = rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+  rows.push({ id, period, command });
+  ensureDir(session, parent(path));
+  session.files[path] = rows.map((row) => `${row.id}\t${row.period}\t${row.command}`).join("\n") + "\n";
+  return ok(session, String(id));
 }
 
 function whenCmd(session: Session, args: string[], answer?: string): ShellOut {

@@ -457,6 +457,24 @@ export function NibrasTerminal() {
 
   useEffect(() => {
     if (!ready) return;
+    const rows = (session.files[`${session.home || "/root"}/.nibras/jobs`] ?? "")
+      .split("\n")
+      .filter(Boolean)
+      .map((row) => {
+        const [id, period, ...rest] = row.split("\t");
+        return { id, period: Number(period), command: rest.join("\t") };
+      })
+      .filter((row) => row.period >= 15000 && row.command);
+    const timers = rows.map((row) =>
+      window.setInterval(() => {
+        void apply(runLine(live.current, row.command));
+      }, row.period),
+    );
+    return () => timers.forEach((timer) => window.clearInterval(timer));
+  }, [ready, session.files, session.home]);
+
+  useEffect(() => {
+    if (!ready) return;
     try {
       localStorage.setItem(SIZE_KEY, String(size));
     } catch {
@@ -1982,6 +2000,7 @@ async function createKey(path: string) {
 }
 
 let speechVolume = 1;
+let player: HTMLAudioElement | null = null;
 let phoneNotes: Notification[] = [];
 let torchTrack: MediaStreamTrack | null = null;
 
@@ -2055,6 +2074,78 @@ function closeNote(title: string) {
   found.forEach((note) => note.close());
   phoneNotes = phoneNotes.filter((note) => note.title !== title);
   return found.length ? title : "!bildiriş yoxdur";
+}
+
+async function cameraInfo() {
+  if (!navigator.mediaDevices?.enumerateDevices) return "!kamera yoxdur";
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const cams = devices.filter((item) => item.kind === "videoinput");
+  if (!cams.length) return "!kamera yoxdur";
+  return cams.map((item, index) => `${index} ${item.label || "kamera"}`).join("\n");
+}
+
+function recordMic(seconds: number) {
+  if (!navigator.mediaDevices?.getUserMedia) return Promise.resolve("!mikrofon yoxdur");
+  return navigator.mediaDevices.getUserMedia({ audio: true }).then(
+    (stream) =>
+      new Promise<string>((resolve) => {
+        const rec = new MediaRecorder(stream);
+        const chunks: Blob[] = [];
+        rec.ondataavailable = (event) => {
+          if (event.data.size) chunks.push(event.data);
+        };
+        rec.onstop = () => {
+          stream.getTracks().forEach((track) => track.stop());
+          const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = "nibras.webm";
+          link.click();
+          window.setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+          resolve(`${seconds} san · nibras.webm`);
+        };
+        rec.start();
+        window.setTimeout(() => rec.stop(), seconds * 1000);
+      }),
+    () => "!mikrofon yoxdur",
+  );
+}
+
+function playUrl(url: string) {
+  stopPlay();
+  player = new Audio(url);
+  player.volume = speechVolume;
+  return player.play().then(
+    () => url,
+    () => "!səs açılmadı",
+  );
+}
+
+function stopPlay() {
+  player?.pause();
+  player = null;
+  return "səs dayandı";
+}
+
+async function askFingerprint() {
+  if (!window.PublicKeyCredential) return "!barmaq izi yoxdur";
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  try {
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge: bytes,
+        rp: { name: "Nibras" },
+        user: { id: bytes, name: "nibras", displayName: "Nibras" },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+        timeout: 20000,
+      },
+    });
+    return cred ? "təsdiqləndi" : "!barmaq izi yoxdur";
+  } catch {
+    return "!barmaq izi yoxdur";
+  }
 }
 
 let screenLock: { release: () => Promise<void> } | null = null;
@@ -2451,6 +2542,12 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "video") return mergeVideos();
   if (device.kind === "listen") return listenSpeech();
   if (device.kind === "sensor") return readSensor();
+  if (device.kind === "camera-info") return cameraInfo();
+  if (device.kind === "mic") return recordMic(device.seconds);
+  if (device.kind === "play") return playUrl(device.url);
+  if (device.kind === "play-stop") return stopPlay();
+  if (device.kind === "notify-list") return phoneNotes.map((note) => note.title).join("\n") || "bildiriş yoxdur";
+  if (device.kind === "fingerprint") return askFingerprint();
   if (device.kind === "camera") return takePhoto();
   if (device.kind === "torch") return setTorch(device.on);
   if (device.kind === "notify-remove") return closeNote(device.title);
