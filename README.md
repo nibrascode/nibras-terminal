@@ -46,10 +46,16 @@ Sessiya ekranı açılmış mühitdə bir əmr işlədir (`echo salam`, `uname -
 `cat /etc/os-release` və ya öz əmrin). Bu, açıq qalan interaktiv shell deyil.
 Əmr bu mühitdə telefonda yoxlanmayıb.
 
-## Nə telefon APK-sında hələ yoxdur
+## Nə telefon APK-sında var
 
-Tam interaktiv terminal və paket meneceri yoxdur. Sessiya bir əmr işlədib
-nəticəni göstərir.
+Sessiya ekranında `nibras-` əmrləri Linux gözləmir. Onlar telefonun özündə işləyir:
+batareya, lövhə, toast, titrəmə, səs, bildiriş, oyaq qalma, paylaşım, wifi,
+fənər, işıq, səs səviyyəsi, kamera siyahısı, mikrofon, yer, sensor, barmaq izi,
+endirmə, yaddaş, brauzer, `nibras-info`, səs pleyeri, kontakt, zəng və SMS.
+`termux-` yazılsa, `nibras-` kimi qəbul olunur.
+
+Linux əmri hələ də açılmış rootfs içində bir dəfə işləyir. Davamlı interaktiv
+PTY növbəti addımdır.
 
 ## İş axını
 

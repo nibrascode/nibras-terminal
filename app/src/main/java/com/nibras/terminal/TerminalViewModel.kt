@@ -1,6 +1,8 @@
 package com.nibras.terminal
 
 import android.app.Application
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nibras.terminal.data.CatalogStore
@@ -27,6 +29,9 @@ data class UiState(
     val editorId: String? = null,
     val editorText: String = "",
     val sessionLog: String = "",
+    val permissionAsk: String? = null,
+    val permissionNonce: Int = 0,
+    val pendingCommand: String? = null,
 )
 
 class TerminalViewModel(app: Application) : AndroidViewModel(app) {
@@ -178,13 +183,27 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(sessionLog = "") }
     }
 
+    fun onPermission(granted: Boolean) {
+        val line = _state.value.pendingCommand
+        _state.update { it.copy(permissionAsk = null, pendingCommand = null, notice = if (granted) null else "icazə verilmədi") }
+        if (granted && !line.isNullOrBlank()) run(line)
+    }
+
     fun run(command: String) {
         val line = command.trim()
         if (line.isEmpty() || _state.value.busyId != null) return
+        val app = getApplication<Application>()
+        val perm = PhoneBridge.permission(line)
+        if (perm != null && ContextCompat.checkSelfPermission(app, perm) != PackageManager.PERMISSION_GRANTED) {
+            _state.update {
+                it.copy(permissionAsk = perm, pendingCommand = line, permissionNonce = it.permissionNonce + 1, notice = "icazə gözlənilir")
+            }
+            return
+        }
         viewModelScope.launch {
             _state.update { it.copy(busyId = "session", notice = null) }
             val text = withContext(Dispatchers.IO) {
-                runCatching { execInProot(line) }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
+                PhoneBridge.run(app, line) ?: runCatching { execInProot(line) }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
             }
             val previous = _state.value.sessionLog
             val joined = listOf(previous, "$ $line", text).filter { it.isNotBlank() }.joinToString("\n")

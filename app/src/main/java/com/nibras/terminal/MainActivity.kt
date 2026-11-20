@@ -2,7 +2,10 @@ package com.nibras.terminal
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,6 +55,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val model: TerminalViewModel = viewModel()
             val state by model.state.collectAsState()
+            val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                model.onPermission(granted)
+            }
+            LaunchedEffect(state.permissionNonce) {
+                state.permissionAsk?.let { ask.launch(it) }
+            }
             NibrasApp(state, model)
         }
     }
@@ -203,15 +212,15 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
         Text("Sessiya", color = Ink, fontFamily = FontFamily.Serif, fontSize = 28.sp)
         Spacer(Modifier.height(12.dp))
         Text(
-            if (env.isEmpty()) "Mühit arxivini Yükləmələrdən gətir və Aç. Sonra əmr həmin mühitin içində bir dəfə işləyir."
-            else "Mühit: ${env.joinToString()}. Hər əmr bir dəfə işləyir. Nəticələr yuxarıda qalır.",
+            if (env.isEmpty()) "Linux mühiti olmadan da telefon əmrləri işləyir: nibras-battery-status, nibras-info, nibras-torch. Linux üçün arxivi Yükləmələrdən aç."
+            else "Mühit: ${env.joinToString()}. Linux əmri prootda, telefon əmri isə birbaşa cihazda işləyir.",
             color = Ink,
             fontSize = 15.sp,
             lineHeight = 21.sp,
         )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            listOf("echo salam", "uname -a", "cat /etc/os-release").forEach { sample ->
+            listOf("nibras-info", "nibras-battery-status", "uname -a").forEach { sample ->
                 TextButton(onClick = { line = sample }, enabled = state.busyId == null) {
                     Text(sample, color = Muted, fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                 }
@@ -236,7 +245,7 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
         )
         TextButton(
             onClick = { model.run(line) },
-            enabled = state.busyId == null && env.isNotEmpty() && line.isNotBlank(),
+            enabled = state.busyId == null && line.isNotBlank() && (env.isNotEmpty() || line.trim().startsWith("nibras-") || line.trim().startsWith("termux-")),
         ) {
             Text(if (state.busyId == "session") "İşləyir…" else "İşlət", color = Gold)
         }
