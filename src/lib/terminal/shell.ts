@@ -100,7 +100,10 @@ export type ShellOut = {
     | { kind: "play"; url: string }
     | { kind: "play-stop" }
     | { kind: "notify-list" }
-    | { kind: "fingerprint" };
+    | { kind: "fingerprint" }
+    | { kind: "contacts" }
+    | { kind: "telephony" }
+    | { kind: "usb" };
   pip?: string;
   keygen?: { path: string };
 };
@@ -206,7 +209,7 @@ export function emptySession(): Session {
     staged: [],
     history: [],
     aliases: {},
-    envVars: { HOME: "/root", USER: "root", TERM: "nibras" },
+    envVars: { HOME: "/root", USER: "root", TERM: "nibras", PREFIX: "/data/data/com.nibras.terminal/files/usr" },
     server: null,
     started: Date.now(),
     trash: [],
@@ -3010,7 +3013,7 @@ export function extraKeyRows(session: Session): string[][] {
 function phonePkg(session: Session, args: string[], answer?: string): ShellOut {
   const verb = args[0] || answer;
   const manager = session.env === "alpine" ? "apk" : "apt";
-  if (!verb || verb === "help") return ok(session, "pkg update | install | uninstall | search | list-all | list-installed | show");
+  if (!verb || verb === "help") return ok(session, "pkg update | install | uninstall | search | list-all | list-installed | show | files | clean");
   if (verb === "update" || verb === "upgrade") return pkg(session, manager, ["update"]);
   if (verb === "search") return pkg(session, manager, ["search", args[1] || ""]);
   if (verb === "list-all" || verb === "list") return pkg(session, manager, ["list"]);
@@ -3019,6 +3022,8 @@ function phonePkg(session: Session, args: string[], answer?: string): ShellOut {
     return ok(session, lines.length ? lines.join("\n") : "paket yoxdur");
   }
   if (verb === "show") return pkg(session, manager, ["show", args[1] || answer || ""]);
+  if (verb === "files") return pkg(session, manager, ["files", args[1] || answer || ""]);
+  if (verb === "clean") return pkg(session, manager, ["clean"]);
   if (verb === "install") {
     const name = args[1] || answer;
     if (!name) return askFor(session, { id: "text", title: "Paket", label: "python, node, php…", resume: "pkg install" });
@@ -3031,7 +3036,7 @@ function phonePkg(session: Session, args: string[], answer?: string): ShellOut {
     removePkg(session, name);
     return pkg(session, manager, ["install", name, "--yes"], "bəli");
   }
-  return fail(session, "pkg update | install | uninstall | search | list-all");
+  return fail(session, "pkg update | install | uninstall | search | list-all | files | clean");
 }
 
 function distroCmd(session: Session, args: string[], answer?: string): ShellOut {
@@ -3106,7 +3111,9 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
     return { ...ok(session, ""), device: { kind: "toast", text } };
   }
   if (cmd === "nibras-vibrate") {
-    const ms = Math.min(1000, Math.max(1, Number(args[0] || 200) || 200));
+    const at = args.indexOf("-d");
+    const raw = at >= 0 ? args[at + 1] : args.find((arg) => !arg.startsWith("-"));
+    const ms = Math.min(1000, Math.max(1, Number(raw || 200) || 200));
     return { ...ok(session, ""), device: { kind: "vibrate", ms } };
   }
   if (cmd === "nibras-battery-status") return { ...ok(session, ""), device: { kind: "battery" } };
@@ -3187,7 +3194,10 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   }
   if (cmd === "nibras-notification-list") return { ...ok(session, ""), device: { kind: "notify-list" } };
   if (cmd === "nibras-fingerprint") return { ...ok(session, ""), device: { kind: "fingerprint" } };
-  return fail(session, "nibras-info | job-scheduler | camera-info | microphone-record | media-player | fingerprint | torch | backup");
+  if (cmd === "nibras-contact-list") return { ...ok(session, ""), device: { kind: "contacts" } };
+  if (cmd === "nibras-telephony-deviceinfo") return { ...ok(session, ""), device: { kind: "telephony" } };
+  if (cmd === "nibras-usb") return { ...ok(session, ""), device: { kind: "usb" } };
+  return fail(session, "nibras-info | contact-list | telephony-deviceinfo | usb | job-scheduler");
 }
 
 function password(raw?: string) {
@@ -3525,7 +3535,10 @@ function pkg(session: Session, cmd: string, args: string[], answer?: string): Sh
     if (!session.env) return fail(session, "Əvvəl mühit seç");
     return ok(session, `${cmd} siyahısı hazır · ${Object.keys(PKG_INFO).length} paket`);
   }
-  if (verb === "list" || verb === "search") {
+  if (verb === "list-installed") {
+    return ok(session, session.pkgs.length ? session.pkgs.join("\n") : "quraşdırılmayıb");
+  }
+  if (verb === "list" || verb === "list-all" || verb === "search") {
     const lines = Object.keys(PKG_INFO)
       .filter((name) => !query || name.includes(query))
       .map((name) => `${session.pkgs.includes(name) ? "* " : "  "}${name}`);
@@ -3536,8 +3549,26 @@ function pkg(session: Session, cmd: string, args: string[], answer?: string): Sh
     if (!key || !PKG_INFO[key]) return fail(session, `${args[1] ?? "paket"} bu seçim siyahısında yoxdur`);
     return ok(session, `${key}\n${PKG_INFO[key]}`);
   }
+  if (verb === "files") {
+    const key = alias(args[1] || answer || "");
+    if (!key || !PKG_FILES[key]) return fail(session, `${args[1] ?? "paket"} bu seçim siyahısında yoxdur`);
+    if (!session.pkgs.includes(key)) return fail(session, `${key} quraşdırılmayıb`);
+    return ok(session, PKG_FILES[key].join("\n"));
+  }
+  if (verb === "clean") return ok(session, "keş təmizdir");
   if (!session.env) return fail(session, "Əvvəl mühit seç");
-  if (verb !== "install" && verb !== "add") return fail(session, `${cmd} update | list | search | show | install`);
+  if (verb === "uninstall" || verb === "remove" || verb === "del") {
+    const key = alias(args[1] || answer || "");
+    if (!key || !session.pkgs.includes(key)) return fail(session, `${args[1] ?? "paket"} quraşdırılmayıb`);
+    session.pkgs = session.pkgs.filter((item) => item !== key);
+    return ok(session, `${key} silindi`);
+  }
+  if (verb === "reinstall") {
+    const key = alias(args[1] || answer || "");
+    if (!key || !session.pkgs.includes(key)) return fail(session, `${args[1] ?? "paket"} quraşdırılmayıb`);
+    return ok(session, `${key} yenidən quruldu`);
+  }
+  if (verb !== "install" && verb !== "add") return fail(session, `${cmd} update | list-installed | files | uninstall | install`);
   const key = alias(args[1] || "");
   if (!key || !PKG_INFO[key]) return fail(session, `${args[1] ?? "paket"} bu seçim siyahısında yoxdur`);
   return install(session, key, answer === "bəli" || args.includes("--yes"));
@@ -3549,6 +3580,14 @@ const PKG_INFO: Record<string, string> = {
   php: "PHP skript.",
   git: "Git əmrləri artıq buradadır. Bu seçim aləti qeyd edir.",
   build: "Sadə C: gcc, printf, if, while, for.",
+};
+
+const PKG_FILES: Record<string, string[]> = {
+  python: ["/usr/bin/python3", "/usr/bin/pip3"],
+  node: ["/usr/bin/node", "/usr/bin/npm"],
+  php: ["/usr/bin/php"],
+  git: ["/usr/bin/git"],
+  build: ["/usr/bin/gcc", "/usr/bin/cc"],
 };
 
 function alias(name: string) {

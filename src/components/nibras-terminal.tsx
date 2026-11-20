@@ -2402,6 +2402,45 @@ function playClip(file: File, canvas: HTMLCanvasElement, ctx: CanvasRenderingCon
   });
 }
 
+async function pickContacts() {
+  const nav = navigator as Navigator & { contacts?: { select: (fields: string[], opts?: { multiple?: boolean }) => Promise<Array<{ name?: string[]; tel?: string[] }>> } };
+  if (!nav.contacts?.select) return "!kontakt yoxdur";
+  try {
+    const rows = await nav.contacts.select(["name", "tel"], { multiple: true });
+    return rows.map((row) => `${row.name?.[0] ?? ""} ${row.tel?.[0] ?? ""}`.trim()).filter(Boolean).join("\n") || "kontakt yoxdur";
+  } catch {
+    return "!kontakt yoxdur";
+  }
+}
+
+async function phoneInfo() {
+  const nav = navigator as Navigator & {
+    connection?: { effectiveType?: string; downlink?: number };
+    userAgentData?: { mobile?: boolean; platform?: string; getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string; platformVersion?: string }> };
+  };
+  let model = "";
+  let version = "";
+  try {
+    const high = await nav.userAgentData?.getHighEntropyValues?.(["model", "platformVersion"]);
+    model = high?.model ?? "";
+    version = high?.platformVersion ?? "";
+  } catch {
+    model = "";
+  }
+  return [`model ${model || "məlum deyil"}`, `platform ${nav.userAgentData?.platform ?? navigator.platform}`, version ? `versiya ${version}` : "", `şəbəkə ${nav.connection?.effectiveType ?? "məlum deyil"}`].filter(Boolean).join("\n");
+}
+
+async function usbDevices() {
+  const nav = navigator as Navigator & { usb?: { getDevices: () => Promise<Array<{ productName?: string; vendorId: number }>> } };
+  if (!nav.usb) return "!usb yoxdur";
+  try {
+    const rows = await nav.usb.getDevices();
+    return rows.map((row) => row.productName || String(row.vendorId)).join("\n") || "usb yoxdur";
+  } catch {
+    return "!usb yoxdur";
+  }
+}
+
 async function mergeVideos() {
   const files = await pickVideos();
   if (files.length < 2) return "!iki video seç";
@@ -2480,6 +2519,9 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   }
   if (device.kind === "toast") return device.text;
   if (device.kind === "vibrate") return navigator.vibrate?.(device.ms) === false ? "!titrəmə yoxdur" : `${device.ms} ms`;
+  if (device.kind === "contacts") return pickContacts();
+  if (device.kind === "telephony") return phoneInfo();
+  if (device.kind === "usb") return usbDevices();
   if (device.kind === "battery") {
     const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; charging: boolean }> };
     if (!nav.getBattery) return "!batareya oxunmur";
