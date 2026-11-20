@@ -81,6 +81,7 @@ const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
   { re: /^səs dayandı$/, tr: "ses durdu", en: "audio stopped", ru: "звук остановлен" },
   { re: /^barmaq izi yoxdur$/, tr: "parmak izi yok", en: "no fingerprint", ru: "нет отпечатка" },
   { re: /^təsdiqləndi$/, tr: "doğrulandı", en: "confirmed", ru: "подтверждено" },
+  { re: /^set -e \| \+e \| -x \| \+x$/, tr: "set -e | +e | -x | +x", en: "set -e | +e | -x | +x", ru: "set -e | +e | -x | +x" },
   { re: /^Bəlkə: (\S+)$/, tr: "Belki: $1", en: "Maybe: $1", ru: "Возможно: $1" },
   { re: /^ifadə səhvdir$/, tr: "ifade yanlış", en: "bad expression", ru: "неверное выражение" },
   { re: /^(\S+) seçildi · (.+)$/, tr: "$1 seçildi · $2", en: "$1 selected · $2", ru: "$1 выбран · $2" },

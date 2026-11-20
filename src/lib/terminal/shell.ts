@@ -379,14 +379,14 @@ export function visibleCommand(line: string) {
   return line.replace(/^(\s*nibras\s+token\s+)(?!sil\b)\S[\s\S]*$/i, "$1••••");
 }
 
-export function runLine(session: Session, line: string, answer?: string): ShellOut {
+export function runLine(session: Session, line: string, answer?: string, stdin?: string): ShellOut {
   const trimmed = line.trim();
   if (!trimmed || trimmed.startsWith("#")) return ok(session, "");
   const history = session.history.at(-1) === trimmed ? session.history.slice(0, -1) : session.history;
   const expanded = expandBang(history, trimmed);
   if (expanded.error) return fail(session, expanded.error);
   try {
-    return runSequence(structuredClone(session), expanded.line, answer);
+    return runSequence(structuredClone(session), expanded.line, answer, 0, false, stdin);
   } catch (error) {
     return fail(session, error instanceof Error ? error.message : "xəta");
   }
@@ -410,7 +410,7 @@ function expandBang(history: string[], line: string): { line: string; error?: st
   return { line: next };
 }
 
-function runSequence(session: Session, line: string, answer?: string, depth = 0, gather = false): ShellOut {
+function runSequence(session: Session, line: string, answer?: string, depth = 0, gather = false, stdin?: string): ShellOut {
   if (depth > 6) return stamp(fail(session, "çox dərin"));
   const parts = splitSequence(line);
   let current = session;
@@ -427,7 +427,7 @@ function runSequence(session: Session, line: string, answer?: string, depth = 0,
     const background = depth === 0 && /(^|[^&])&\s*$/.test(text);
     if (background) text = text.replace(/\s*&\s*$/, "");
     const controlled = control(current, text, given, depth);
-    last = stamp(controlled ?? runPipeline(current, text, given));
+    last = stamp(controlled ?? runPipeline(current, text, given, index === 0 ? stdin : undefined));
     current = last.session;
     if (background && !pause(last) && !last.sleep) {
       const state = current.server && /\bserve\b/.test(text) ? "işləyir" : "bitdi";
@@ -438,6 +438,7 @@ function runSequence(session: Session, line: string, answer?: string, depth = 0,
     if (last.output && last.output !== "\u0000clear") outputs.push(last.output);
     if (last.sleep) return { ...last, session: current, output: shown(), cont: restOf(parts, index) || undefined };
     if (pause(last)) return { ...last, session: current, output: shown() };
+    if (depth === 0 && optOn(current, "e") && last.ok === false) break;
   }
   return { ...last, session: current, output: last.output === "\u0000clear" ? last.output : shown() };
 
@@ -446,12 +447,15 @@ function runSequence(session: Session, line: string, answer?: string, depth = 0,
   }
 }
 
-function runPipeline(session: Session, line: string, answer?: string): ShellOut {
+function runPipeline(session: Session, line: string, answer?: string, stdin?: string): ShellOut {
   const peeled = peelErr(line);
-  const parsed = splitPipeline(expandAlias(session, peeled.line), session);
+  const fed = peelStdin(peeled.line, session);
+  if (fed.missing) return stamp(fail(session, `fayl yoxdur: ${fed.missing}`));
+  const parsed = splitPipeline(expandAlias(session, fed.line), session);
   let current = session;
-  let stdin: string | undefined;
+  let incoming = fed.stdin ?? stdin;
   let last = ok(current, "");
+  const traces: string[] = [];
   for (let index = 0; index < parsed.commands.length; index += 1) {
     const argv = splitArgs(parsed.commands[index] ?? "", current);
     let cmd = argv[0] ?? "";
@@ -462,10 +466,12 @@ function runPipeline(session: Session, line: string, answer?: string): ShellOut 
       cmd = extra[0] ?? cmd;
       cmdArgs = [...extra.slice(1), ...cmdArgs];
     }
-    last = dispatch(current, cmd, cmdArgs, index === 0 ? answer : undefined, stdin);
+    const trace = optOn(current, "x") ? `+ ${[cmd, ...cmdArgs].join(" ")}`.trim() : "";
+    if (trace) traces.push(trace);
+    last = dispatch(current, cmd, cmdArgs, index === 0 ? answer : undefined, incoming);
     current = last.session;
     if (pause(last)) return last;
-    stdin = last.output;
+    incoming = last.output;
     if (last.ok === false) return stamp(hideErr(current, last, peeled.err));
   }
   if (parsed.redirect && last.ok !== false) {
@@ -474,8 +480,9 @@ function runPipeline(session: Session, line: string, answer?: string): ShellOut 
     const prev = current.files[path] ?? "";
     const chunk = last.output.endsWith("\n") || !last.output ? last.output : `${last.output}\n`;
     current.files[path] = parsed.redirect.append ? `${prev}${chunk}` : chunk;
-    return stamp(ok(current, ""));
+    return stamp(ok(current, traces.join("\n")));
   }
+  if (traces.length && last.output !== "\u0000clear") last = { ...last, output: [traces.join("\n"), last.output].filter(Boolean).join("\n") };
   return stamp(last);
 }
 
@@ -579,6 +586,8 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return ok(session, Object.entries(session.envVars).filter(([key]) => key !== "?").map(([key, value]) => `${key}=${value}`).join("\n"));
     case "export":
       return exportVar(session, args.join(" "));
+    case "set":
+      return setCmd(session, args);
     case "history":
       if (args[0] === "-c") {
         session.history = [];
@@ -2790,6 +2799,53 @@ function levelCmd(session: Session, raw: string | undefined, kind: "bright" | "v
   return { ...ok(session, String(level)), device: { kind, level } };
 }
 
+function optOn(session: Session, flag: string) {
+  return (session.envVars.SHELLOPTS ?? "").split(",").includes(flag);
+}
+
+function setCmd(session: Session, args: string[]): ShellOut {
+  if (!args.length) return ok(session, session.envVars.SHELLOPTS || "");
+  const flags = new Set((session.envVars.SHELLOPTS ?? "").split(",").filter(Boolean));
+  for (const arg of args) {
+    if (arg === "-e") flags.add("e");
+    else if (arg === "+e") flags.delete("e");
+    else if (arg === "-x") flags.add("x");
+    else if (arg === "+x") flags.delete("x");
+    else return fail(session, "set -e | +e | -x | +x");
+  }
+  if (flags.size) session.envVars.SHELLOPTS = [...flags].join(",");
+  else delete session.envVars.SHELLOPTS;
+  return ok(session, session.envVars.SHELLOPTS || "");
+}
+
+function peelStdin(line: string, session: Session): { line: string; stdin?: string; missing?: string } {
+  let quote: "'" | '"' | "" = "";
+  for (let index = 0; index < line.length; index += 1) {
+    const ch = line[index] ?? "";
+    if (quote) {
+      if (ch === quote) quote = "";
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (line.startsWith("<<<", index)) {
+      const word = splitArgs(line.slice(index + 3), session).join(" ");
+      return { line: line.slice(0, index).trim(), stdin: word.endsWith("\n") ? word : `${word}\n` };
+    }
+    if (ch === "<" && line[index + 1] !== "<") {
+      const path = splitArgs(line.slice(index + 1), session)[0];
+      if (!path) return { line: line.slice(0, index).trim(), missing: "stdin" };
+      const full = resolve(session.cwd, path);
+      const body = session.files[full];
+      if (body === undefined) return { line: line.slice(0, index).trim(), missing: full };
+      return { line: line.slice(0, index).trim(), stdin: body };
+    }
+  }
+  return { line };
+}
+
 function nibrasInfo(session: Session) {
   const home = session.home || "/root";
   return [
@@ -3670,15 +3726,29 @@ function script(session: Session, name?: string): ShellOut {
   let current = session;
   const lines: string[] = [];
   let ran = 0;
-  for (const raw of body.split("\n")) {
-    const line = raw.trim();
+  const rawLines = body.split("\n");
+  for (let index = 0; index < rawLines.length; index += 1) {
+    let line = (rawLines[index] ?? "").trim();
     if (!line || line.startsWith("#")) continue;
+    let stdin: string | undefined;
+    const doc = /^(.*?)<<-?\s*([A-Za-z_]\w*)\s*$/.exec(line);
+    if (doc && line.includes("<<") && !line.includes("<<<")) {
+      const delim = doc[2] ?? "";
+      const chunk: string[] = [];
+      while (index + 1 < rawLines.length && (rawLines[index + 1] ?? "").trim() !== delim) {
+        index += 1;
+        chunk.push(rawLines[index] ?? "");
+      }
+      if ((rawLines[index + 1] ?? "").trim() === delim) index += 1;
+      line = (doc[1] ?? "").trim() || "cat";
+      stdin = `${chunk.join("\n")}\n`;
+    }
     ran += 1;
     if (ran > 200) {
       lines.push("skript kəsildi");
       break;
     }
-    const result = runLine(current, line);
+    const result = runLine(current, line, undefined, stdin);
     current = result.session;
     if (pause(result)) {
       const output = [lines.join("\n"), result.output].filter(Boolean).join("\n");
@@ -3740,7 +3810,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
