@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { cloneGithub, probeHost, pushGithub, utf8ToBase64 } from "@/lib/terminal/github";
+import { cloneGithub, probeHost, pushGithub, runApk, utf8ToBase64 } from "@/lib/terminal/github";
 import { runRemote } from "@/lib/terminal/remote.functions";
 import {
   LANGS,
@@ -575,6 +575,35 @@ export function NibrasTerminal() {
             push([{ kind: "err", text: message }]);
           }
         }
+      }
+      if (result.apk) {
+        setBusy("APK");
+        const token = sessionStorage.getItem(TOKEN_KEY) ?? "";
+        if (!token) {
+          push([{ kind: "err", text: "Token tapılmadı." }]);
+          current.hasToken = false;
+        } else {
+          try {
+            const built = await runApk(token, result.apk.verb);
+            if (built.file) {
+              const url = URL.createObjectURL(new Blob([built.file.bytes], { type: "application/zip" }));
+              const link = document.createElement("a");
+              link.href = url;
+              link.download = built.file.name;
+              link.click();
+              window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            }
+            push([{ kind: "out", text: built.text }]);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "qurulmadı";
+            if (message.startsWith("Token")) {
+              sessionStorage.removeItem(TOKEN_KEY);
+              current.hasToken = false;
+            }
+            push([{ kind: "err", text: message }]);
+          }
+        }
+        setBusy("");
       }
       if (result.clone) {
         setBusy("GitHub");

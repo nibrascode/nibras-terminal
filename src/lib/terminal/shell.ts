@@ -110,6 +110,7 @@ export type ShellOut = {
     | { kind: "location" };
   pip?: string;
   keygen?: { path: string };
+  apk?: { verb: "qur" | "status" | "endir" };
 };
 
 export const DISK_BUDGET = 2 * 1024 * 1024 * 1024;
@@ -2675,7 +2676,31 @@ function nibras(session: Session, args: string[], answer?: string): ShellOut {
   if (sub === "layihe" || sub === "project") return project(session, args[1], args[2] || answer);
   if (sub === "sil" || sub === "remove") return removePkg(session, args[1] || answer);
   if (sub === "install") return install(session, args[1], args.includes("--yes") || answer === "bəli");
-  return fail(session, "nibras install | sil | disk | token | layihe | serve | md | stop | zibil | qaytar | gitignore");
+  if (sub === "apk") return apkCmd(session, args[1]);
+  return fail(session, "nibras install | sil | disk | token | apk | layihe | serve | md | stop | zibil | qaytar | gitignore");
+}
+
+function apkCmd(session: Session, verb?: string): ShellOut {
+  if (!verb || verb === "help") {
+    return ok(
+      session,
+      [
+        "APK üçün bunlar lazımdır:",
+        "Java 17",
+        "Android SDK 35",
+        "build-tools 35.0.0",
+        "Gradle assembleDebug",
+        "Bunlar telefonda yox, qurucuda işləyir.",
+        "nibras token",
+        "nibras apk qur",
+        "nibras apk status",
+        "nibras apk endir",
+      ].join("\n"),
+    );
+  }
+  if (verb !== "qur" && verb !== "status" && verb !== "endir") return fail(session, "nibras apk qur | status | endir");
+  if (!session.hasToken) return askFor(session, { id: "token", title: "Token", label: "GitHub tokeni. Ekrana yazılmır.", secret: true, resume: `nibras apk ${verb}` });
+  return { ...ok(session, ""), apk: { verb } };
 }
 
 function install(session: Session, name: string | undefined, yes: boolean): ShellOut {
@@ -3841,6 +3866,7 @@ function pause(result: ShellOut) {
       result.sleep ||
       result.device ||
       result.keygen ||
+      result.apk ||
       result.output === "\u0000clear",
   );
 }

@@ -140,3 +140,46 @@ function isPrivateAddress(host: string) {
   if (a === 192 && b === 168) return true;
   return false;
 }
+
+const APK_REPO = "nibrascode/nibras-terminal";
+
+export async function runApk(token: string, verb: "qur" | "status" | "endir") {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  if (verb === "qur") {
+    const sent = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/dispatches`, {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main" }),
+    });
+    if (sent.status === 401) throw new Error("Token qəbul edilmədi.");
+    if (sent.status !== 204) throw new Error(await githubError(sent));
+    return { text: "APK qurulur.\nJava 17 · Android SDK 35 · build-tools 35.0.0 · Gradle\nnibras apk status" };
+  }
+  const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=1`, { headers });
+  if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
+  if (!listed.ok) throw new Error(await githubError(listed));
+  const body = (await listed.json()) as { workflow_runs?: Array<{ status: string; conclusion: string | null; html_url: string; artifacts_url: string }> };
+  const run = body.workflow_runs?.[0];
+  if (!run) return { text: "qurma yoxdur. nibras apk qur" };
+  if (run.status !== "completed") return { text: `${run.status}\n${run.html_url}` };
+  if (run.conclusion !== "success") return { text: `alınmadı: ${run.conclusion ?? "xəta"}\n${run.html_url}` };
+  if (verb === "status") return { text: `hazırdır\n${run.html_url}\nendirmek: nibras apk endir` };
+  const arts = await fetch(run.artifacts_url, { headers });
+  if (!arts.ok) throw new Error(await githubError(arts));
+  const packed = (await arts.json()) as { artifacts?: Array<{ name: string; archive_download_url: string }> };
+  const file = packed.artifacts?.find((item) => item.name === "nibras-terminal-debug") ?? packed.artifacts?.[0];
+  if (!file) return { text: `hazırdır, fayl tapılmadı\n${run.html_url}` };
+  const zip = await fetch(file.archive_download_url, { headers });
+  if (zip.status === 401) throw new Error("Token qəbul edilmədi.");
+  if (!zip.ok) throw new Error(await githubError(zip));
+  return { text: "APK endirildi. Zipin içində app-debug.apk var.", file: { name: "nibras-terminal-debug.zip", bytes: await zip.arrayBuffer() } };
+}
+
+async function githubError(response: Response) {
+  const body = (await response.json().catch(() => ({}))) as { message?: string };
+  return body.message || `qurulmadı: ${response.status}`;
+}
