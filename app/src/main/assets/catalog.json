@@ -2,13 +2,13 @@
   "name": "Nibras Terminal",
   "version": "0.1.0",
   "updated": "2026-11-19",
-  "note": "Kiçik fayllar tətbiqin içindədir. Yükləmə siyahısında yalnız 1 MB-dan böyük paketlər durur.",
+  "note": "5 MB və daha kiçik fayllar tətbiqin içindədir. Yükləmə siyahısında yalnız 5 MB-dan böyük paketlər durur.",
   "components": [
     {
       "id": "rootfs-alpine",
       "group": "environment",
       "name": "Alpine Linux",
-      "summary": "Rəsmi minirootfs. Ən kiçik mühit, yalnız arm64.",
+      "summary": "Rəsmi minirootfs. 4 MB olduğu üçün tətbiqin içindədir.",
       "version": "3.24.1",
       "abi": "arm64-v8a",
       "filename": "alpine-minirootfs-3.24.1-aarch64.tar.gz",

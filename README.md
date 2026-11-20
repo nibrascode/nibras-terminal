@@ -12,7 +12,7 @@ Eyni anda bir mühit saxlanılır. Debian və ya Ubuntu seçiləndə həcm və q
 Redaktorda saxlanan fayl terminaldakı `cat` ilə görünür.
 
 İstifadəçi böyük paketi seçsə, yalnız onu yükləyir. Skriptlər, şablonlar və
-komut kitabçası APK-nın içindədir. 1 MB-dan böyüklər — Alpine, Debian, Ubuntu,
+komut kitabçası və Alpine APK-nın içindədir. 5 MB-dan böyüklər — Debian, Ubuntu,
 Python, Node — yükləmə siyahısındadır. PRoot mühərriki `libproot.so` kimi
 APK-dadır.
 
@@ -24,7 +24,7 @@ Minimum: Android 8 (API 26), ABI arm64-v8a
 
 | Seçim | Harada | Checksum |
 | --- | --- | --- |
-| Alpine 3.24.1 minirootfs | release | Alpine-in rəsmi SHA-256 |
+| Alpine 3.24.1 minirootfs | APK içi | Alpine-in rəsmi SHA-256 |
 | Debian stable-slim arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
 | Ubuntu 24.04 arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
 | Python 3.12.16 aarch64 | release | python-build-standalone SHA256SUMS |

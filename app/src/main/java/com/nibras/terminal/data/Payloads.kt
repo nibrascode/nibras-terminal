@@ -169,7 +169,7 @@ fun payloadFile(context: Context, component: Component): File {
     return File(File(context.filesDir, "downloads/${component.id}"), component.filename)
 }
 
-fun isLargePayload(component: Component) = component.sizeBytes >= 1_048_576L
+fun isLargePayload(component: Component) = component.sizeBytes > 5L * 1024 * 1024
 
 fun seedSmallPayloads(context: Context, components: List<Component>, installed: Map<String, InstallRecord>): Map<String, InstallRecord> {
     val next = installed.toMutableMap()

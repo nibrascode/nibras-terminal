@@ -131,7 +131,7 @@ private fun HomeTab(state: UiState, onDownloads: () -> Unit) {
         Text("0.1  ·  arm64  ·  boş qabıq", color = Muted, fontFamily = FontFamily.Monospace, fontSize = 12.sp)
         Spacer(Modifier.height(28.dp))
         Text(
-            "Skriptlər, şablonlar və komut kitabçası tətbiqin içindədir. Yükləməyə yalnız böyük şeylər düşür: Alpine, Debian, Ubuntu, Python və Node.",
+            "Skriptlər, şablonlar, komut kitabçası və Alpine tətbiqin içindədir. Yükləməyə yalnız 5 MB-dan böyüklər düşür: Debian, Ubuntu, Python və Node.",
             color = Ink,
             fontSize = 16.sp,
             lineHeight = 22.sp,
@@ -158,7 +158,7 @@ private fun DownloadsTab(state: UiState, model: TerminalViewModel) {
                 modifier = Modifier.padding(bottom = 12.dp, top = 4.dp),
             )
         }
-        items(state.components.filter { it.sizeBytes >= 1_048_576L }, key = { it.id }) { component ->
+        items(state.components.filter { it.sizeBytes > 5L * 1024 * 1024 }, key = { it.id }) { component ->
             val installed = state.installed[component.id]
             Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
