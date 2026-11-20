@@ -4,14 +4,16 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val androidSdk = (findProperty("sdk") as String?)?.toIntOrNull() ?: 35
+
 android {
     namespace = "com.nibras.terminal"
-    compileSdk = 35
+    compileSdk = androidSdk
 
     defaultConfig {
         applicationId = "com.nibras.terminal"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = androidSdk
         versionCode = 1
         versionName = "0.1.0"
         ndk {

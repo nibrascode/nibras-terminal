@@ -143,21 +143,22 @@ function isPrivateAddress(host: string) {
 
 const APK_REPO = "nibrascode/nibras-terminal";
 
-export async function runApk(token: string, verb: "qur" | "status" | "endir") {
+export async function runApk(token: string, verb: "qur" | "status" | "endir", sdk: "35" | "34" | "33" = "35") {
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
   };
+  const tools = sdk === "33" ? "build-tools 33.0.2" : sdk === "34" ? "build-tools 34.0.0" : "build-tools 35.0.0";
   if (verb === "qur") {
     const sent = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/dispatches`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: "main" }),
+      body: JSON.stringify({ ref: "main", inputs: { sdk } }),
     });
     if (sent.status === 401) throw new Error("Token qəbul edilmədi.");
     if (sent.status !== 204) throw new Error(await githubError(sent));
-    return { text: "APK qurulur.\nJava 17 · Android SDK 35 · build-tools 35.0.0 · Gradle\nnibras apk status" };
+    return { text: `APK qurulur.\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\nnibras apk status` };
   }
   const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=1`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");

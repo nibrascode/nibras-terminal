@@ -584,7 +584,7 @@ export function NibrasTerminal() {
           current.hasToken = false;
         } else {
           try {
-            const built = await runApk(token, result.apk.verb);
+            const built = await runApk(token, result.apk.verb, result.apk.sdk);
             if (built.file) {
               const url = URL.createObjectURL(new Blob([built.file.bytes], { type: "application/zip" }));
               const link = document.createElement("a");

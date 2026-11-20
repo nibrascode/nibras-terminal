@@ -2,6 +2,16 @@ name: Debug APK
 
 on:
   workflow_dispatch:
+    inputs:
+      sdk:
+        description: Android SDK
+        required: false
+        default: "35"
+        type: choice
+        options:
+          - "35"
+          - "34"
+          - "33"
 
 jobs:
   apk:
@@ -14,10 +24,35 @@ jobs:
           java-version: 17
       - uses: android-actions/setup-android@v4
         with:
-          packages: platform-tools platforms;android-35 build-tools;35.0.0
+          packages: ${{ github.event.inputs.sdk == '33' && 'platform-tools platforms;android-33 build-tools;33.0.2' || github.event.inputs.sdk == '34' && 'platform-tools platforms;android-34 build-tools;34.0.0' || 'platform-tools platforms;android-35 build-tools;35.0.0' }}
+      - name: Pin lower SDK
+        env:
+          SDK: ${{ github.event.inputs.sdk || '35' }}
+        run: |
+          python3 << 'PY'
+          import os
+          sdk = os.environ.get("SDK") or "35"
+          root = open("build.gradle.kts").read()
+          app = open("app/build.gradle.kts").read()
+          if sdk == "34":
+              root = root.replace('version "8.7.3"', 'version "8.5.2"', 1)
+              app = app.replace("compose-bom:2024.10.01", "compose-bom:2024.06.00")
+              app = app.replace("activity-compose:1.9.3", "activity-compose:1.9.0")
+          elif sdk == "33":
+              root = root.replace('version "8.7.3"', 'version "8.2.2"', 1)
+              app = app.replace("compose-bom:2024.10.01", "compose-bom:2024.01.00")
+              app = app.replace("activity-compose:1.9.3", "activity-compose:1.7.2")
+              app = app.replace("core-ktx:1.13.1", "core-ktx:1.12.0")
+              app = app.replace("lifecycle-runtime-compose:2.8.7", "lifecycle-runtime-compose:2.7.0")
+              app = app.replace("lifecycle-viewmodel-compose:2.8.7", "lifecycle-viewmodel-compose:2.7.0")
+          open("build.gradle.kts", "w").write(root)
+          open("app/build.gradle.kts", "w").write(app)
+          PY
       - name: Assemble debug
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          SDK: ${{ github.event.inputs.sdk || '35' }}
+        run: ./gradlew assembleDebug --no-daemon -Psdk="$SDK"
       - uses: actions/upload-artifact@v4
         with:
-          name: nibras-terminal-debug
+          name: nibras-terminal-${{ github.event.inputs.sdk || '35' }}
           path: app/build/outputs/apk/debug/app-debug.apk
