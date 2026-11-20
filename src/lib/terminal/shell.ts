@@ -544,7 +544,26 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
     case "mv":
       return mv(session, args, answer);
     case "echo":
-      return ok(session, args[0] === "-n" ? args.slice(1).join(" ") : args.join(" "));
+      return echoCmd(session, args);
+    case "let":
+    case "umask":
+    case "dc":
+    case "base32":
+    case "cksum":
+    case "od":
+    case "unlink":
+    case "users":
+    case "hostid":
+    case "unexpand":
+    case "pr":
+    case "install":
+    case "shred":
+    case "dd":
+    case "sync":
+    case "ps":
+    case "kill":
+    case "locale":
+      return tinyCmd(session, cmd, args, stdin);
     case "printf":
       return ok(session, args.join(" ").replace(/\\[ntr\\]/g, (token) => (token === "\\n" ? "\n" : token === "\\t" ? "\t" : token === "\\r" ? "\r" : "\\")));
     case "uname":
@@ -972,7 +991,21 @@ function ls(session: Session, args: string[] = []): ShellOut {
     if (all || !base.startsWith(".")) names.add(`${base} -> ${target}`);
   }
   const list = [...names].sort();
-  return ok(session, list.length ? list.join("\n") : "boş qovluq");
+  if (!list.length) return ok(session, "boş qovluq");
+  const long = args.some((arg) => arg === "-l" || arg === "-la" || arg === "-al" || arg === "-lh");
+  if (!long) return ok(session, list.join("\n"));
+  const rows = list.map((name) => {
+    const shown = name.replace(/ ->.*$/, "").replace(/\/$/, "");
+    const path = resolve(dir, shown);
+    const body = session.files[path];
+    const link = name.includes(" -> ");
+    const dirent = name.endsWith("/") && !link;
+    const mode = session.modes[path] ?? (dirent ? "755" : "644");
+    const kind = link ? "l" : dirent ? "d" : "-";
+    const size = body?.length ?? 0;
+    return `${kind}${mode} ${String(size).padStart(6, " ")} ${name}`;
+  });
+  return ok(session, rows.join("\n"));
 }
 
 function cd(session: Session, arg: string): ShellOut {
@@ -1316,7 +1349,8 @@ function cp(session: Session, args: string[], answer?: string): ShellOut {
   if (!sourceName || !destName) {
     return askFor(session, { id: "text", title: "Köçür", label: "mənbə hədəf", resume: "cp" });
   }
-  return copyPath(session, sourceName, destName, false);
+  const deep = args.some((arg) => arg === "-r" || arg === "-R" || arg === "-a");
+  return copyPath(session, sourceName, destName, deep);
 }
 
 function mv(session: Session, args: string[], answer?: string): ShellOut {
@@ -1332,10 +1366,24 @@ function mv(session: Session, args: string[], answer?: string): ShellOut {
   return copied;
 }
 
-function copyPath(session: Session, sourceName: string, destName: string, _deep: boolean): ShellOut {
+function copyPath(session: Session, sourceName: string, destName: string, deep: boolean): ShellOut {
   const source = resolve(session.cwd, sourceName);
   const dest = resolve(session.cwd, destName);
-  if (session.files[source] === undefined) return fail(session, `fayl yoxdur: ${source}`);
+  if (session.files[source] === undefined) {
+    if (!deep || !hasDir(session, source)) return fail(session, `fayl yoxdur: ${source}`);
+    ensureDir(session, dest);
+    for (const dir of session.dirs) {
+      if (dir === source || dir.startsWith(`${source}/`)) ensureDir(session, dest + dir.slice(source.length));
+    }
+    for (const [path, body] of Object.entries(session.files)) {
+      if (path === source || path.startsWith(`${source}/`)) {
+        const next = dest + path.slice(source.length);
+        ensureDir(session, parent(next));
+        session.files[next] = body;
+      }
+    }
+    return ok(session, "");
+  }
   ensureDir(session, parent(dest));
   session.files[dest] = session.files[source] ?? "";
   return ok(session, "");
@@ -1561,6 +1609,199 @@ function b64ToUtf8(value: string) {
   const bin = atob(value.replace(/\s/g, ""));
   const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
   return new TextDecoder().decode(bytes);
+}
+
+function echoCmd(_session: Session, args: string[]): ShellOut {
+  let words = args;
+  let escapes = false;
+  if (words[0] === "-n" || words[0] === "-e" || words[0] === "-ne" || words[0] === "-en") {
+    escapes = words[0].includes("e");
+    if (words[0] === "-n") escapes = false;
+    words = words.slice(1);
+  }
+  let text = words.join(" ");
+  if (escapes) text = text.replace(/\\[ntr\\]/g, (token) => (token === "\\n" ? "\n" : token === "\\t" ? "\t" : token === "\\r" ? "\r" : "\\"));
+  return ok(_session, text);
+}
+
+function tinyCmd(session: Session, cmd: string, args: string[], stdin?: string): ShellOut {
+  if (cmd === "sync") return ok(session, "");
+  if (cmd === "users") return ok(session, session.user || "root");
+  if (cmd === "locale") return ok(session, `LANG=${session.envVars.LANG || "C.UTF-8"}\nLC_ALL=${session.envVars.LC_ALL || session.envVars.LANG || "C.UTF-8"}`);
+  if (cmd === "hostid") {
+    let hash = 0;
+    for (const char of session.envVars.HOSTNAME || "nibras") hash = Math.imul(hash, 33) + char.charCodeAt(0);
+    return ok(session, (hash >>> 0).toString(16).padStart(8, "0"));
+  }
+  if (cmd === "ps") {
+    const rows = [`1 ${session.user || "root"} ttys000 nibras`];
+    for (const job of session.jobs) rows.push(`${job.id} ${session.user || "root"} ttys000 ${job.cmd}`);
+    return ok(session, rows.join("\n"));
+  }
+  if (cmd === "kill") {
+    const id = Number(args[0]);
+    const job = session.jobs.find((item) => item.id === id);
+    if (!job) return fail(session, "proses yoxdur");
+    job.state = "dayandı";
+    return ok(session, String(id));
+  }
+  if (cmd === "umask") {
+    if (!args[0]) return ok(session, session.envVars.UMASK || "022");
+    if (!/^[0-7]{3,4}$/.test(args[0])) return fail(session, "umask 022");
+    session.envVars.UMASK = args[0].slice(-3);
+    return ok(session, session.envVars.UMASK);
+  }
+  if (cmd === "let") {
+    const raw = args.join(" ");
+    const cut = raw.indexOf("=");
+    if (cut <= 0) return fail(session, "let ad=2+3");
+    const name = raw.slice(0, cut).trim();
+    const expr = raw.slice(cut + 1);
+    if (!/^[A-Za-z_]\w*$/.test(name) || !/^[\d\s+*/%().-]+$/.test(expr)) return fail(session, "let ad=2+3");
+    try {
+      const value = Function(`"use strict"; return (${expr})`)() as unknown;
+      if (typeof value !== "number" || !Number.isFinite(value)) return fail(session, "hesab alınmadı");
+      session.envVars[name] = String(value);
+      return ok(session, String(value));
+    } catch {
+      return fail(session, "hesab alınmadı");
+    }
+  }
+  if (cmd === "dc") {
+    const stack: number[] = [];
+    const out: string[] = [];
+    for (const token of args.flatMap((arg) => arg.split(/\s+/)).filter(Boolean)) {
+      if (/^-?\d+$/.test(token)) stack.push(Number(token));
+      else if ("+-*/%".includes(token) && token.length === 1) {
+        const right = stack.pop();
+        const left = stack.pop();
+        if (left === undefined || right === undefined) return fail(session, "dc yığın azdır");
+        stack.push(token === "+" ? left + right : token === "-" ? left - right : token === "*" ? left * right : token === "/" ? Math.trunc(left / right) : left % right);
+      } else if (token === "p") out.push(String(stack.at(-1) ?? ""));
+      else if (token === "n") out.push(String(stack.pop() ?? ""));
+      else return fail(session, "dc 2 3 + p");
+    }
+    return ok(session, out.join("\n") || String(stack.at(-1) ?? ""));
+  }
+  if (cmd === "base32") {
+    const got = textFrom(session, args.find((arg) => arg !== "-d"), stdin);
+    if (got.error) return fail(session, got.error);
+    if (got.text === undefined) return fail(session, "base32 fayl");
+    return ok(session, args.includes("-d") ? base32Decode(got.text.trim()) : base32Encode(got.text));
+  }
+  if (cmd === "cksum") {
+    const name = args[0];
+    const got = textFrom(session, name, stdin);
+    if (got.error) return fail(session, got.error);
+    if (got.text === undefined) return fail(session, "cksum fayl");
+    const bytes = new TextEncoder().encode(got.text);
+    return ok(session, `${crc32(bytes) >>> 0} ${bytes.length}${name ? ` ${name}` : ""}`);
+  }
+  if (cmd === "od") {
+    const got = textFrom(session, args.find((arg) => !arg.startsWith("-")), stdin);
+    if (got.error) return fail(session, got.error);
+    if (got.text === undefined) return fail(session, "od fayl");
+    const bytes = new TextEncoder().encode(got.text);
+    const lines: string[] = [];
+    for (let index = 0; index < bytes.length; index += 8) {
+      const oct = [...bytes.slice(index, index + 8)].map((byte) => byte.toString(8).padStart(3, "0")).join(" ");
+      lines.push(`${index.toString(8).padStart(7, "0")} ${oct}`);
+    }
+    return ok(session, lines.join("\n"));
+  }
+  if (cmd === "unlink") {
+    const path = resolve(session.cwd, args[0] || "");
+    if (!args[0]) return fail(session, "unlink fayl");
+    if (session.files[path] === undefined) return fail(session, `fayl yoxdur: ${path}`);
+    delete session.files[path];
+    return ok(session, "");
+  }
+  if (cmd === "unexpand") {
+    const got = textFrom(session, args.find((arg) => !arg.startsWith("-")), stdin);
+    if (got.error) return fail(session, got.error);
+    if (got.text === undefined) return fail(session, "unexpand fayl");
+    return ok(session, got.text.replace(/^( {8})+/gm, (spaces) => "\t".repeat(spaces.length / 8)));
+  }
+  if (cmd === "pr") {
+    const got = textFrom(session, args[0], stdin);
+    if (got.error) return fail(session, got.error);
+    if (got.text === undefined) return fail(session, "pr fayl");
+    return ok(session, [`${args[0] || "stdin"} səhifə 1`, got.text.replace(/\n$/, "")].join("\n"));
+  }
+  if (cmd === "install") {
+    const mode = args.includes("-m") ? args[args.indexOf("-m") + 1] : "";
+    const names = args.filter((arg, index) => arg !== "-m" && args[index - 1] !== "-m");
+    const copied = copyPath(session, names[0] || "", names[1] || "", false);
+    if (copied.ok === false) return copied;
+    if (mode) {
+      if (!/^[0-7]{3,4}$/.test(mode)) return fail(copied.session, "icazə 644 kimi olmalıdır");
+      copied.session.modes[resolve(copied.session.cwd, names[1] || "")] = mode.slice(-3);
+    }
+    return copied;
+  }
+  if (cmd === "shred") {
+    const path = resolve(session.cwd, args.find((arg) => !arg.startsWith("-")) || "");
+    if (session.files[path] === undefined) return fail(session, `fayl yoxdur: ${path}`);
+    delete session.files[path];
+    return ok(session, "");
+  }
+  if (cmd === "dd") {
+    const opt = Object.fromEntries(args.filter((arg) => arg.includes("=")).map((arg) => [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)]));
+    if (!opt.if) return fail(session, "dd if=a of=b");
+    const source = resolve(session.cwd, opt.if);
+    const body = session.files[source];
+    if (body === undefined) return fail(session, `fayl yoxdur: ${source}`);
+    const bs = Number(opt.bs || 1);
+    const skip = Number(opt.skip || 0);
+    if (!Number.isFinite(bs) || bs < 1) return fail(session, "dd if=a of=b");
+    const start = skip * bs;
+    const end = opt.count ? start + Number(opt.count) * bs : body.length;
+    const slice = body.slice(start, end);
+    if (!opt.of) return ok(session, slice);
+    const dest = resolve(session.cwd, opt.of);
+    ensureDir(session, parent(dest));
+    session.files[dest] = slice;
+    return ok(session, `${slice.length} bayt`);
+  }
+  return fail(session, "əmr yoxdur");
+}
+
+const BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+function base32Encode(text: string) {
+  const bytes = new TextEncoder().encode(text);
+  let bits = 0;
+  let value = 0;
+  let out = "";
+  for (const byte of bytes) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      out += BASE32[(value >> bits) & 31];
+    }
+  }
+  if (bits) out += BASE32[(value << (5 - bits)) & 31];
+  while (out.length % 8) out += "=";
+  return out;
+}
+
+function base32Decode(text: string) {
+  const clean = text.replace(/=+$/g, "").toUpperCase();
+  let bits = 0;
+  let value = 0;
+  const bytes: number[] = [];
+  for (const char of clean) {
+    const index = BASE32.indexOf(char);
+    if (index < 0) return "base32 səhvdir";
+    value = (value << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >> bits) & 255);
+    }
+  }
+  return new TextDecoder().decode(Uint8Array.from(bytes));
 }
 
 function exprCmd(session: Session, args: string[], answer?: string): ShellOut {
@@ -3810,7 +4051,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
