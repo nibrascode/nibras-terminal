@@ -17,6 +17,7 @@ import {
   applyAnswer,
   emptySession,
   browserReady,
+  extraKeyRows,
   formatBytes,
   hydrate,
   importRepo,
@@ -338,6 +339,7 @@ export function NibrasTerminal() {
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
+  const [drawer, setDrawer] = useState(false);
   const [findOn, setFindOn] = useState(false);
   const [size, setSize] = useState(1);
   const [lang, setLang] = useState<Lang>("az");
@@ -608,6 +610,23 @@ export function NibrasTerminal() {
         push([{ kind: "out", text: mounted.message }]);
       }
       setBusy("");
+    } else if (result.device?.kind === "reset") {
+      localStorage.removeItem(STORE);
+      localStorage.removeItem(LINES);
+      window.location.reload();
+    } else if (result.device?.kind === "download") {
+      setBusy("Endirilir…");
+      const saved = await fetchDownload(result.device.url);
+      setBusy("");
+      if (!saved.ok) push([{ kind: "err", text: saved.error }]);
+      else if (saved.text !== undefined) {
+        const path = `${current.home || "/root"}/storage/downloads/${result.device.dest}`;
+        const dirs = new Set(current.dirs);
+        dirs.add(`${current.home || "/root"}/storage`);
+        dirs.add(`${current.home || "/root"}/storage/downloads`);
+        current = { ...current, dirs: [...dirs], files: { ...current.files, [path]: saved.text.endsWith("\n") ? saved.text : `${saved.text}\n` } };
+        push([{ kind: "out", text: path }]);
+      } else push([{ kind: "out", text: saved.message }]);
     } else if (result.device?.kind === "backup") {
       push([{ kind: "out", text: downloadBackup(current) }]);
     } else if (result.device?.kind === "restore") {
@@ -888,6 +907,17 @@ export function NibrasTerminal() {
     setDraft("");
   }
 
+  function closeSlot() {
+    if (slots.length < 2) return;
+    const next = slots.filter((_, index) => index !== slot);
+    const at = Math.max(0, slot - 1);
+    setSlots(next);
+    setSlot(at);
+    setSession(next[at]?.session ?? session);
+    setLines(next[at]?.lines ?? lines);
+    setDraft("");
+  }
+
   function insertText(text: string) {
     const el = box.current;
     const pos = el?.selectionStart ?? draft.length;
@@ -994,8 +1024,8 @@ export function NibrasTerminal() {
       });
       return;
     }
-    if (key.length === 1) {
-      insertText(key);
+    if (key.length === 1 || (key.length > 1 && !["ESC", "HOME", "END", "PGUP", "PGDN", "CTRL", "ALT"].includes(name))) {
+      insertText(key.length === 1 ? key : key);
       return;
     }
     box.current?.focus();
@@ -1039,18 +1069,28 @@ export function NibrasTerminal() {
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           {tab === "term" ? (
             <div className="flex min-h-0 flex-1 flex-col">
+              <button className="nt-edge" type="button" aria-label="Seans" onClick={() => setDrawer(true)} />
               <div
                 className="nt-term"
                 onClick={() => {
                   if (!window.getSelection()?.toString()) box.current?.focus();
                 }}
                 onTouchStart={(event) => {
+                  if (event.touches.length === 1 && event.touches[0].clientX < 28) {
+                    pinch.current = { dist: -1, size: event.touches[0].clientX };
+                    return;
+                  }
                   if (event.touches.length !== 2) return;
                   const [a, b] = [event.touches[0], event.touches[1]];
                   pinch.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), size };
                 }}
                 onTouchMove={(event) => {
-                  if (event.touches.length !== 2 || !pinch.current) return;
+                  if (pinch.current?.dist === -1 && event.touches.length === 1 && event.touches[0].clientX - pinch.current.size > 48) {
+                    setDrawer(true);
+                    pinch.current = null;
+                    return;
+                  }
+                  if (event.touches.length !== 2 || !pinch.current || pinch.current.dist < 0) return;
                   const [a, b] = [event.touches[0], event.touches[1]];
                   const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
                   const ratio = dist / pinch.current.dist;
@@ -1131,10 +1171,12 @@ export function NibrasTerminal() {
               ) : null}
               {session.server ? <iframe title="Önizləmə" className="h-28 w-full border-t border-[#222] bg-black" sandbox="" srcDoc={session.server.html} /> : null}
               <div className="nt-keys">
-                {PHONE_KEYS.map((row, rowIndex) => (
+                {extraKeyRows(session).map((row, rowIndex) => (
                   <div key={rowIndex} className="nt-keyrow">
-                    {row.map(([key, label]) => {
-                      const on = (key === "CTRL" && mods.ctrl) || (key === "ALT" && mods.alt);
+                    {row.map((key) => {
+                      const name = key.toUpperCase();
+                      const on = (name === "CTRL" && mods.ctrl) || (name === "ALT" && mods.alt);
+                      const label = name === "UP" ? "↑" : name === "DOWN" ? "↓" : name === "LEFT" ? "←" : name === "RIGHT" ? "→" : key;
                       return (
                         <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
                           {label}
@@ -1195,6 +1237,35 @@ export function NibrasTerminal() {
             />
           ) : null}
         </main>
+        {drawer ? (
+          <div className="nt-drawer" role="dialog">
+            <p className="px-4 py-3 font-mono text-xs tracking-widest text-[#8a8a8a]">SEANS</p>
+            {slots.map((item, index) => (
+              <button
+                key={`${item.name}-${index}`}
+                className={`nt-sess ${index === slot ? "on" : ""}`}
+                type="button"
+                onClick={() => {
+                  switchSlot(index);
+                  setDrawer(false);
+                }}
+              >
+                {index + 1} · {item.name}
+              </button>
+            ))}
+            <button className="nt-sess" type="button" onClick={() => { addSlot(); setDrawer(false); }}>
+              Yeni
+            </button>
+            {slots.length > 1 ? (
+              <button className="nt-sess" type="button" onClick={() => { closeSlot(); setDrawer(false); }}>
+                Bağla
+              </button>
+            ) : null}
+            <button className="nt-sess" type="button" onClick={() => setDrawer(false)}>
+              Geri
+            </button>
+          </div>
+        ) : null}
       </div>
       {scriptOpen ? (
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-deep/80 p-4" role="dialog" aria-modal="true">
@@ -1779,6 +1850,81 @@ async function createKey(path: string) {
   };
 }
 
+let phoneNotes: Notification[] = [];
+let torchTrack: MediaStreamTrack | null = null;
+
+async function fetchDownload(url: string): Promise<{ ok: true; text?: string; message: string } | { ok: false; error: string }> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return { ok: false, error: "endirilmədi" };
+    const type = response.headers.get("content-type") ?? "";
+    if (type.startsWith("text") || type.includes("json") || type.includes("xml") || type.includes("javascript")) {
+      const text = await response.text();
+      if (text.length > 200_000) return { ok: false, error: "fayl çox böyükdür" };
+      return { ok: true, text, message: "" };
+    }
+    const blob = await response.blob();
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "nibras-download";
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+    return { ok: true, message: "telefon endirdi" };
+  } catch {
+    return { ok: false, error: "endirilmədi" };
+  }
+}
+
+function takePhoto() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.capture = "environment";
+  return new Promise<string>((resolve) => {
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) {
+        resolve("!şəkil seçilmədi");
+        return;
+      }
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(file);
+      link.download = file.name || "nibras.jpg";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+      resolve(file.name || "şəkil saxlandı");
+    };
+    window.addEventListener("focus", () => window.setTimeout(() => resolve(input.files?.[0] ? input.files[0].name : "!şəkil seçilmədi"), 500), { once: true });
+    input.click();
+  });
+}
+
+async function setTorch(on: boolean) {
+  if (!on) {
+    torchTrack?.stop();
+    torchTrack = null;
+    return "fənər söndü";
+  }
+  if (!navigator.mediaDevices?.getUserMedia) return "!fənər yoxdur";
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const track = stream.getVideoTracks()[0];
+    if (!track) return "!fənər yoxdur";
+    await track.applyConstraints({ advanced: [{ torch: true } as MediaTrackConstraintSet] });
+    torchTrack = track;
+    return "fənər yanır";
+  } catch {
+    return "!fənər yoxdur";
+  }
+}
+
+function closeNote(title: string) {
+  const found = phoneNotes.filter((note) => note.title === title);
+  found.forEach((note) => note.close());
+  phoneNotes = phoneNotes.filter((note) => note.title !== title);
+  return found.length ? title : "!bildiriş yoxdur";
+}
+
 let screenLock: { release: () => Promise<void> } | null = null;
 
 type DirHandle = FileSystemDirectoryHandle & {
@@ -2171,9 +2317,13 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "video") return mergeVideos();
   if (device.kind === "listen") return listenSpeech();
   if (device.kind === "sensor") return readSensor();
+  if (device.kind === "camera") return takePhoto();
+  if (device.kind === "torch") return setTorch(device.on);
+  if (device.kind === "notify-remove") return closeNote(device.title);
   if (!("Notification" in window) || device.kind !== "notify") return "!bildiriş yoxdur";
   const permit = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permit !== "granted") return "!bildiriş bağlıdır";
-  new Notification(device.title, { body: device.body });
+  const note = new Notification(device.title, { body: device.body });
+  phoneNotes.push(note);
   return device.title;
 }

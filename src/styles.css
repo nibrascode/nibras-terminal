@@ -339,6 +339,48 @@
   color: #fff;
 }
 
+.nt-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  width: 0.7rem;
+  border: 0;
+  background: transparent;
+}
+
+.nt-window {
+  position: relative;
+}
+
+.nt-drawer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 6;
+  display: flex;
+  width: min(16rem, 78vw);
+  flex-direction: column;
+  background: #050505;
+  border-right: 1px solid #222;
+}
+
+.nt-sess {
+  min-height: 2.6rem;
+  border: 0;
+  border-bottom: 1px solid #161616;
+  background: transparent;
+  color: #d7d7d7;
+  text-align: left;
+  padding: 0 1rem;
+  font-family: var(--font-mono);
+}
+
+.nt-sess.on {
+  color: #fff;
+  background: #141414;
+}
+
 .nt-chips {
   display: flex;
   gap: 0.5rem;

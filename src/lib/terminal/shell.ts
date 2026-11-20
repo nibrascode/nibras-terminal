@@ -86,7 +86,12 @@ export type ShellOut = {
     | { kind: "backup" }
     | { kind: "restore" }
     | { kind: "listen" }
-    | { kind: "sensor" };
+    | { kind: "sensor" }
+    | { kind: "reset" }
+    | { kind: "download"; url: string; dest: string }
+    | { kind: "camera" }
+    | { kind: "torch"; on: boolean }
+    | { kind: "notify-remove"; title: string };
   pip?: string;
   keygen?: { path: string };
 };
@@ -315,6 +320,11 @@ export function browserReady(session: Session): Session {
   }
   for (const key of ["python", "node", "php", "git", "build"]) {
     if (!next.pkgs.includes(key)) next.pkgs.push(key);
+  }
+  const props = `${next.home || "/root"}/.nibras/nibras.properties`;
+  if (!next.files[props]) {
+    next.dirs.push(`${next.home || "/root"}/.nibras`);
+    next.files[props] = "extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]\n";
   }
   return next;
 }
@@ -2648,7 +2658,57 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   if (cmd === "nibras-restore") return { ...ok(session, ""), device: { kind: "restore" } };
   if (cmd === "nibras-listen") return { ...ok(session, ""), device: { kind: "listen" } };
   if (cmd === "nibras-sensor") return { ...ok(session, ""), device: { kind: "sensor" } };
-  return fail(session, "nibras-setup-storage | clipboard | toast | doctor | backup | restore | listen | sensor | video");
+  if (cmd === "nibras-info") return ok(session, nibrasInfo(session));
+  if (cmd === "nibras-change-repo") return changeRepo(session, args[0] || answer);
+  if (cmd === "nibras-reset") return { ...ok(session, ""), device: { kind: "reset" } };
+  if (cmd === "nibras-download") return downloadCmd(session, args, answer);
+  if (cmd === "nibras-camera-photo") return { ...ok(session, ""), device: { kind: "camera" } };
+  if (cmd === "nibras-torch") return { ...ok(session, ""), device: { kind: "torch", on: args[0] !== "off" } };
+  if (cmd === "nibras-notification-remove") {
+    const title = args.join(" ") || answer;
+    if (!title) return askFor(session, { id: "text", title: "Bildiriş", label: "başlıq", resume: "nibras-notification-remove" });
+    return { ...ok(session, ""), device: { kind: "notify-remove", title } };
+  }
+  return fail(session, "nibras-info | setup-storage | clipboard | download | camera-photo | torch | doctor | backup | restore");
+}
+
+function nibrasInfo(session: Session) {
+  const home = session.home || "/root";
+  return [
+    "Nibras",
+    "Tətbiq: telefon",
+    `Mühit: ${session.env ?? "yox"}`,
+    `Ev: ${home}`,
+    `Qovluq: ${session.cwd}`,
+    `Paket: ${session.pkgs.join(" ") || "yox"}`,
+    `Güzgü: ${(session.files[`${home}/.nibras/repo`] ?? "main").trim()}`,
+    "Açarlar: ~/.nibras/nibras.properties",
+  ].join("\n");
+}
+
+function changeRepo(session: Session, name?: string): ShellOut {
+  const mirrors = ["main", "cloudflare"];
+  if (!name) return ok(session, mirrors.join("\n"));
+  if (!mirrors.includes(name)) return fail(session, "güzgü yoxdur");
+  const path = `${session.home || "/root"}/.nibras/repo`;
+  ensureDir(session, parent(path));
+  session.files[path] = `${name}\n`;
+  return ok(session, name);
+}
+
+function downloadCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const url = args[0] || answer || "";
+  if (!url) return askFor(session, { id: "text", title: "Endir", label: "https://", resume: "nibras-download" });
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return fail(session, "ünvan səhvdir");
+  }
+  if (parsed.protocol !== "https:") return fail(session, "yalnız https");
+  if (isBlockedHost(parsed.hostname)) return fail(session, "bu ünvan bağlıdır");
+  const dest = (args[1] || parsed.pathname.split("/").pop() || "yukleme").replace(/[^\w.-]/g, "") || "yukleme";
+  return { ...ok(session, ""), device: { kind: "download", url, dest } };
 }
 
 function doctor(session: Session) {
