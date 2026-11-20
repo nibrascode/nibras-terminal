@@ -76,7 +76,7 @@ export type ShellOut = {
     | { kind: "battery" }
     | { kind: "speak"; text: string }
     | { kind: "open"; url: string }
-    | { kind: "notify"; title: string; body: string }
+    | { kind: "notify"; title: string; body: string; id?: string }
     | { kind: "wake-lock" }
     | { kind: "wake-unlock" }
     | { kind: "share"; text: string }
@@ -105,7 +105,9 @@ export type ShellOut = {
     | { kind: "telephony" }
     | { kind: "usb" }
     | { kind: "voices" }
-    | { kind: "open-file"; name: string; text: string };
+    | { kind: "open-file"; name: string; text: string }
+    | { kind: "getprop"; key: string }
+    | { kind: "location" };
   pip?: string;
   keygen?: { path: string };
 };
@@ -211,7 +213,7 @@ export function emptySession(): Session {
     staged: [],
     history: [],
     aliases: {},
-    envVars: { HOME: "/root", USER: "root", TERM: "nibras", PREFIX: "/data/data/com.nibras.terminal/files/usr" },
+    envVars: { HOME: "/root", USER: "root", TERM: "nibras", PATH: "/data/data/com.nibras.terminal/files/usr/bin:/usr/bin", PREFIX: "/data/data/com.nibras.terminal/files/usr" },
     server: null,
     started: Date.now(),
     trash: [],
@@ -734,6 +736,16 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return systemctlCmd(session, args);
     case "sv":
       return svCmd(session, args);
+    case "getprop":
+      return { ...ok(session, ""), device: { kind: "getprop", key: args[0] || "" } };
+    case "pgrep":
+      return pgrepCmd(session, args, false);
+    case "pidof":
+      return pgrepCmd(session, args, true);
+    case "pkill":
+      return pkillCmd(session, args);
+    case "nohup":
+      return nohupCmd(session, args, answer, stdin);
     case "logger":
       return loggerCmd(session, args);
     case "journalctl":
@@ -3139,6 +3151,15 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
     return { ...ok(session, ""), device: { kind: "open", url } };
   }
   if (cmd === "nibras-notification") {
+    const titleAt = args.indexOf("--title");
+    const bodyAt = args.indexOf("--content");
+    const idAt = args.indexOf("--id");
+    if (titleAt >= 0 || bodyAt >= 0 || idAt >= 0) {
+      const title = args[titleAt + 1] || "Nibras";
+      const body = args[bodyAt + 1] || title;
+      const id = idAt >= 0 ? args[idAt + 1] || "" : "";
+      return { ...ok(session, ""), device: { kind: "notify", title, body, id } };
+    }
     const title = args[0] || answer || "Nibras";
     const body = args.slice(1).join(" ") || title;
     return { ...ok(session, ""), device: { kind: "notify", title, body } };
@@ -3208,7 +3229,8 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   if (cmd === "nibras-usb") return { ...ok(session, ""), device: { kind: "usb" } };
   if (cmd === "nibras-tts-engines") return { ...ok(session, ""), device: { kind: "voices" } };
   if (cmd === "nibras-open") return openFileCmd(session, args, answer);
-  return fail(session, "nibras-info | contact-list | tts-engines | open | usb");
+  if (cmd === "nibras-location") return { ...ok(session, ""), device: { kind: "location" } };
+  return fail(session, "nibras-info | contact-list | location | tts-engines | open | usb");
 }
 
 function openFileCmd(session: Session, args: string[], answer?: string): ShellOut {
@@ -3240,6 +3262,35 @@ function svCmd(session: Session, args: string[]): ShellOut {
   ensureDir(ran.session, "/run/sv");
   ran.session.files[state] = "up\n";
   return ok(ran.session, ran.output || "up");
+}
+
+function pgrepCmd(session: Session, args: string[], exact: boolean): ShellOut {
+  const name = args.find((arg) => !arg.startsWith("-"));
+  if (!name) return fail(session, exact ? "pidof ad" : "pgrep əmr");
+  const hits = session.jobs.filter((job) => (exact ? job.cmd.split(/\s+/)[0] === name : job.cmd.includes(name)));
+  if (!hits.length) return fail(session, "proses yoxdur");
+  return ok(session, hits.map((job) => String(job.id)).join("\n"));
+}
+
+function pkillCmd(session: Session, args: string[]): ShellOut {
+  const name = args.find((arg) => !arg.startsWith("-"));
+  if (!name) return fail(session, "pkill əmr");
+  const hits = session.jobs.filter((job) => job.cmd.includes(name));
+  if (!hits.length) return fail(session, "proses yoxdur");
+  for (const job of hits) job.state = "dayandı";
+  return ok(session, hits.map((job) => String(job.id)).join("\n"));
+}
+
+function nohupCmd(session: Session, args: string[], answer: string | undefined, stdin?: string): ShellOut {
+  const cmd = args[0];
+  if (!cmd) return fail(session, "nohup əmr");
+  const ran = dispatch(session, cmd, args.slice(1), answer, stdin);
+  if (ran.ask || ran.device || ran.sleep || ran.fetch || ran.remote) return ran;
+  const path = resolve(ran.session.cwd, "nohup.out");
+  const body = ran.output && ran.output !== "\u0000clear" ? ran.output : "";
+  ensureDir(ran.session, parent(path));
+  ran.session.files[path] = `${ran.session.files[path] ?? ""}${body}${body ? "\n" : ""}`;
+  return { ...ran, output: body };
 }
 
 function password(raw?: string) {
@@ -4361,7 +4412,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale", "make", "crontab", "cron", "rsync", "zip", "unzip", "patch", "sqlite3", "systemctl", "logger", "journalctl", "sv"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale", "make", "crontab", "cron", "rsync", "zip", "unzip", "patch", "sqlite3", "systemctl", "logger", "journalctl", "sv", "getprop", "pgrep", "pkill", "pidof", "nohup"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];

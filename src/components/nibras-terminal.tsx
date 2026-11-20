@@ -2450,6 +2450,49 @@ function showFile(name: string, text: string) {
   return name;
 }
 
+async function readProps(key: string) {
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    userAgentData?: { platform?: string; getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string; platformVersion?: string }> };
+  };
+  let model = "";
+  let version = "";
+  try {
+    const high = await nav.userAgentData?.getHighEntropyValues?.(["model", "platformVersion"]);
+    model = high?.model ?? "";
+    version = high?.platformVersion ?? "";
+  } catch {
+    model = "";
+  }
+  const rows: Record<string, string> = {
+    "persist.sys.locale": navigator.language,
+    "persist.sys.timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+    "ro.product.model": model || "məlum deyil",
+    "ro.product.board": nav.userAgentData?.platform || navigator.platform,
+    "ro.build.version.release": version || "məlum deyil",
+    "ro.hardware.cores": String(navigator.hardwareConcurrency || ""),
+    "ro.hardware.ram": nav.deviceMemory ? `${nav.deviceMemory} GB` : "məlum deyil",
+    "ro.hardware.touch": String(navigator.maxTouchPoints || 0),
+    "net.online": navigator.onLine ? "1" : "0",
+  };
+  if (key) return rows[key] ?? "";
+  return Object.entries(rows).map(([name, value]) => `[${name}]: [${value}]`).join("\n");
+}
+
+function readLocation() {
+  return new Promise<string>((resolve) => {
+    if (!navigator.geolocation) {
+      resolve("!yer yoxdur");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(`${pos.coords.latitude} ${pos.coords.longitude} ±${Math.round(pos.coords.accuracy)} m`),
+      () => resolve("!yer yoxdur"),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10_000 },
+    );
+  });
+}
+
 async function usbDevices() {
   const nav = navigator as Navigator & { usb?: { getDevices: () => Promise<Array<{ productName?: string; vendorId: number }>> } };
   if (!nav.usb) return "!usb yoxdur";
@@ -2544,6 +2587,8 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "usb") return usbDevices();
   if (device.kind === "voices") return listVoices();
   if (device.kind === "open-file") return showFile(device.name, device.text);
+  if (device.kind === "getprop") return readProps(device.key);
+  if (device.kind === "location") return readLocation();
   if (device.kind === "battery") {
     const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; charging: boolean; dischargingTime?: number }> };
     if (!nav.getBattery) return "!batareya oxunmur";
@@ -2621,7 +2666,7 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (!("Notification" in window) || device.kind !== "notify") return "!bildiriş yoxdur";
   const permit = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permit !== "granted") return "!bildiriş bağlıdır";
-  const note = new Notification(device.title, { body: device.body });
+  const note = new Notification(device.title, { body: device.body, tag: device.id || undefined });
   phoneNotes.push(note);
   return device.title;
 }
