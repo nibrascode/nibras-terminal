@@ -721,6 +721,16 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return zipCmd(session, args);
     case "unzip":
       return unzipCmd(session, args);
+    case "patch":
+      return patchCmd(session, args, stdin);
+    case "sqlite3":
+      return sqliteCmd(session, args);
+    case "systemctl":
+      return systemctlCmd(session, args);
+    case "logger":
+      return loggerCmd(session, args);
+    case "journalctl":
+      return journalCmd(session, args);
     case "chmod":
       return chmodCmd(session, args);
     case "realpath":
@@ -1564,7 +1574,8 @@ function diffCmd(session: Session, args: string[], answer?: string): ShellOut {
   const a = linesOf(left);
   const b = linesOf(right);
   if (a.length > 400 || b.length > 400) return fail(session, "400 sətirdən uzundur");
-  return ok(session, lineDiff(a, b) || "fərq yoxdur");
+  const body = args.includes("-u") ? unifiedDiff(pair[0] ?? "a", pair[1] ?? "b", a, b) : lineDiff(a, b);
+  return ok(session, body || "fərq yoxdur");
 }
 
 function lineDiff(left: string[], right: string[]) {
@@ -1594,6 +1605,212 @@ function lineDiff(left: string[], right: string[]) {
   while (i < width) out.push(`- ${left[i++]}`);
   while (j < height) out.push(`+ ${right[j++]}`);
   return out.join("\n");
+}
+
+function unifiedDiff(leftName: string, rightName: string, left: string[], right: string[]) {
+  const raw = lineDiff(left, right);
+  if (!raw) return "";
+  const lines = raw.split("\n").map((line) => (line.startsWith("- ") || line.startsWith("+ ") ? `${line[0]}${line.slice(2)}` : line));
+  return [`--- ${leftName}`, `+++ ${rightName}`, "@@", ...lines].join("\n");
+}
+
+function patchCmd(session: Session, args: string[], stdin?: string): ShellOut {
+  const files = args.filter((arg) => !arg.startsWith("-"));
+  const got = textFrom(session, files[1], stdin);
+  if (got.error) return fail(session, got.error);
+  const diff = got.text ?? (files[1] ? session.files[resolve(session.cwd, files[1])] : undefined);
+  if (!diff) return fail(session, "patch fayl yama");
+  const header = diff.split("\n").find((line) => line.startsWith("--- "));
+  const targetName = files[0] || header?.slice(4).trim();
+  if (!targetName) return fail(session, "patch fayl yama");
+  const target = resolve(session.cwd, targetName);
+  const body = session.files[target];
+  if (body === undefined) return fail(session, `fayl yoxdur: ${target}`);
+  const next = applyUnified(linesOf(body), diff);
+  if (typeof next === "string") return fail(session, next);
+  session.files[target] = `${next.join("\n")}\n`;
+  return ok(session, targetName);
+}
+
+function applyUnified(source: string[], diff: string): string[] | string {
+  const out = [...source];
+  let index = 0;
+  let saw = false;
+  for (const line of diff.split("\n")) {
+    if (!line || line.startsWith("--- ") || line.startsWith("+++ ") || line.startsWith("@@")) continue;
+    const kind = line[0];
+    const text = line.slice(1);
+    if (kind !== " " && kind !== "-" && kind !== "+") continue;
+    saw = true;
+    if (kind === "+") {
+      out.splice(index, 0, text);
+      index += 1;
+      continue;
+    }
+    const found = out.findIndex((item, at) => at >= index && item === text);
+    if (found < 0) return "yama oturmadı";
+    if (kind === "-") {
+      out.splice(found, 1);
+      index = found;
+    } else index = found + 1;
+  }
+  if (!saw) return "yama boşdur";
+  return out;
+}
+
+function sqliteCmd(session: Session, args: string[]): ShellOut {
+  const dbName = args[0];
+  const sql = args.slice(1).join(" ").trim();
+  if (!dbName || !sql) return fail(session, "sqlite3 baz.db \"SELECT * FROM t\"");
+  const path = resolve(session.cwd, dbName);
+  const db = readSql(session.files[path]);
+  if (typeof db === "string") return fail(session, db);
+  const statement = sql.replace(/;+\s*$/, "");
+  const upper = statement.replace(/\s+/g, " ").trim();
+  const create = /^CREATE TABLE (\w+) \((.+)\)$/i.exec(upper);
+  if (create) {
+    const name = create[1] ?? "";
+    if (db.tables[name]) return fail(session, "cədvəl var");
+    db.tables[name] = { cols: (create[2] ?? "").split(",").map((col) => col.trim()).filter(Boolean), rows: [] };
+    return writeSql(session, path, db, "");
+  }
+  const drop = /^DROP TABLE (\w+)$/i.exec(upper);
+  if (drop) {
+    if (!db.tables[drop[1] ?? ""]) return fail(session, "cədvəl yoxdur");
+    delete db.tables[drop[1] ?? ""];
+    return writeSql(session, path, db, "");
+  }
+  const insert = /^INSERT INTO (\w+) VALUES \((.+)\)$/i.exec(upper);
+  if (insert) {
+    const table = db.tables[insert[1] ?? ""];
+    if (!table) return fail(session, "cədvəl yoxdur");
+    const values = splitSql(insert[2] ?? "");
+    if (values.length !== table.cols.length) return fail(session, "sütun sayı uyğun deyil");
+    table.rows.push(values);
+    return writeSql(session, path, db, "");
+  }
+  const select = /^SELECT (.+) FROM (\w+)(?: WHERE (\w+)=(.+))?$/i.exec(upper);
+  if (select) {
+    const table = db.tables[select[2] ?? ""];
+    if (!table) return fail(session, "cədvəl yoxdur");
+    const cols = (select[1] ?? "").trim() === "*" ? table.cols : (select[1] ?? "").split(",").map((col) => col.trim());
+    if (cols.some((col) => !table.cols.includes(col))) return fail(session, "sütun yoxdur");
+    const whereCol = select[3];
+    const whereVal = select[4] ? unquote(select[4]) : undefined;
+    const rows = table.rows.filter((row) => {
+      if (!whereCol) return true;
+      const at = table.cols.indexOf(whereCol);
+      return at >= 0 && row[at] === whereVal;
+    });
+    return ok(session, rows.map((row) => cols.map((col) => row[table.cols.indexOf(col)] ?? "").join("|")).join("\n"));
+  }
+  const update = /^UPDATE (\w+) SET (\w+)=(.+?)(?: WHERE (\w+)=(.+))?$/i.exec(upper);
+  if (update) {
+    const table = db.tables[update[1] ?? ""];
+    if (!table) return fail(session, "cədvəl yoxdur");
+    const col = table.cols.indexOf(update[2] ?? "");
+    if (col < 0) return fail(session, "sütun yoxdur");
+    const value = unquote(update[3] ?? "");
+    const whereCol = update[4] ? table.cols.indexOf(update[4]) : -1;
+    const whereVal = update[5] ? unquote(update[5]) : undefined;
+    for (const row of table.rows) {
+      if (whereCol >= 0 && row[whereCol] !== whereVal) continue;
+      row[col] = value;
+    }
+    return writeSql(session, path, db, "");
+  }
+  const remove = /^DELETE FROM (\w+)(?: WHERE (\w+)=(.+))?$/i.exec(upper);
+  if (remove) {
+    const table = db.tables[remove[1] ?? ""];
+    if (!table) return fail(session, "cədvəl yoxdur");
+    const whereCol = remove[2] ? table.cols.indexOf(remove[2]) : -1;
+    const whereVal = remove[3] ? unquote(remove[3]) : undefined;
+    table.rows = whereCol < 0 ? [] : table.rows.filter((row) => row[whereCol] !== whereVal);
+    return writeSql(session, path, db, "");
+  }
+  if (/^\.tables$/i.test(upper)) return ok(session, Object.keys(db.tables).join("\n"));
+  return fail(session, "sqlite3: CREATE, INSERT, SELECT, UPDATE, DELETE");
+}
+
+function readSql(body: string | undefined): { tables: Record<string, { cols: string[]; rows: string[][] }> } | string {
+  if (body === undefined || body === "") return { tables: {} };
+  if (!body.startsWith("NIBRASQL1\n")) return "bu sqlite faylı deyil";
+  try {
+    const parsed = JSON.parse(body.slice("NIBRASQL1\n".length)) as { tables?: Record<string, { cols: string[]; rows: string[][] }> };
+    return { tables: parsed.tables ?? {} };
+  } catch {
+    return "baz açılmadı";
+  }
+}
+
+function writeSql(session: Session, path: string, db: { tables: Record<string, { cols: string[]; rows: string[][] }> }, output: string): ShellOut {
+  ensureDir(session, parent(path));
+  session.files[path] = `NIBRASQL1\n${JSON.stringify(db)}`;
+  return ok(session, output);
+}
+
+function splitSql(value: string) {
+  return value.split(",").map((part) => unquote(part.trim()));
+}
+
+function unquote(value: string) {
+  const text = value.trim();
+  if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"'))) return text.slice(1, -1);
+  return text;
+}
+
+function systemctlCmd(session: Session, args: string[]): ShellOut {
+  const verb = args[0];
+  const name = args[1];
+  if (verb === "list" || verb === "list-units") {
+    const rows = Object.keys(session.files)
+      .filter((path) => path.startsWith("/etc/systemd/system/") && path.endsWith(".service"))
+      .map((path) => path.split("/").pop()?.replace(/\.service$/, "") ?? "");
+    return ok(session, rows.map((unit) => `${unit} ${serviceState(session, unit)}`).join("\n"));
+  }
+  if (!verb || !name || !/^[A-Za-z0-9_-]+$/.test(name)) return fail(session, "systemctl start ad");
+  const unit = session.files[`/etc/systemd/system/${name}.service`];
+  if (unit === undefined) return fail(session, "servis yoxdur");
+  const start = /^ExecStart=(.+)$/m.exec(unit)?.[1]?.trim();
+  const stop = /^ExecStop=(.+)$/m.exec(unit)?.[1]?.trim();
+  if (verb === "status") return ok(session, `${name} ${serviceState(session, name)}`);
+  if (verb === "start") {
+    if (!start) return fail(session, "ExecStart yoxdur");
+    const ran = runLine(session, start);
+    if (ran.ok === false) return fail(ran.session, ran.output || "servis açılmadı");
+    ensureDir(ran.session, "/run/systemd");
+    ran.session.files[`/run/systemd/${name}`] = "active";
+    return ok(ran.session, "active");
+  }
+  if (verb === "stop") {
+    const current = stop ? runLine(session, stop) : ok(session, "");
+    if (current.ok === false) return current;
+    current.session.files[`/run/systemd/${name}`] = "inactive";
+    return ok(current.session, "inactive");
+  }
+  return fail(session, "systemctl start ad");
+}
+
+function serviceState(session: Session, name: string) {
+  return session.files[`/run/systemd/${name}`] === "active" ? "active" : "inactive";
+}
+
+function loggerCmd(session: Session, args: string[]): ShellOut {
+  const text = args.join(" ").trim();
+  if (!text) return fail(session, "logger mətn");
+  const path = "/var/log/syslog";
+  const line = `${new Date().toISOString()} ${session.user || "root"} ${text}`;
+  ensureDir(session, parent(path));
+  session.files[path] = `${session.files[path] ?? ""}${line}\n`;
+  return ok(session, "");
+}
+
+function journalCmd(session: Session, args: string[]): ShellOut {
+  const body = session.files["/var/log/syslog"] ?? "";
+  const needle = args[0] === "-g" ? args[1] : "";
+  if (args[0] === "-g" && !needle) return fail(session, "journalctl -g söz");
+  const lines = body.split("\n").filter((line) => line && (!needle || line.includes(needle)));
+  return ok(session, lines.join("\n"));
 }
 
 function base64Cmd(session: Session, args: string[], answer: string | undefined, stdin?: string): ShellOut {
@@ -4063,7 +4280,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale", "make", "crontab", "cron", "rsync", "zip", "unzip"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale", "make", "crontab", "cron", "rsync", "zip", "unzip", "patch", "sqlite3", "systemctl", "logger", "journalctl"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
