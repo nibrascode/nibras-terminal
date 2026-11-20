@@ -169,6 +169,42 @@ fun payloadFile(context: Context, component: Component): File {
     return File(File(context.filesDir, "downloads/${component.id}"), component.filename)
 }
 
+fun isLargePayload(component: Component) = component.sizeBytes >= 1_048_576L
+
+fun seedSmallPayloads(context: Context, components: List<Component>, installed: Map<String, InstallRecord>): Map<String, InstallRecord> {
+    val next = installed.toMutableMap()
+    for (component in components) {
+        if (isLargePayload(component)) continue
+        val asset = "payloads/${component.filename}"
+        val exists = runCatching { context.assets.open(asset).close() }.isSuccess
+        if (!exists) continue
+        val dest = payloadFile(context, component)
+        val prior = next[component.id]
+        if (prior != null && prior.sha256 == component.sha256 && dest.exists()) continue
+        dest.parentFile?.mkdirs()
+        context.assets.open(asset).use { input -> dest.outputStream().use { output -> input.copyTo(output) } }
+        val sum = sha256(dest)
+        if (sum != component.sha256) {
+            dest.delete()
+            continue
+        }
+        var extracted = false
+        if (component.kind == "archive") {
+            extractArchive(dest, File(context.filesDir, "unpacked/${component.id}"))
+            extracted = true
+        }
+        next[component.id] = InstallRecord(
+            id = component.id,
+            filename = component.filename,
+            sha256 = sum,
+            bytes = dest.length(),
+            savedAt = System.currentTimeMillis(),
+            extracted = extracted,
+        )
+    }
+    return next
+}
+
 fun extractArchive(archive: File, destination: File) {
     if (destination.exists()) {
         destination.deleteRecursively()

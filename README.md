@@ -11,9 +11,10 @@ Veb: https://nibrascode.github.io/nibras-terminal/
 Eyni anda bir mühit saxlanılır. Debian və ya Ubuntu seçiləndə həcm və qalan yer göstərilir.
 Redaktorda saxlanan fayl terminaldakı `cat` ilə görünür.
 
-İstifadəçi nəyi seçsə, yalnız onu yükləyir. Yüklənəcək hər şey bu repoda və
-[`payloads-0.1`](https://github.com/nibrascode/nibras-terminal/releases/tag/payloads-0.1)
-release-indədir. APK-nın içinə heç bir kök sistem qoyulmayıb.
+İstifadəçi böyük paketi seçsə, yalnız onu yükləyir. Skriptlər, şablonlar və
+komut kitabçası APK-nın içindədir. 1 MB-dan böyüklər — Alpine, Debian, Ubuntu,
+Python, Node — yükləmə siyahısındadır. PRoot mühərriki `libproot.so` kimi
+APK-dadır.
 
 Paket: `com.nibras.terminal`  
 Dil: Kotlin, Jetpack Compose  
@@ -28,10 +29,10 @@ Minimum: Android 8 (API 26), ABI arm64-v8a
 | Ubuntu 24.04 arm64 | release | rəsmi imicdən ixrac, SHA-256 yoxlanıb |
 | Python 3.12.16 aarch64 | release | python-build-standalone SHA256SUMS |
 | Node.js 26.13.1 linux-arm64 | release | nodejs.org SHASUMS256.txt |
-| Git, C/C++, PHP, yoxlama skriptləri | `catalog/payloads/scripts` | repo SHA-256 |
-| Python, Node, HTML şablonları | `catalog/payloads/packs` | repo SHA-256 |
-| Komut kitabçası | `catalog/payloads/docs` | repo SHA-256 |
-| PRoot mühərriki | APK `libproot.so` və release `proot-aarch64` | eyni SHA-256, GPL-3.0 |
+| Git, C/C++, PHP, yoxlama skriptləri | APK içi | repo SHA-256 |
+| Python, Node, HTML şablonları | APK içi | repo SHA-256 |
+| Komut kitabçası | APK içi | repo SHA-256 |
+| PRoot mühərriki | APK `libproot.so` | eyni SHA-256, GPL-3.0 |
 
 Siyahı: [`catalog/manifest.json`](catalog/manifest.json). Tətbiq əvvəl bu faylın
 cihazdakı nüsxəsini oxuyur, şəbəkə varsa GitHub-dakı nüsxə ilə yeniləyir.
@@ -54,8 +55,8 @@ fənər, işıq, səs səviyyəsi, kamera siyahısı, mikrofon, yer, sensor, bar
 endirmə, yaddaş, brauzer, `nibras-info`, səs pleyeri, kontakt, zəng və SMS.
 `termux-` yazılsa, `nibras-` kimi qəbul olunur.
 
-Linux əmri hələ də açılmış rootfs içində bir dəfə işləyir. Davamlı interaktiv
-PTY növbəti addımdır.
+Linux əmri açılmış mühitdə işləyir və qovluğu, dəyişənləri növbəti əmrə saxlayır.
+`/root/storage` telefon yaddaşına bağlıdır. `Dur` uzun əmri kəsir. `clear` ekranı təmizləyir.
 
 ## İş axını
 

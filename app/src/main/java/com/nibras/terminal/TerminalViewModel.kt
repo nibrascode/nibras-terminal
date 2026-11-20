@@ -10,6 +10,7 @@ import com.nibras.terminal.data.InstallStore
 import com.nibras.terminal.data.PayloadClient
 import com.nibras.terminal.data.extractArchive
 import com.nibras.terminal.data.payloadFile
+import com.nibras.terminal.data.seedSmallPayloads
 import com.nibras.terminal.data.sha256
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +44,9 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         val bundled = runCatching { catalogStore.bundled() }.getOrDefault(emptyList())
-        _state.update { it.copy(components = bundled, installed = installStore.read()) }
+        val installed = runCatching { seedSmallPayloads(app, bundled, installStore.read()) }.getOrDefault(installStore.read())
+        installStore.write(installed)
+        _state.update { it.copy(components = bundled, installed = installed) }
         refresh()
     }
 
@@ -212,6 +215,13 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private var running: Process? = null
+
+    fun stop() {
+        running?.destroyForcibly()
+        _state.update { it.copy(notice = "dayandırıldı") }
+    }
+
     private fun execInProot(command: String): String {
         val app = getApplication<Application>()
         val proot = prootBinary(app)
@@ -220,8 +230,11 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
             val dir = File(app.filesDir, "unpacked/$id")
             if (record?.extracted == true && dir.isDirectory) dir else null
         } ?: error("Əvvəl mühit arxivini yüklə və aç")
+        val home = File(root, "root").apply { mkdirs() }
+        File(home, ".nibras_cmd.sh").writeText(sessionScript(command))
         val tmp = File(app.cacheDir, "proot-tmp").apply { mkdirs() }
-        val process = ProcessBuilder(
+        val storage = File(app.getExternalFilesDir(null), "storage")
+        val args = mutableListOf(
             proot.absolutePath,
             "--link2symlink",
             "-0",
@@ -235,18 +248,37 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
             "/sys/",
             "-w",
             "/root",
-            "/bin/sh",
-            "-c",
-            command,
         )
+        if (storage.isDirectory) {
+            args += listOf("-b", "${storage.absolutePath}:/root/storage")
+        }
+        args += listOf("/bin/sh", "/root/.nibras_cmd.sh")
+        val process = ProcessBuilder(args)
             .redirectErrorStream(true)
             .apply { environment()["PROOT_TMP_DIR"] = tmp.absolutePath }
             .start()
-        val output = process.inputStream.bufferedReader().readText().trim()
-        val code = process.waitFor()
-        if (code == 0) return output.ifBlank { "çıxdı 0" }
-        return listOf(output, "çıxdı $code").filter { it.isNotBlank() }.joinToString("\n")
+        running = process
+        return try {
+            val output = process.inputStream.bufferedReader().readText().trim()
+            val code = process.waitFor()
+            if (code == 0) output.ifBlank { "çıxdı 0" } else listOf(output, "çıxdı $code").filter { it.isNotBlank() }.joinToString("\n")
+        } catch (error: Exception) {
+            error.message ?: "dayandırıldı"
+        } finally {
+            running = null
+        }
     }
+
+    private fun sessionScript(command: String) = """
+        set +e
+        if [ -f /root/.nibras_cwd ]; then cd "$(cat /root/.nibras_cwd)" || cd /root; else cd /root; fi
+        if [ -f /root/.nibras_env ]; then . /root/.nibras_env; fi
+        $command
+        code=${'$'}?
+        pwd > /root/.nibras_cwd 2>/dev/null
+        export -p > /root/.nibras_env 2>/dev/null
+        exit ${'$'}code
+    """.trimIndent() + "\n"
 
     private fun prootBinary(app: Application): File {
         val bundled = File(app.applicationInfo.nativeLibraryDir, "libproot.so")

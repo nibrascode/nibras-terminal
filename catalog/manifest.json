@@ -2,7 +2,7 @@
   "name": "Nibras Terminal",
   "version": "0.1.0",
   "updated": "2026-11-19",
-  "note": "Heç bir paket tətbiqin içinə qoyulmayıb. İstifadəçi seçdiyini bu siyahıdan yükləyir.",
+  "note": "Kiçik fayllar tətbiqin içindədir. Yükləmə siyahısında yalnız 1 MB-dan böyük paketlər durur.",
   "components": [
     {
       "id": "rootfs-alpine",
@@ -212,7 +212,7 @@
       "id": "doc-commands",
       "group": "doc",
       "name": "Komut kitabçası",
-      "summary": "Layihənin texniki komutları. Tətbiqə gömülməyib.",
+      "summary": "Layihənin texniki komutları. Tətbiqin içindədir.",
       "version": "0.1",
       "abi": "any",
       "checksumOrigin": "repo",
