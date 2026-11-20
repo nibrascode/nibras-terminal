@@ -49,9 +49,10 @@ const SSH_KEY = "nibras-terminal-ssh";
 const SIZE_KEY = "nibras-terminal-size";
 const LANG_KEY = "nibras-terminal-lang";
 
-const MOTD = `   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
-  /    N I B R A S      \\
- /________________________\\
+const MOTD = `| \\ | (_) |__  _ __ __ _ ___ 
+|  \\| | | '_ \\| '__/ _\` / __|
+| |\\  | | |_) | | | (_| \\__ \\
+|_| \\_|_|_.__/|_|  \\__,_|___/
 
 Welcome to Nibras Terminal!
 
@@ -1575,20 +1576,14 @@ function paintLine(text: string, kind: "in" | "out" | "err") {
       </>
     );
   }
-  if (kind === "out" && text.includes("#     #")) {
+  if (kind === "out" && text.includes("|__  _ __")) {
     return (
       <>
-        {text.split("\n").map((row, index) => {
-          const cut = row.indexOf("   ");
-          const logo = cut < 0 ? row : row.slice(0, cut);
-          const info = cut < 0 ? "" : row.slice(cut);
-          return (
-            <span key={index} className="block whitespace-pre">
-              <span className="text-[#d8d8d8]">{logo}</span>
-              <span className="text-[#e6d37a]">{info}</span>
-            </span>
-          );
-        })}
+        {text.split("\n").map((row, index) => (
+          <span key={index} className={index < 4 ? "block whitespace-pre leading-4 text-white" : "block whitespace-pre text-[#d7d7d7]"}>
+            {index < 4 ? row || " " : linkText(row)}
+          </span>
+        ))}
       </>
     );
   }
