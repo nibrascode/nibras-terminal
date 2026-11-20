@@ -37,6 +37,8 @@ const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
   { re: /^iki video seç$/, tr: "iki video seç", en: "pick two videos", ru: "выберите два видео" },
   { re: /^video açılmadı$/, tr: "video açılmadı", en: "video did not open", ru: "видео не открылось" },
   { re: /^video birləşmədi$/, tr: "video birleşmedi", en: "could not join the videos", ru: "видео не склеилось" },
+  { re: /^Bəlkə: (\S+)$/, tr: "Belki: $1", en: "Maybe: $1", ru: "Возможно: $1" },
+  { re: /^ifadə səhvdir$/, tr: "ifade yanlış", en: "bad expression", ru: "неверное выражение" },
   { re: /^(\S+) seçildi · (.+)$/, tr: "$1 seçildi · $2", en: "$1 selected · $2", ru: "$1 выбран · $2" },
   { re: /^(\S+) artıq seçilib$/, tr: "$1 zaten seçili", en: "$1 is already selected", ru: "$1 уже выбран" },
   { re: /^(\S+) hazırdır · (.+)$/, tr: "$1 hazır · $2", en: "$1 is ready · $2", ru: "$1 готов · $2" },

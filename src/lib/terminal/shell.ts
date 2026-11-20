@@ -523,6 +523,14 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return timeCmd(session, args, answer, stdin);
     case "date":
       return ok(session, new Date().toLocaleString("az-AZ", { hour12: false }));
+    case "bc":
+      return bcCmd(session, args, answer);
+    case "banner":
+      return bannerCmd(session, args, answer);
+    case "yes":
+      return yesCmd(session, args);
+    case "z":
+      return zCmd(session, args[0] || answer);
     case "df":
     case "free":
       return ok(session, diskLine(session));
@@ -760,7 +768,8 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       const body = session.functions[cmd];
       if (body) return runSequence(session, body, answer, 1);
       if (cmd.startsWith("./")) return runBinary(session, cmd.slice(2));
-      return fail(session, `tanınmayan əmr: ${cmd}\nhelp yaz, və ya Seçimlər bölməsinə keç`);
+      const near = nearCommand(cmd);
+      return fail(session, near ? `tanınmayan əmr: ${cmd}\nBəlkə: ${near}` : `tanınmayan əmr: ${cmd}\nhelp yaz`);
     }
   }
 }
@@ -924,6 +933,7 @@ function cd(session: Session, arg: string): ShellOut {
   session.envVars.OLDPWD = session.cwd;
   session.envVars.PWD = dir;
   session.cwd = dir;
+  rememberJump(session, dir);
   return ok(session, arg === "-" ? dir : "");
 }
 
@@ -946,6 +956,191 @@ function popd(session: Session): ShellOut {
 
 function dirsCmd(session: Session): ShellOut {
   return ok(session, [session.cwd, ...[...session.stack].reverse()].join(" "));
+}
+
+function rememberJump(session: Session, dir: string) {
+  const path = `${session.home || "/root"}/.nibras/z`;
+  const ranks = new Map<string, number>();
+  for (const row of (session.files[path] ?? "").split("\n")) {
+    const cut = row.indexOf(" ");
+    if (cut < 1) continue;
+    ranks.set(row.slice(cut + 1), Number(row.slice(0, cut)) || 0);
+  }
+  ranks.set(dir, (ranks.get(dir) ?? 0) + 1);
+  ensureDir(session, parent(path));
+  session.files[path] = [...ranks.entries()].map(([name, count]) => `${count} ${name}`).join("\n") + "\n";
+}
+
+function zCmd(session: Session, arg?: string): ShellOut {
+  if (!arg) return askFor(session, { id: "text", title: "Keçid", label: "Qovluq adı", resume: "z" });
+  const path = `${session.home || "/root"}/.nibras/z`;
+  const needle = arg.toLowerCase();
+  let best = "";
+  let score = -1;
+  for (const row of (session.files[path] ?? "").split("\n")) {
+    const cut = row.indexOf(" ");
+    if (cut < 1) continue;
+    const dir = row.slice(cut + 1);
+    const count = Number(row.slice(0, cut)) || 0;
+    if (!dir.toLowerCase().includes(needle) || count <= score) continue;
+    score = count;
+    best = dir;
+  }
+  if (!best || !hasDir(session, best)) return fail(session, `qovluq yoxdur: ${arg}`);
+  return cd(session, best);
+}
+
+function bcCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const expr = (args.join(" ") || answer || "").trim();
+  if (!expr) return askFor(session, { id: "text", title: "bc", label: "2+2", resume: "bc" });
+  try {
+    return ok(session, String(calc(expr)));
+  } catch {
+    return fail(session, "ifadə səhvdir");
+  }
+}
+
+function calc(input: string) {
+  let index = 0;
+  const text = input.replace(/\s+/g, "");
+  const expr = (): number => {
+    let value = term();
+    while (text[index] === "+" || text[index] === "-") {
+      const op = text[index++];
+      const right = term();
+      value = op === "+" ? value + right : value - right;
+    }
+    return value;
+  };
+  const term = (): number => {
+    let value = unary();
+    while (text[index] === "*" || text[index] === "/" || text[index] === "%") {
+      if (text[index] === "*" && text[index + 1] === "*") break;
+      const op = text[index++];
+      const right = unary();
+      if ((op === "/" || op === "%") && right === 0) throw new Error("sıfır");
+      value = op === "*" ? value * right : op === "/" ? value / right : value % right;
+    }
+    return value;
+  };
+  const unary = (): number => {
+    if (text[index] === "-") {
+      index += 1;
+      return -unary();
+    }
+    let value = primary();
+    if (text[index] === "*" && text[index + 1] === "*") {
+      index += 2;
+      value **= unary();
+    }
+    return value;
+  };
+  const primary = (): number => {
+    if (text[index] === "(") {
+      index += 1;
+      const value = expr();
+      if (text[index] !== ")") throw new Error("mötərizə");
+      index += 1;
+      return value;
+    }
+    const start = index;
+    if (text[index] === ".") index += 1;
+    while (text[index] >= "0" && text[index] <= "9") index += 1;
+    if (text[index] === ".") {
+      index += 1;
+      while (text[index] >= "0" && text[index] <= "9") index += 1;
+    }
+    if (start === index) throw new Error("ifadə");
+    return Number(text.slice(start, index));
+  };
+  const value = expr();
+  if (index !== text.length || !Number.isFinite(value)) throw new Error("ifadə");
+  return value;
+}
+
+function yesCmd(session: Session, args: string[]): ShellOut {
+  const word = args.join(" ") || "y";
+  return ok(session, Array.from({ length: 20 }, () => word).join("\n"));
+}
+
+const BANNER: Record<string, string[]> = {
+  A: [" # ", "# #", "###", "# #"],
+  B: ["## ", "# #", "## ", "# #"],
+  C: ["###", "#  ", "#  ", "###"],
+  D: ["## ", "# #", "# #", "## "],
+  E: ["###", "## ", "#  ", "###"],
+  F: ["###", "## ", "#  ", "#  "],
+  G: ["###", "#  ", "# #", "###"],
+  H: ["# #", "###", "# #", "# #"],
+  I: ["###", " # ", " # ", "###"],
+  J: ["###", "  #", "# #", "###"],
+  K: ["# #", "## ", "# #", "# #"],
+  L: ["#  ", "#  ", "#  ", "###"],
+  M: ["# #", "###", "# #", "# #"],
+  N: ["# #", "###", "###", "# #"],
+  O: ["###", "# #", "# #", "###"],
+  P: ["## ", "# #", "## ", "#  "],
+  Q: ["###", "# #", "###", "  #"],
+  R: ["## ", "# #", "## ", "# #"],
+  S: ["###", "#  ", "  #", "###"],
+  T: ["###", " # ", " # ", " # "],
+  U: ["# #", "# #", "# #", "###"],
+  V: ["# #", "# #", "# #", " # "],
+  W: ["# #", "# #", "###", "# #"],
+  X: ["# #", " # ", " # ", "# #"],
+  Y: ["# #", " # ", " # ", " # "],
+  Z: ["###", "  #", " # ", "###"],
+  "0": ["###", "# #", "# #", "###"],
+  "1": [" # ", "## ", " # ", "###"],
+  "2": ["###", "  #", "###", "###"],
+  "3": ["###", "###", "  #", "###"],
+  "4": ["# #", "###", "  #", "  #"],
+  "5": ["###", "## ", "  #", "###"],
+  "6": ["###", "#  ", "###", "###"],
+  "7": ["###", "  #", " # ", " # "],
+  "8": ["###", "###", "# #", "###"],
+  "9": ["###", "###", "  #", "###"],
+  " ": ["   ", "   ", "   ", "   "],
+};
+
+function bannerCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const word = (args.join(" ") || answer || "").toUpperCase().slice(0, 12);
+  if (!word.trim()) return askFor(session, { id: "text", title: "Banner", label: "Mətn", resume: "banner" });
+  const rows = ["", "", "", ""];
+  for (const char of word) {
+    const glyph = BANNER[char] ?? BANNER[" "];
+    glyph.forEach((line, index) => {
+      rows[index] += `${line} `;
+    });
+  }
+  return ok(session, rows.map((line) => line.trimEnd()).join("\n"));
+}
+
+function nearCommand(cmd: string) {
+  let best = "";
+  let score = 3;
+  for (const name of COMMANDS) {
+    const gap = editDistance(cmd, name);
+    if (gap < score || (gap === score && gap < 3 && name.length < best.length)) {
+      score = gap;
+      best = name;
+    }
+  }
+  return score <= 2 ? best : "";
+}
+
+function editDistance(left: string, right: string) {
+  const row = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i += 1) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= right.length; j += 1) {
+      const next = left[i - 1] === right[j - 1] ? prev : Math.min(prev, row[j - 1], row[j]) + 1;
+      prev = row[j];
+      row[j] = next;
+    }
+  }
+  return row[right.length];
 }
 
 function watchCmd(session: Session, args: string[]): ShellOut {
@@ -3175,7 +3370,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];

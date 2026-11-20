@@ -330,10 +330,12 @@ export function NibrasTerminal() {
   const [scriptOpen, setScriptOpen] = useState(false);
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
+  const [findOn, setFindOn] = useState(false);
   const [size, setSize] = useState(1);
   const [lang, setLang] = useState<Lang>("az");
   const [langBusy, setLangBusy] = useState<Lang | "">("");
   const scroller = useRef<HTMLDivElement>(null);
+  const pinch = useRef<{ dist: number; size: number } | null>(null);
   const box = useRef<HTMLInputElement>(null);
   const nodeScope = useRef<Record<string, unknown>>({});
 
@@ -712,6 +714,13 @@ export function NibrasTerminal() {
       setDraft((value) => value.replace(/\s*\S+\s*$/, ""));
       return;
     }
+    if (key === "f" && !repl) {
+      setFindOn((value) => {
+        if (value) setNeedle("");
+        return !value;
+      });
+      return;
+    }
     if (key === "k") {
       const pos = box.current?.selectionStart ?? draft.length;
       setDraft(draft.slice(0, pos));
@@ -727,7 +736,7 @@ export function NibrasTerminal() {
     }
     if ((event.ctrlKey || mods.ctrl) && !event.altKey) {
       const key = event.key.toLowerCase();
-      if (key.length === 1 && "rclaeuwk".includes(key)) {
+      if ("rclaeuwkf".includes(key)) {
         event.preventDefault();
         ctrlAction(key);
         setMods({ ctrl: false, alt: false });
@@ -737,6 +746,15 @@ export function NibrasTerminal() {
     if (event.key === "Escape") {
       setHunt("");
       return;
+    }
+    if (event.key === "ArrowRight") {
+      const pos = box.current?.selectionStart ?? draft.length;
+      const ghost = ghostOf(session, draft, repl);
+      if (ghost && pos === draft.length) {
+        event.preventDefault();
+        setDraft(ghost);
+        return;
+      }
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
@@ -832,6 +850,11 @@ export function NibrasTerminal() {
       return;
     }
     if (name === "RIGHT") {
+      const ghost = ghostOf(session, draft, repl);
+      if (ghost && pos >= draft.length) {
+        setDraft(ghost);
+        return;
+      }
       const at = Math.min(draft.length, pos + 1);
       requestAnimationFrame(() => el?.setSelectionRange(at, at));
       return;
@@ -933,7 +956,33 @@ export function NibrasTerminal() {
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           {tab === "term" ? (
             <div className="flex min-h-0 flex-1 flex-col">
-              <div className="nt-term" onClick={() => box.current?.focus()}>
+              <div
+                className="nt-term"
+                onClick={() => {
+                  if (!window.getSelection()?.toString()) box.current?.focus();
+                }}
+                onTouchStart={(event) => {
+                  if (event.touches.length !== 2) return;
+                  const [a, b] = [event.touches[0], event.touches[1]];
+                  pinch.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), size };
+                }}
+                onTouchMove={(event) => {
+                  if (event.touches.length !== 2 || !pinch.current) return;
+                  const [a, b] = [event.touches[0], event.touches[1]];
+                  const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+                  const ratio = dist / pinch.current.dist;
+                  const next = ratio > 1.18 ? Math.min(2, pinch.current.size + 1) : ratio < 0.84 ? Math.max(0, pinch.current.size - 1) : pinch.current.size;
+                  if (next !== size) setSize(next);
+                }}
+              >
+                {findOn ? (
+                  <input
+                    className="nt-find"
+                    value={needle}
+                    placeholder={say(lang, "nəticədə axtar")}
+                    onChange={(event) => setNeedle(event.target.value)}
+                  />
+                ) : null}
                 <div ref={scroller} className={`nt-screen relative z-10 bg-transparent ${sizeClass}`}>
                   {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
                   {shown.map((line, index) => (
@@ -953,19 +1002,27 @@ export function NibrasTerminal() {
                     <span className="shrink-0 text-[#f2f2f2]">{repl === "python" ? ">>> " : repl === "node" ? "> " : `${shortPrompt(session)} $ `}</span>
                     {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="mr-1 text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
                     <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
-                    <input
-                      ref={box}
-                      id="cmd"
-                      className="nt-input caret-[#e7eef3]"
-                      value={draft}
-                      disabled={Boolean(busy)}
-                      autoFocus
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      onChange={(event) => setDraft(event.target.value)}
-                      onKeyDown={onKey}
-                    />
+                    <div className="relative min-w-0 flex-1">
+                      {ghostOf(session, draft, repl) ? (
+                        <span className="pointer-events-none absolute left-0 top-0 truncate text-[#5c5c5c]">
+                          <span className="invisible">{draft}</span>
+                          {ghostOf(session, draft, repl).slice(draft.length)}
+                        </span>
+                      ) : null}
+                      <input
+                        ref={box}
+                        id="cmd"
+                        className="nt-input relative w-full bg-transparent"
+                        value={draft}
+                        disabled={Boolean(busy)}
+                        autoFocus
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        onChange={(event) => setDraft(event.target.value)}
+                        onKeyDown={onKey}
+                      />
+                    </div>
                     {draft ? null : <span className="nt-block" />}
                     {mark ? <span className="ml-2 text-[#6d6d6d]">{mark}</span> : null}
                   </form>
@@ -1542,6 +1599,11 @@ function NWatermark() {
       <path fill="#147a3d" d="M8 8h28l24 48 24-48h28v124H84V62L60 104 36 62v70H8z" />
     </svg>
   );
+}
+
+function ghostOf(session: Session, draft: string, repl: "python" | "node" | null) {
+  if (repl || !draft) return "";
+  return [...session.history].reverse().find((item) => item.startsWith(draft) && item !== draft) ?? "";
 }
 
 function shortPrompt(session: Session) {
