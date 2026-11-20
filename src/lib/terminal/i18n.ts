@@ -55,6 +55,7 @@ const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
   { re: /^fayl seçilmədi$/, tr: "dosya seçilmedi", en: "no file selected", ru: "файл не выбран" },
   { re: /^(\d+) fayl saxlandı · nibras-backup\.json$/, tr: "$1 dosya kaydedildi · nibras-backup.json", en: "$1 files saved · nibras-backup.json", ru: "сохранено файлов: $1 · nibras-backup.json" },
   { re: /^(\d+) fayl qayıtdı$/, tr: "$1 dosya geri geldi", en: "$1 files restored", ru: "восстановлено файлов: $1" },
+  { re: /^ədəd deyil$/, tr: "sayı değil", en: "not a number", ru: "не число" },
   { re: /^Bəlkə: (\S+)$/, tr: "Belki: $1", en: "Maybe: $1", ru: "Возможно: $1" },
   { re: /^ifadə səhvdir$/, tr: "ifade yanlış", en: "bad expression", ru: "неверное выражение" },
   { re: /^(\S+) seçildi · (.+)$/, tr: "$1 seçildi · $2", en: "$1 selected · $2", ru: "$1 выбран · $2" },

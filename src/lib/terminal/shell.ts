@@ -391,11 +391,12 @@ function expandBang(history: string[], line: string): { line: string; error?: st
   return { line: next };
 }
 
-function runSequence(session: Session, line: string, answer?: string, depth = 0): ShellOut {
+function runSequence(session: Session, line: string, answer?: string, depth = 0, gather = false): ShellOut {
   if (depth > 6) return stamp(fail(session, "çox dərin"));
   const parts = splitSequence(line);
   let current = session;
   let last = ok(current, "");
+  const outputs: string[] = [];
   for (let index = 0; index < parts.length; index += 1) {
     const part = parts[index];
     if (!part?.text) continue;
@@ -415,10 +416,15 @@ function runSequence(session: Session, line: string, answer?: string, depth = 0)
       if (current.jobs.length > 20) current.jobs.shift();
       last = ok(current, `[${current.jobs.at(-1)?.id}] ${state}`);
     }
-    if (last.sleep) return { ...last, session: current, cont: restOf(parts, index) || undefined };
-    if (pause(last)) return { ...last, session: current };
+    if (last.output && last.output !== "\u0000clear") outputs.push(last.output);
+    if (last.sleep) return { ...last, session: current, output: shown(), cont: restOf(parts, index) || undefined };
+    if (pause(last)) return { ...last, session: current, output: shown() };
   }
-  return { ...last, session: current };
+  return { ...last, session: current, output: last.output === "\u0000clear" ? last.output : shown() };
+
+  function shown() {
+    return gather ? outputs.join("\n") : last.output;
+  }
 }
 
 function runPipeline(session: Session, line: string, answer?: string): ShellOut {
@@ -602,6 +608,8 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
     case "cal":
       return calCmd(session);
     case "true":
+      return ok(session, "");
+    case ":":
       return ok(session, "");
     case "false":
       return fail(session, "");
@@ -3018,6 +3026,17 @@ function testCmd(session: Session, args: string[], bracket: boolean): ShellOut {
   }
   if (list[0] === "-z") return pass(!(list[1] ?? ""));
   if (list[0] === "-n") return pass(Boolean(list[1]));
+  if (list[0] === "-s") {
+    const body = session.files[at(session, list[1] ?? "")];
+    return pass(Boolean(body && body.length));
+  }
+  if (list.length === 3 && ["-eq", "-ne", "-lt", "-le", "-gt", "-ge"].includes(list[1] ?? "")) {
+    const left = Number(list[0]);
+    const right = Number(list[2]);
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return fail(session, "ədəd deyil");
+    const op = list[1];
+    return pass(op === "-eq" ? left === right : op === "-ne" ? left !== right : op === "-lt" ? left < right : op === "-le" ? left <= right : op === "-gt" ? left > right : left >= right);
+  }
   if (list.length === 3 && (list[1] === "=" || list[1] === "!=")) return pass(list[1] === "=" ? list[0] === list[2] : list[0] !== list[2]);
   return fail(session, "test -f fayl | test -d qovluq | test a = b");
 }
@@ -3863,10 +3882,13 @@ function splitArgs(line: string, session: Session) {
   let quoted = false;
   const push = () => {
     if (!current) return;
-    if (quoted || !/[*?]/.test(current)) out.push(current);
-    else {
-      const expanded = expandGlob(session, current);
-      out.push(...(expanded.length ? expanded : [current]));
+    const pieces = quoted ? [current] : expandBrace(current);
+    for (const piece of pieces) {
+      if (quoted || !/[*?]/.test(piece)) out.push(piece);
+      else {
+        const expanded = expandGlob(session, piece);
+        out.push(...(expanded.length ? expanded : [piece]));
+      }
     }
     current = "";
     quoted = false;
@@ -3878,7 +3900,7 @@ function splitArgs(line: string, session: Session) {
         quote = "";
         quoted = true;
       } else if (ch === "$" && quote === '"') {
-        const read = readVar(line, index, session);
+        const read = line.startsWith("$(", index) && !line.startsWith("$((", index) ? readSubst(line, index, session) : readVar(line, index, session);
         current += read.value;
         index += read.size - 1;
       } else current += ch;
@@ -3890,6 +3912,21 @@ function splitArgs(line: string, session: Session) {
     }
     if (ch === " " || ch === "\t") {
       push();
+      continue;
+    }
+    if (ch === "~" && !current) {
+      current = session.home || session.envVars.HOME || "/root";
+      continue;
+    }
+    if (ch === "$" && line.startsWith("$(", index) && !line.startsWith("$((", index)) {
+      const read = readSubst(line, index, session);
+      const next = line[index + read.size] ?? "";
+      if (!current && (next === "" || next === " " || next === "\t")) {
+        const words = read.value.split(/[ \t\n]+/).filter(Boolean);
+        for (const word of words.slice(0, -1)) out.push(word);
+        current = words.at(-1) ?? "";
+      } else current += read.value;
+      index += read.size - 1;
       continue;
     }
     if (ch === "$") {
@@ -3929,6 +3966,54 @@ function expandGlob(session: Session, token: string) {
   return [...names].sort();
 }
 
+function readSubst(line: string, index: number, session: Session) {
+  let depth = 0;
+  let quote: "'" | '"' | "" = "";
+  for (let at = index + 1; at < line.length; at += 1) {
+    const ch = line[at] ?? "";
+    if (quote) {
+      if (ch === quote) quote = "";
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      quote = ch;
+      continue;
+    }
+    if (ch === "(") depth += 1;
+    if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        const ran = runSequence(session, line.slice(index + 2, at), undefined, 1, true);
+        const value = ran.output === "\u0000clear" ? "" : (ran.output || "").replace(/\n$/, "");
+        return { value, size: at + 1 - index };
+      }
+    }
+  }
+  return { value: "", size: 2 };
+}
+
+function expandBrace(token: string): string[] {
+  const open = token.indexOf("{");
+  const close = open < 0 ? -1 : token.indexOf("}", open + 1);
+  if (open < 0 || close < 0 || token.slice(open + 1, close).includes("{")) return [token];
+  const body = token.slice(open + 1, close);
+  const range = /^(-?\d+)\.\.(-?\d+)$/.exec(body);
+  let parts: string[] = [];
+  if (range) {
+    const from = Number(range[1]);
+    const to = Number(range[2]);
+    const step = from <= to ? 1 : -1;
+    for (let value = from; step > 0 ? value <= to : value >= to; value += step) {
+      parts.push(String(value));
+      if (parts.length >= 40) break;
+    }
+  } else if (body.includes(",")) parts = body.split(",");
+  else return [token];
+  const out: string[] = [];
+  for (const part of parts) out.push(...expandBrace(`${token.slice(0, open)}${part}${token.slice(close + 1)}`));
+  return out.slice(0, 40);
+}
+
 function readVar(line: string, index: number, session: Session) {
   if (line.startsWith("$((", index)) {
     const end = line.indexOf("))", index + 3);
@@ -3939,8 +4024,7 @@ function readVar(line: string, index: number, session: Session) {
   if (line[index + 1] === "{") {
     const end = line.indexOf("}", index + 2);
     if (end < 0) return { value: "$", size: 1 };
-    const name = line.slice(index + 2, end);
-    return { value: session.envVars[name] ?? "", size: end - index + 1 };
+    return { value: paramValue(line.slice(index + 2, end), session), size: end - index + 1 };
   }
   let end = index + 1;
   while (end < line.length && /[\w]/.test(line[end] ?? "")) end += 1;
@@ -4129,6 +4213,55 @@ function renderMarkdown(source: string) {
 function wrapPlain(text: string) {
   const safe = text.replace(/[&<>]/g, (ch) => (ch === "&" ? "&" + "amp;" : ch === "<" ? "&" + "lt;" : "&" + "gt;"));
   return `<!doctype html><html><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#07101c;color:#f3ecdf;font-family:Georgia,serif"><p>${safe}</p></body></html>`;
+}
+
+function paramValue(body: string, session: Session) {
+  if (body.startsWith("#")) {
+    const name = body.slice(1);
+    return /^[A-Za-z_]\w*$/.test(name) ? String((session.envVars[name] ?? "").length) : "";
+  }
+  const name = /^[A-Za-z_]\w*/.exec(body)?.[0] ?? "";
+  if (!name) return "";
+  const rest = body.slice(name.length);
+  const value = session.envVars[name] ?? "";
+  if (!rest) return value;
+  const ops = [":-", ":=", ":+", "##", "%%", "#", "%"];
+  const op = ops.find((item) => rest.startsWith(item));
+  if (!op) return value;
+  const word = rest.slice(op.length);
+  if (op === ":-") return value ? value : word;
+  if (op === ":=") {
+    if (value) return value;
+    session.envVars[name] = word;
+    return word;
+  }
+  if (op === ":+") return value ? word : "";
+  if (op === "#" || op === "##") return cutPattern(value, word, true, op === "##");
+  return cutPattern(value, word, false, op === "%%");
+}
+
+function cutPattern(value: string, pattern: string, fromStart: boolean, greedy: boolean) {
+  const star = pattern.indexOf("*");
+  if (star < 0) {
+    if (fromStart && value.startsWith(pattern)) return value.slice(pattern.length);
+    if (!fromStart && value.endsWith(pattern)) return value.slice(0, -pattern.length);
+    return value;
+  }
+  const head = pattern.slice(0, star);
+  const tail = pattern.slice(star + 1);
+  if (fromStart) {
+    if (!value.startsWith(head)) return value;
+    const rest = value.slice(head.length);
+    const at = tail ? (greedy ? rest.lastIndexOf(tail) : rest.indexOf(tail)) : greedy ? rest.length : 0;
+    if (at < 0) return value;
+    return rest.slice(at + tail.length);
+  }
+  if (tail && !value.endsWith(tail)) return value;
+  const stem = tail ? value.slice(0, -tail.length) : value;
+  if (!head) return greedy ? "" : value.slice(0, value.length - tail.length);
+  const at = greedy ? stem.lastIndexOf(head) : stem.indexOf(head);
+  if (at < 0) return value;
+  return greedy ? value.slice(0, at) : `${stem.slice(0, at + head.length)}${tail}`;
 }
 
 function arith(raw: string, session: Session) {
