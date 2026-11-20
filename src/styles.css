@@ -37,8 +37,8 @@
   min-height: 100dvh;
   display: flex;
   justify-content: center;
-  background: #bdbdbd;
-  color: #e8e8e8;
+  background: #000;
+  color: #f2f2f2;
   font-family: "Segoe UI", "Helvetica Neue", sans-serif;
 }
 
@@ -49,7 +49,6 @@
   flex-direction: column;
   overflow: hidden;
   background: #000;
-  border: 1px solid #8d8d8d;
 }
 
 .nt-caption {
@@ -185,9 +184,7 @@
   min-height: 0;
   flex: 1;
   overflow: hidden;
-  border: 1px solid #1c2830;
-  border-radius: 1.15rem;
-  background: #05080b;
+  background: #000;
 }
 
 .nt-mark {
@@ -304,24 +301,27 @@
 
 .nt-keys {
   flex-shrink: 0;
-  background: #1b1b1b;
-  padding: 0.25rem 0.35rem max(0.25rem, env(safe-area-inset-bottom));
+  background: #000;
+  padding: 0.15rem 0.2rem max(0.35rem, env(safe-area-inset-bottom));
+}
+
+.nt-keyrow {
+  display: flex;
 }
 
 .nt-key {
-  height: 2rem;
-  min-width: 2.4rem;
-  flex-shrink: 0;
+  height: 2.15rem;
+  flex: 1;
   border: 0;
-  border-radius: 0.25rem;
-  background: #2b2b2b;
-  color: #d0d0d0;
+  border-radius: 0.2rem;
+  background: transparent;
+  color: #cfcfcf;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
 }
 
 .nt-key.on {
-  background: #3d3d3d;
+  background: #242424;
   color: #fff;
 }
 

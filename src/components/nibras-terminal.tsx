@@ -17,7 +17,6 @@ import {
   applyAnswer,
   emptySession,
   browserReady,
-  extraKeyRows,
   formatBytes,
   hydrate,
   importRepo,
@@ -25,9 +24,7 @@ import {
   isMarked,
   listHere,
   packHere,
-  prompt,
   runLine,
-  screenFetch,
   runNode,
   storeZip,
   complete,
@@ -52,11 +49,47 @@ const SSH_KEY = "nibras-terminal-ssh";
 const SIZE_KEY = "nibras-terminal-size";
 const LANG_KEY = "nibras-terminal-lang";
 
-const GREETING = "Nibras Terminal ilə çalışmağa xoş gəlmisiniz!";
-const BOOT: Line[] = [
-  { kind: "in", text: `$ echo "${GREETING}"` },
-  { kind: "out", text: GREETING },
-];
+const MOTD = `   /‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\\
+  /    N I B R A S      \\
+ /________________________\\
+
+Welcome to Nibras Terminal!
+
+Community:  https://github.com/nibrascode/nibras-terminal
+
+Setup Nibras:
+- Help: help
+
+Working with packages:
+- Search: pkg search <query>
+- Install: pkg install <package>
+- Upgrade: pkg upgrade
+
+Report issues at https://github.com/nibrascode/nibras-terminal/issues`;
+
+const GREETING = "Welcome to Nibras Terminal";
+const BOOT: Line[] = [{ kind: "out", text: MOTD }];
+
+const PHONE_KEYS = [
+  [
+    ["ESC", "ESC"],
+    ["/", "/"],
+    ["-", "—"],
+    ["HOME", "HOME"],
+    ["UP", "↑"],
+    ["END", "END"],
+    ["PGUP", "PGUP"],
+  ],
+  [
+    ["=", "="],
+    ["CTRL", "CTRL"],
+    ["ALT", "ALT"],
+    ["LEFT", "←"],
+    ["DOWN", "↓"],
+    ["RIGHT", "→"],
+    ["PGDN", "PGDN"],
+  ],
+] as const;
 
 declare global {
   interface Window {
@@ -291,8 +324,6 @@ export function NibrasTerminal() {
   const [hunt, setHunt] = useState("");
   const [mark, setMark] = useState("");
   const [bell, setBell] = useState(false);
-  const [bar, setBar] = useState<"" | "file" | "edit" | "tabs" | "help">("");
-  const [keysOn, setKeysOn] = useState(true);
   const [favs, setFavs] = useState<string[]>([]);
   const [now, setNow] = useState(() => Date.now());
   const [scriptOpen, setScriptOpen] = useState(false);
@@ -320,8 +351,8 @@ export function NibrasTerminal() {
     const loaded = browserReady(loadSession());
     setSession(loaded);
     const stored = loadLines();
-    const fresh = stored.length <= 3 && stored.some((line) => line.text.includes(GREETING) || line.text.startsWith("Nibras Terminal"));
-    setLines(fresh || !stored.length ? [{ kind: "in", text: `${prompt(loaded)} screenfetch` }, { kind: "out", text: screenFetch(loaded) }] : stored);
+    const stock = !stored.length || (stored.length <= 4 && stored.some((line) => line.text.includes(GREETING) || line.text.includes("screenfetch") || line.text.includes("#     #") || line.text.includes("Welcome to Nibras")));
+    setLines(stock ? [{ kind: "out", text: MOTD }] : stored);
     const first = Object.keys(loaded.files).sort()[0];
     if (first) setEditing(first);
     const savedSize = Number(localStorage.getItem(SIZE_KEY));
@@ -558,7 +589,7 @@ export function NibrasTerminal() {
     if (!typed || busy) return;
     const shown = visibleCommand(typed);
     const base = { ...baseSession, history: [...baseSession.history, shown].slice(-80) };
-    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : prompt(base);
+    const lead = repl === "python" ? ">>>" : repl === "node" ? ">" : `${shortPrompt(base)} $`;
     push([{ kind: "in", text: `${lead} ${shown}` }]);
     setDraft("");
     setHunt("");
@@ -691,11 +722,12 @@ export function NibrasTerminal() {
       if (next) setDraft(next);
       return;
     }
-    if (event.ctrlKey && !event.altKey) {
+    if ((event.ctrlKey || mods.ctrl) && !event.altKey) {
       const key = event.key.toLowerCase();
-      if ("rclaeuwk".includes(key)) {
+      if (key.length === 1 && "rclaeuwk".includes(key)) {
         event.preventDefault();
         ctrlAction(key);
+        setMods({ ctrl: false, alt: false });
         return;
       }
     }
@@ -853,6 +885,10 @@ export function NibrasTerminal() {
       });
       return;
     }
+    if (key.length === 1) {
+      insertText(key);
+      return;
+    }
     box.current?.focus();
   }
 
@@ -891,63 +927,10 @@ export function NibrasTerminal() {
   return (
     <div className="nt-app">
       <div className={`nt-window ${bell ? "outline outline-1 outline-[#c04040]" : ""}`}>
-        <div className="nt-caption">
-          <span className="min-w-0 flex-1 truncate">{session.user || "root"}@{session.env ?? "nibras"}: {session.cwd}</span>
-          <button className="nt-clear" type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>{say(lang, "Təmizlə")}</button>
-          <span className="nt-lights" aria-hidden="true"><i /><i /><i /></span>
-        </div>
-        <div className="nt-menubar">
-          {([
-            ["file", "File"],
-            ["edit", "Edit"],
-            ["tabs", "Tabs"],
-            ["help", "Help"],
-          ] as const).map(([id, label]) => (
-            <button key={id} className={bar === id ? "on" : ""} type="button" onClick={() => setBar((value) => (value === id ? "" : id))}>{label}</button>
-          ))}
-          {bar ? (
-            <div className="nt-drop">
-              {bar === "file" ? (
-                <>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); addSlot(); }}>New Tab</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("clear"); }}>{say(lang, "Təmizlə")}</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("file"); }}>{say(lang, "Fayl")}</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("pick"); }}>{say(lang, "Seçimlər")}</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); box.current?.focus(); }}>Terminal</button>
-                </>
-              ) : null}
-              {bar === "edit" ? (
-                <>
-                  <button type="button" onClick={() => { setBar(""); void navigator.clipboard?.writeText(shown.map((line) => line.text).join("\n")); }}>Copy</button>
-                  <button type="button" onClick={() => { setBar(""); pressKey("PASTE"); }}>Paste</button>
-                  <button type="button" onClick={() => { setBar(""); setPast((value) => !value); }}>{say(lang, "Keçmiş")}</button>
-                  <button type="button" onClick={() => { setBar(""); setKeysOn((value) => !value); }}>Keys</button>
-                </>
-              ) : null}
-              {bar === "tabs" ? (
-                <>
-                  {(slots.length ? slots : [{ name: "1" }]).map((item, index) => (
-                    <button key={`${item.name}-${index}`} type="button" onClick={() => { setBar(""); switchSlot(index); }}>{item.name}</button>
-                  ))}
-                  <button type="button" onClick={() => { setBar(""); addSlot(); }}>+</button>
-                </>
-              ) : null}
-              {bar === "help" ? (
-                <>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("help"); }}>help</button>
-                  <button type="button" onClick={() => { setBar(""); setTab("term"); submit("screenfetch"); }}>screenfetch</button>
-                  {LANGS.map((code) => (
-                    <button key={code} type="button" onClick={() => { setBar(""); void pickLang(code); }}>{langBusy === code ? "…" : code}</button>
-                  ))}
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           {tab === "term" ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-2">
-              <div className="nt-term" onClick={() => { setBar(""); box.current?.focus(); }}>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="nt-term" onClick={() => box.current?.focus()}>
                 <div ref={scroller} className={`nt-screen relative z-10 bg-transparent ${sizeClass}`}>
                   {shown.length ? null : <p className="text-[#6d6d6d]">{say(lang, "tapılmadı")}</p>}
                   {shown.map((line, index) => (
@@ -958,13 +941,13 @@ export function NibrasTerminal() {
                   {busy ? <p className="text-[#8a8a8a]">{say(lang, busy)}</p> : null}
                   {copied ? <p className="text-[#8fbf8a]">{say(lang, copied)}</p> : null}
                   <form
-                    className="mt-3 flex min-h-6 items-center font-mono"
+                    className="mt-1 flex min-h-6 items-center font-mono"
                     onSubmit={(event) => {
                       event.preventDefault();
                       submit(draft);
                     }}
                   >
-                    <span className="shrink-0 text-[#e8e8e8]">{repl === "python" ? ">>> " : repl === "node" ? "> " : `${prompt(session)} `}</span>
+                    <span className="shrink-0 text-[#f2f2f2]">{repl === "python" ? ">>> " : repl === "node" ? "> " : `${shortPrompt(session)} $ `}</span>
                     {session.envVars["?"] && session.envVars["?"] !== "0" ? <span className="mr-1 text-[#ff6b6b]">{session.envVars["?"]}</span> : null}
                     <label className="sr-only" htmlFor="cmd">{say(lang, "Əmr")}</label>
                     <input
@@ -1004,35 +987,20 @@ export function NibrasTerminal() {
                 </div>
               ) : null}
               {session.server ? <iframe title="Önizləmə" className="h-28 w-full border-t border-[#222] bg-black" sandbox="" srcDoc={session.server.html} /> : null}
-              <div className="nt-phonekeys">
-                <button type="button" onClick={() => pressKey("TAB")}>TAB</button>
-                <button type="button" onClick={() => pressKey("UP")}>↑</button>
-                <button type="button" onClick={() => pressKey("DOWN")}>↓</button>
-                <button type="button" onClick={() => ctrlAction("c")}>{say(lang, "Dur")}</button>
-                <button type="button" onClick={() => ctrlAction("r")}>{say(lang, "Keçmiş")}</button>
-                <button type="button" onClick={() => pressKey("PASTE")}>{say(lang, "Yapışdır")}</button>
-                <button type="button" onClick={() => ctrlAction("u")}>{say(lang, "Sətir")}</button>
-                <button type="button" onClick={() => ctrlAction("w")}>{say(lang, "Söz")}</button>
-                <button type="button" onClick={() => ctrlAction("a")}>{say(lang, "Başa")}</button>
-                <button type="button" onClick={() => ctrlAction("e")}>{say(lang, "Sona")}</button>
+              <div className="nt-keys">
+                {PHONE_KEYS.map((row, rowIndex) => (
+                  <div key={rowIndex} className="nt-keyrow">
+                    {row.map(([key, label]) => {
+                      const on = (key === "CTRL" && mods.ctrl) || (key === "ALT" && mods.alt);
+                      return (
+                        <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
-              {keysOn ? (
-                <div className="nt-keys">
-                  {extraKeyRows(session).map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex gap-1 overflow-x-auto py-0.5">
-                      {row.map((key) => {
-                        const on = (key.toUpperCase() === "CTRL" && mods.ctrl) || (key.toUpperCase() === "ALT" && mods.alt);
-                        return (
-                          <button key={`${rowIndex}-${key}`} className={`nt-key ${on ? "on" : ""}`} type="button" onClick={() => pressKey(key)}>
-                            {key}
-                          </button>
-                        );
-                      })}
-                      <button className="nt-key" type="button" onClick={() => pressKey("PASTE")}>PASTE</button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </div>
           ) : null}
           {tab === "pick" ? (
@@ -1573,11 +1541,22 @@ function NWatermark() {
   );
 }
 
+function shortPrompt(session: Session) {
+  const home = session.home || "/root";
+  if (session.cwd === home) return "~";
+  if (session.cwd.startsWith(`${home}/`)) return `~${session.cwd.slice(home.length)}`;
+  return session.cwd;
+}
+
 function PromptMark({ text }: { text: string }) {
   return <span className="text-[#e8e8e8]">{text} </span>;
 }
 
 function paintLine(text: string, kind: "in" | "out" | "err") {
+  if (kind === "in") {
+    const dollar = text.indexOf(" $ ");
+    if (dollar >= 0 && dollar < 48) return <span className="text-[#f2f2f2]">{text}</span>;
+  }
   if (kind === "in" && (text.startsWith("$ ") || text.startsWith(">>> ") || text.startsWith("> "))) {
     const mark = text.startsWith("$ ") ? "$" : text.startsWith(">>> ") ? ">>>" : ">";
     const body = text.slice(mark.length + 1);
