@@ -709,6 +709,18 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return pageCmd(session, args, answer, stdin, 20);
     case "tar":
       return tarCmd(session, args, answer);
+    case "make":
+      return makeCmd(session, args);
+    case "crontab":
+      return crontabCmd(session, args, stdin);
+    case "cron":
+      return cronCmd(session, args);
+    case "rsync":
+      return rsyncCmd(session, args);
+    case "zip":
+      return zipCmd(session, args);
+    case "unzip":
+      return unzipCmd(session, args);
     case "chmod":
       return chmodCmd(session, args);
     case "realpath":
@@ -4051,7 +4063,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "set", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview", "let", "umask", "dc", "base32", "cksum", "od", "unlink", "users", "hostid", "unexpand", "pr", "install", "shred", "dd", "sync", "ps", "kill", "locale", "make", "crontab", "cron", "rsync", "zip", "unzip"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
@@ -5080,6 +5092,279 @@ function chmodCmd(session: Session, args: string[]): ShellOut {
   if (session.files[path] === undefined) return fail(session, `fayl yoxdur: ${name}`);
   session.modes[path] = mode;
   return ok(session, "");
+}
+
+function makeCmd(session: Session, args: string[]): ShellOut {
+  const fileName = args[0] === "-f" ? args[1] : "Makefile";
+  const goal = args[0] === "-f" ? args[2] : args[0];
+  if (args[0] === "-f" && !fileName) return fail(session, "make -f Makefile");
+  const path = resolve(session.cwd, fileName || "Makefile");
+  const body = session.files[path];
+  if (body === undefined) return fail(session, `fayl yoxdur: ${path}`);
+  const rules = new Map<string, { deps: string[]; recipes: string[] }>();
+  let current = "";
+  for (const raw of body.split("\n")) {
+    if (!raw.trim() || raw.trim().startsWith("#")) continue;
+    if (raw.startsWith("\t") || raw.startsWith("  ")) {
+      if (!current) return fail(session, "make hədəfi yoxdur");
+      rules.get(current)?.recipes.push(raw.replace(/^\t|^ {2}/, ""));
+      continue;
+    }
+    const cut = raw.indexOf(":");
+    if (cut <= 0) return fail(session, "make hədəf: asılılıq");
+    current = raw.slice(0, cut).trim();
+    rules.set(current, { deps: raw.slice(cut + 1).trim().split(/\s+/).filter(Boolean), recipes: [] });
+  }
+  const first = goal || rules.keys().next().value;
+  if (!first) return fail(session, "make hədəf yoxdur");
+  const stampPath = `${parent(path)}/.nibras-make`;
+  const stamps = new Map((session.files[stampPath] ?? "").split("\n").filter(Boolean).map((row) => {
+    const cut = row.indexOf("\t");
+    return [row.slice(0, cut), row.slice(cut + 1)] as [string, string];
+  }));
+  const seen = new Set<string>();
+  const notes: string[] = [];
+  const built = buildTarget(session, first, rules, stamps, seen, notes);
+  if (built.ok === false) return built;
+  const lines = [...stamps].map(([name, hash]) => `${name}\t${hash}`);
+  ensureDir(session, parent(stampPath));
+  session.files[stampPath] = lines.join("\n");
+  return ok(session, notes.filter(Boolean).join("\n") || "heç nə edilmədi");
+}
+
+function buildTarget(
+  session: Session,
+  name: string,
+  rules: Map<string, { deps: string[]; recipes: string[] }>,
+  stamps: Map<string, string>,
+  seen: Set<string>,
+  notes: string[],
+): ShellOut {
+  if (seen.has(name)) return ok(session, "");
+  seen.add(name);
+  const rule = rules.get(name);
+  const target = resolve(session.cwd, name);
+  if (!rule) {
+    if (session.files[target] === undefined && !hasDir(session, target)) return fail(session, `hədəf yoxdur: ${name}`);
+    return ok(session, "");
+  }
+  for (const dep of rule.deps) {
+    const built = buildTarget(session, dep, rules, stamps, seen, notes);
+    if (built.ok === false) return built;
+    session.files = built.session.files;
+    session.dirs = built.session.dirs;
+  }
+  const hash = rule.deps.map((dep) => fileStamp(session.files[resolve(session.cwd, dep)] ?? "")).join(",");
+  if (session.files[target] !== undefined && stamps.get(name) === hash) return ok(session, "");
+  let current = session;
+  for (const recipe of rule.recipes) {
+    const ran = runLine(current, recipe);
+    current = ran.session;
+    if (ran.ok === false) return fail(current, ran.output || `make alınmadı: ${recipe}`);
+    if (ran.output) notes.push(ran.output);
+  }
+  session.files = current.files;
+  session.dirs = current.dirs;
+  session.envVars = current.envVars;
+  stamps.set(name, hash);
+  notes.push(name);
+  return ok(session, "");
+}
+
+function fileStamp(text: string) {
+  let hash = 5381;
+  for (const char of text) hash = Math.imul(hash, 33) ^ char.charCodeAt(0);
+  return (hash >>> 0).toString(16);
+}
+
+function crontabCmd(session: Session, args: string[], stdin?: string): ShellOut {
+  const path = "/var/spool/cron/crontabs/root";
+  if (args[0] === "-l" || !args.length && stdin === undefined) return ok(session, session.files[path] ?? "");
+  if (args[0] === "-r") {
+    delete session.files[path];
+    return ok(session, "");
+  }
+  const source = args[0] && args[0] !== "-" ? session.files[resolve(session.cwd, args[0])] : stdin;
+  if (source === undefined) return fail(session, "crontab fayl");
+  for (const line of source.split("\n")) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    if (line.trim().split(/\s+/).length < 6) return fail(session, "cron: dəq saat gün ay həftə əmr");
+  }
+  ensureDir(session, parent(path));
+  session.files[path] = source.endsWith("\n") ? source : `${source}\n`;
+  return ok(session, "");
+}
+
+function cronCmd(session: Session, args: string[]): ShellOut {
+  const path = "/var/spool/cron/crontabs/root";
+  const body = session.files[path] ?? "";
+  if (args[0] === "list" || args[0] === "-l") return ok(session, body);
+  if (args[0] !== "run") return fail(session, "cron run");
+  const now = new Date();
+  const fields = [now.getMinutes(), now.getHours(), now.getDate(), now.getMonth() + 1, now.getDay()];
+  let current = session;
+  const notes: string[] = [];
+  for (const line of body.split("\n")) {
+    if (!line.trim() || line.trim().startsWith("#")) continue;
+    const parts = line.trim().split(/\s+/);
+    const when = parts.slice(0, 5);
+    const command = parts.slice(5).join(" ");
+    if (when.length < 5 || !command) continue;
+    if (!when.every((field, index) => cronMatches(field, fields[index] ?? 0))) continue;
+    const ran = runLine(current, command);
+    current = ran.session;
+    if (ran.ok === false) return fail(current, ran.output || command);
+    if (ran.output) notes.push(ran.output);
+  }
+  return ok(current, notes.join("\n"));
+}
+
+function cronMatches(field: string, value: number) {
+  if (field === "*") return true;
+  if (field.startsWith("*/")) {
+    const step = Number(field.slice(2));
+    return step > 0 && value % step === 0;
+  }
+  return field.split(",").some((part) => {
+    if (part.includes("-")) {
+      const [from, to] = part.split("-").map(Number);
+      return value >= (from ?? 0) && value <= (to ?? 0);
+    }
+    return Number(part) === value;
+  });
+}
+
+function rsyncCmd(session: Session, args: string[]): ShellOut {
+  const dry = args.includes("-n") || args.includes("--dry-run");
+  const wipe = args.includes("--delete");
+  const paths = args.filter((arg) => !arg.startsWith("-"));
+  const from = paths[0];
+  const to = paths[1];
+  if (!from || !to) return fail(session, "rsync mənbə hədəf");
+  const source = resolve(session.cwd, from);
+  const dest = resolve(session.cwd, to);
+  const notes: string[] = [];
+  if (session.files[source] !== undefined) {
+    const fileDest = hasDir(session, dest) ? `${dest}/${source.split("/").pop()}` : dest;
+    if (session.files[fileDest] !== session.files[source]) {
+      notes.push(fileDest);
+      if (!dry) {
+        ensureDir(session, parent(fileDest));
+        session.files[fileDest] = session.files[source] ?? "";
+      }
+    }
+    return ok(session, notes.join("\n"));
+  }
+  if (!hasDir(session, source)) return fail(session, `yoxdur: ${source}`);
+  ensureDir(session, dest);
+  const prefix = `${source}/`;
+  const wanted = new Set<string>();
+  for (const [path, body] of Object.entries(session.files)) {
+    if (!path.startsWith(prefix)) continue;
+    const next = `${dest}/${path.slice(prefix.length)}`;
+    wanted.add(next);
+    if (session.files[next] === body) continue;
+    notes.push(next);
+    if (!dry) {
+      ensureDir(session, parent(next));
+      session.files[next] = body;
+    }
+  }
+  if (wipe) {
+    for (const path of Object.keys(session.files)) {
+      if (!path.startsWith(`${dest}/`) || wanted.has(path)) continue;
+      notes.push(`silindi ${path}`);
+      if (!dry) delete session.files[path];
+    }
+  }
+  return ok(session, notes.join("\n"));
+}
+
+function zipCmd(session: Session, args: string[]): ShellOut {
+  const archiveName = args[0];
+  const names = args.slice(1);
+  if (!archiveName || !names.length) return fail(session, "zip arxiv.zip fayl");
+  const files: Array<{ name: string; data: Uint8Array }> = [];
+  for (const name of names) {
+    const path = resolve(session.cwd, name);
+    const body = session.files[path];
+    if (body === undefined) return fail(session, `fayl yoxdur: ${name}`);
+    const rel = name.replace(/^\.\//, "").replace(/^\/+/, "");
+    if (!rel || rel.split("/").includes("..")) return fail(session, `ad səhvdir: ${name}`);
+    files.push({ name: rel, data: new TextEncoder().encode(body) });
+  }
+  const bytes = zipStore(files);
+  if (bytes.length > 200_000) return fail(session, "arxiv çox böyükdür");
+  const archive = resolve(session.cwd, archiveName);
+  ensureDir(session, parent(archive));
+  session.files[archive] = latin1(bytes);
+  return ok(session, archive.split("/").pop() ?? archive);
+}
+
+function unzipCmd(session: Session, args: string[]): ShellOut {
+  const list = args.includes("-l");
+  const name = args.find((arg) => !arg.startsWith("-"));
+  if (!name) return fail(session, "unzip arxiv.zip");
+  const archive = resolve(session.cwd, name);
+  const body = session.files[archive];
+  if (body === undefined) return fail(session, `fayl yoxdur: ${name}`);
+  const items = readZip(body);
+  if (typeof items === "string") return fail(session, items);
+  if (list) return ok(session, items.map((item) => item.name).join("\n"));
+  for (const item of items) {
+    if (item.name.split("/").includes("..")) return fail(session, "arxiv təhlükəlidir");
+    const path = resolve(session.cwd, item.name);
+    ensureDir(session, parent(path));
+    session.files[path] = item.text;
+  }
+  return ok(session, `${items.length} fayl çıxdı`);
+}
+
+function zipStore(files: Array<{ name: string; data: Uint8Array }>) {
+  const locals: number[] = [];
+  const central: number[] = [];
+  let offset = 0;
+  for (const file of files) {
+    const name = Array.from(new TextEncoder().encode(file.name));
+    const crc = crc32(file.data) >>> 0;
+    const size = file.data.length;
+    const local = [0x50, 0x4b, 0x03, 0x04, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...u32(crc), ...u32(size), ...u32(size), name.length & 255, (name.length >> 8) & 255, 0, 0, ...name, ...file.data];
+    locals.push(...local);
+    central.push(0x50, 0x4b, 0x01, 0x02, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...u32(crc), ...u32(size), ...u32(size), name.length & 255, (name.length >> 8) & 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...u32(offset), ...name);
+    offset += local.length;
+  }
+  const end = [0x50, 0x4b, 0x05, 0x06, 0, 0, 0, 0, files.length & 255, (files.length >> 8) & 255, files.length & 255, (files.length >> 8) & 255, ...u32(central.length), ...u32(offset), 0, 0];
+  return Uint8Array.from([...locals, ...central, ...end]);
+}
+
+function u32(value: number) {
+  return [value & 255, (value >> 8) & 255, (value >> 16) & 255, (value >> 24) & 255];
+}
+
+function readZip(body: string): Array<{ name: string; text: string }> | string {
+  const bytes = fromLatin1(body);
+  const items: Array<{ name: string; text: string }> = [];
+  let offset = 0;
+  while (offset + 30 <= bytes.length) {
+    if (bytes[offset] !== 0x50 || bytes[offset + 1] !== 0x4b || bytes[offset + 2] !== 0x03 || bytes[offset + 3] !== 0x04) break;
+    const method = bytes[offset + 8] ?? 0;
+    if (method !== 0) return "sıxılmış zip açılmır";
+    const size = u32at(bytes, offset + 18);
+    const nameLen = (bytes[offset + 26] ?? 0) + ((bytes[offset + 27] ?? 0) << 8);
+    const extra = (bytes[offset + 28] ?? 0) + ((bytes[offset + 29] ?? 0) << 8);
+    const name = new TextDecoder().decode(bytes.subarray(offset + 30, offset + 30 + nameLen));
+    const start = offset + 30 + nameLen + extra;
+    const data = bytes.subarray(start, start + size);
+    items.push({ name, text: new TextDecoder().decode(data) });
+    offset = start + size;
+    if (items.length > 40) break;
+  }
+  if (!items.length) return "arxiv səhvdir";
+  return items;
+}
+
+function u32at(bytes: Uint8Array, offset: number) {
+  return (bytes[offset] ?? 0) + ((bytes[offset + 1] ?? 0) << 8) + ((bytes[offset + 2] ?? 0) << 16) + ((bytes[offset + 3] ?? 0) << 24);
 }
 
 function tarCmd(session: Session, args: string[], answer?: string): ShellOut {
