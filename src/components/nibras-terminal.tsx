@@ -566,7 +566,9 @@ export function NibrasTerminal() {
       }
     }
     if (result.device) {
+      if (result.device.kind === "video") setBusy("Video");
       const text = await runDevice(result.device);
+      setBusy("");
       if (result.device.kind === "toast") setCopied(result.device.text);
       if (text) push([{ kind: text.startsWith("!") ? "err" : "out", text: text.replace(/^!/, "") }]);
     }
@@ -1634,6 +1636,123 @@ async function createKey(path: string) {
 
 let screenLock: { release: () => Promise<void> } | null = null;
 
+function pickVideos() {
+  return new Promise<File[]>((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "video/*";
+    input.multiple = true;
+    let done = false;
+    const finish = (files: File[]) => {
+      if (done) return;
+      done = true;
+      resolve(files);
+    };
+    input.onchange = () => finish([...(input.files ?? [])]);
+    window.addEventListener(
+      "focus",
+      () => {
+        window.setTimeout(() => finish([...(input.files ?? [])]), 400);
+      },
+      { once: true },
+    );
+    input.click();
+  });
+}
+
+function playClip(file: File, canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, audio: AudioContext, dest: MediaStreamAudioDestinationNode) {
+  return new Promise<void>((resolve, reject) => {
+    const video = document.createElement("video");
+    video.playsInline = true;
+    video.src = URL.createObjectURL(file);
+    video.onerror = () => reject(new Error("video açılmadı"));
+    video.onloadeddata = () => {
+      let source: MediaElementAudioSourceNode | null = null;
+      try {
+        source = audio.createMediaElementSource(video);
+        source.connect(dest);
+      } catch {
+        source = null;
+      }
+      const paint = () => {
+        if (video.ended || video.paused) return;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(paint);
+      };
+      video.onended = () => {
+        source?.disconnect();
+        URL.revokeObjectURL(video.src);
+        resolve();
+      };
+      const start = () => video.play().then(paint);
+      start().catch(() => {
+        video.muted = true;
+        start().catch(() => reject(new Error("video açılmadı")));
+      });
+    };
+  });
+}
+
+async function mergeVideos() {
+  const files = await pickVideos();
+  if (files.length < 2) return "!iki video seç";
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "!video birləşmədi";
+  const probe = document.createElement("video");
+  probe.preload = "metadata";
+  probe.src = URL.createObjectURL(files[0]);
+  await new Promise<void>((resolve, reject) => {
+    probe.onloadedmetadata = () => resolve();
+    probe.onerror = () => reject(new Error("video açılmadı"));
+  }).catch(() => undefined);
+  canvas.width = probe.videoWidth || 640;
+  canvas.height = probe.videoHeight || 360;
+  URL.revokeObjectURL(probe.src);
+  const audio = new AudioContext();
+  await audio.resume();
+  const dest = audio.createMediaStreamDestination();
+  const stream = canvas.captureStream(30);
+  dest.stream.getAudioTracks().forEach((track) => stream.addTrack(track));
+  const mime = MediaRecorder.isTypeSupported("video/webm") ? "video/webm" : "";
+  let rec: MediaRecorder;
+  try {
+    rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+  } catch {
+    stream.getTracks().forEach((track) => track.stop());
+    await audio.close();
+    return "!video birləşmədi";
+  }
+  const chunks: Blob[] = [];
+  rec.ondataavailable = (event) => {
+    if (event.data.size) chunks.push(event.data);
+  };
+  const stopped = new Promise<void>((resolve) => {
+    rec.onstop = () => resolve();
+  });
+  rec.start();
+  try {
+    for (const file of files) await playClip(file, canvas, ctx, audio, dest);
+  } catch {
+    rec.stop();
+    stream.getTracks().forEach((track) => track.stop());
+    await audio.close();
+    return "!video açılmadı";
+  }
+  rec.stop();
+  await stopped;
+  stream.getTracks().forEach((track) => track.stop());
+  await audio.close();
+  const blob = new Blob(chunks, { type: mime || "video/webm" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "nibras.webm";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return `${files.length} video birləşdi · nibras.webm`;
+}
+
 async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "clip-set") {
     try {
@@ -1709,7 +1828,8 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
     if (!link) return "!şəbəkə oxunmur";
     return `${link.effectiveType ?? "şəbəkə"} · ${link.downlink ?? "?"} Mb/s · ${link.rtt ?? "?"} ms`;
   }
-  if (!("Notification" in window)) return "!bildiriş yoxdur";
+  if (device.kind === "video") return mergeVideos();
+  if (!("Notification" in window) || device.kind !== "notify") return "!bildiriş yoxdur";
   const permit = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permit !== "granted") return "!bildiriş bağlıdır";
   new Notification(device.title, { body: device.body });

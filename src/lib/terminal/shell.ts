@@ -80,7 +80,8 @@ export type ShellOut = {
     | { kind: "wake-lock" }
     | { kind: "wake-unlock" }
     | { kind: "share"; text: string }
-    | { kind: "network" };
+    | { kind: "network" }
+    | { kind: "video" };
   keygen?: { path: string };
 };
 
@@ -723,6 +724,11 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return fetchText(session, args, answer);
     case "ping":
       return pingCmd(session, args, answer);
+    case "ffmpeg":
+      return ffmpegCmd(session, args);
+    case "yt-dlp":
+    case "youtube-dl":
+      return fail(session, "YouTube-dan video endirmək olmur. Yerli videonu birləşdirmək üçün: ffmpeg concat");
     case "ssh":
       return sshCmd(session, args, answer);
     case "sftp":
@@ -2419,7 +2425,15 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
     return { ...ok(session, ""), device: { kind: "share", text } };
   }
   if (cmd === "nibras-wifi-connectioninfo") return { ...ok(session, ""), device: { kind: "network" } };
-  return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog | wake-lock | share");
+  if (cmd === "nibras-video") return { ...ok(session, ""), device: { kind: "video" } };
+  return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog | wake-lock | share | video");
+}
+
+function ffmpegCmd(session: Session, args: string[]): ShellOut {
+  if (args.some((arg) => /youtu(\.be|be\.com)/i.test(arg))) {
+    return fail(session, "YouTube-dan video endirmək olmur. Yerli videonu birləşdirmək üçün: ffmpeg concat");
+  }
+  return { ...ok(session, ""), device: { kind: "video" } };
 }
 
 function pkg(session: Session, cmd: string, args: string[], answer?: string): ShellOut {
@@ -3161,7 +3175,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];

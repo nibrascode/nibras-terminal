@@ -32,6 +32,11 @@ export function loadLang(lang: Lang) {
 }
 
 const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
+  { re: /^YouTube-dan video endirmək olmur\. Yerli videonu birləşdirmək üçün: ffmpeg concat$/, tr: "YouTube'dan video indirilmez. Yerel videoyu birleştirmek için: ffmpeg concat", en: "YouTube downloads are not available. To join videos already on the phone: ffmpeg concat", ru: "Скачивание с YouTube недоступно. Склеить видео с телефона: ffmpeg concat" },
+  { re: /^(\d+) video birləşdi · nibras\.webm$/, tr: "$1 video birleşti · nibras.webm", en: "$1 videos joined · nibras.webm", ru: "склеено видео: $1 · nibras.webm" },
+  { re: /^iki video seç$/, tr: "iki video seç", en: "pick two videos", ru: "выберите два видео" },
+  { re: /^video açılmadı$/, tr: "video açılmadı", en: "video did not open", ru: "видео не открылось" },
+  { re: /^video birləşmədi$/, tr: "video birleşmedi", en: "could not join the videos", ru: "видео не склеилось" },
   { re: /^(\S+) seçildi · (.+)$/, tr: "$1 seçildi · $2", en: "$1 selected · $2", ru: "$1 выбран · $2" },
   { re: /^(\S+) artıq seçilib$/, tr: "$1 zaten seçili", en: "$1 is already selected", ru: "$1 уже выбран" },
   { re: /^(\S+) hazırdır · (.+)$/, tr: "$1 hazır · $2", en: "$1 is ready · $2", ru: "$1 готов · $2" },
