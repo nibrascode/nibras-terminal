@@ -126,6 +126,7 @@ const RULES: Array<{ re: RegExp; tr: string; en: string; ru: string }> = [
   { re: /^(.+) yenidən quruldu$/, tr: "$1 yeniden kuruldu", en: "$1 reinstalled", ru: "$1 переустановлен" },
   { re: /^keş təmizdir$/, tr: "onbellek temiz", en: "cache is clean", ru: "кэш чист" },
   { re: /^pkg update \| list-installed \| files \| uninstall \| install$/, tr: "pkg update | list-installed | files | uninstall | install", en: "pkg update | list-installed | files | uninstall | install", ru: "pkg update | list-installed | files | uninstall | install" },
+  { re: /^sv up ad$/, tr: "sv up ad", en: "sv up name", ru: "sv up имя" },
   { re: /^Bəlkə: (\S+)$/, tr: "Belki: $1", en: "Maybe: $1", ru: "Возможно: $1" },
   { re: /^ifadə səhvdir$/, tr: "ifade yanlış", en: "bad expression", ru: "неверное выражение" },
   { re: /^(\S+) seçildi · (.+)$/, tr: "$1 seçildi · $2", en: "$1 selected · $2", ru: "$1 выбран · $2" },

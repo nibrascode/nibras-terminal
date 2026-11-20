@@ -2430,6 +2430,26 @@ async function phoneInfo() {
   return [`model ${model || "məlum deyil"}`, `platform ${nav.userAgentData?.platform ?? navigator.platform}`, version ? `versiya ${version}` : "", `şəbəkə ${nav.connection?.effectiveType ?? "məlum deyil"}`].filter(Boolean).join("\n");
 }
 
+async function listVoices() {
+  if (!window.speechSynthesis) return "!səs yoxdur";
+  let voices = window.speechSynthesis.getVoices();
+  if (!voices.length) {
+    voices = await new Promise<SpeechSynthesisVoice[]>((resolve) => {
+      const done = () => resolve(window.speechSynthesis.getVoices());
+      window.speechSynthesis.addEventListener("voiceschanged", done, { once: true });
+      window.setTimeout(done, 400);
+    });
+  }
+  return voices.length ? voices.map((voice) => `${voice.name} ${voice.lang}`).join("\n") : "səs yoxdur";
+}
+
+function showFile(name: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/plain;charset=utf-8" }));
+  window.open(url, "_blank", "noopener,noreferrer");
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return name;
+}
+
 async function usbDevices() {
   const nav = navigator as Navigator & { usb?: { getDevices: () => Promise<Array<{ productName?: string; vendorId: number }>> } };
   if (!nav.usb) return "!usb yoxdur";
@@ -2522,12 +2542,17 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "contacts") return pickContacts();
   if (device.kind === "telephony") return phoneInfo();
   if (device.kind === "usb") return usbDevices();
+  if (device.kind === "voices") return listVoices();
+  if (device.kind === "open-file") return showFile(device.name, device.text);
   if (device.kind === "battery") {
-    const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; charging: boolean }> };
+    const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; charging: boolean; dischargingTime?: number }> };
     if (!nav.getBattery) return "!batareya oxunmur";
     try {
       const bat = await nav.getBattery();
-      return `${Math.round(bat.level * 100)}% · ${bat.charging ? "doldurulur" : "batareya"}`;
+      const left = bat.dischargingTime;
+      return `${Math.round(bat.level * 100)}% · ${bat.charging ? "doldurulur" : "batareya"}${
+        left !== undefined && Number.isFinite(left) && left !== Infinity ? ` · ${Math.round(left / 60)} dəq` : ""
+      }`;
     } catch {
       return "!batareya oxunmur";
     }
