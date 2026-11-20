@@ -67,7 +67,10 @@ Working with packages:
 - Run: python3 fayl.py
 - Search: pkg search <query>
 - Install: pkg install <package>
-- Upgrade: pkg upgrade
+- Preview: preview fayl.md
+- Hosts: host add ad user@host
+- Backup: nibras-backup
+- Check: nibras-doctor
 
 Report issues at https://github.com/nibrascode/nibras-terminal/issues`;
 
@@ -605,6 +608,31 @@ export function NibrasTerminal() {
         push([{ kind: "out", text: mounted.message }]);
       }
       setBusy("");
+    } else if (result.device?.kind === "backup") {
+      push([{ kind: "out", text: downloadBackup(current) }]);
+    } else if (result.device?.kind === "restore") {
+      setBusy("Bərpa");
+      const restored = await restoreBackup();
+      setBusy("");
+      if (!restored.ok) push([{ kind: "err", text: restored.error }]);
+      else {
+        const dirs = new Set(current.dirs);
+        for (const path of Object.keys(restored.files)) {
+          let folder = path.slice(0, path.lastIndexOf("/"));
+          while (folder && folder !== "/") {
+            dirs.add(folder);
+            folder = folder.slice(0, folder.lastIndexOf("/"));
+          }
+        }
+        current = {
+          ...current,
+          files: { ...current.files, ...restored.files },
+          dirs: [...dirs],
+          env: restored.env ?? current.env,
+          pkgs: restored.pkgs.length ? [...new Set([...current.pkgs, ...restored.pkgs])] : current.pkgs,
+        };
+        push([{ kind: "out", text: restored.message }]);
+      }
     } else if (result.device) {
       if (result.device.kind === "video") setBusy("Video");
       const text = await runDevice(result.device);
@@ -767,6 +795,22 @@ export function NibrasTerminal() {
   }
 
   function onKey(event: KeyboardEvent<HTMLInputElement>) {
+    if (!event.ctrlKey && !event.metaKey && !event.altKey && "([{\"'".includes(event.key)) {
+      const close = event.key === "(" ? ")" : event.key === "[" ? "]" : event.key === "{" ? "}" : event.key;
+      event.preventDefault();
+      const el = box.current;
+      const start = el?.selectionStart ?? draft.length;
+      const end = el?.selectionEnd ?? start;
+      if (start === end && draft[start] === close && (event.key === ")" || event.key === "]" || event.key === "}" || event.key === close)) {
+        requestAnimationFrame(() => el?.setSelectionRange(start + 1, start + 1));
+        return;
+      }
+      const next = `${draft.slice(0, start)}${event.key}${draft.slice(start, end)}${close}${draft.slice(end)}`;
+      setDraft(next);
+      const caret = start + 1;
+      requestAnimationFrame(() => el?.setSelectionRange(caret, end > start ? end + 1 : caret));
+      return;
+    }
     if (event.key === "Tab") {
       event.preventDefault();
       const next = complete(session, draft)[0];
@@ -1752,6 +1796,91 @@ type PhoneStore = {
 
 let phoneStore: PhoneStore | null = null;
 
+function downloadBackup(session: Session) {
+  const home = session.home || "/root";
+  const files: Record<string, string> = {};
+  for (const [path, body] of Object.entries(session.files)) {
+    if (!path.startsWith(`${home}/`) || body.length > 100_000 || body.includes("\u0000")) continue;
+    files[path] = body;
+    if (Object.keys(files).length >= 200) break;
+  }
+  const blob = new Blob([JSON.stringify({ env: session.env, pkgs: session.pkgs, files })], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "nibras-backup.json";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return `${Object.keys(files).length} fayl saxlandı · nibras-backup.json`;
+}
+
+async function restoreBackup(): Promise<{ ok: true; files: Record<string, string>; env: Session["env"]; pkgs: string[]; message: string } | { ok: false; error: string }> {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "application/json,.json";
+  const file = await new Promise<File | null>((resolve) => {
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    window.addEventListener("focus", () => window.setTimeout(() => resolve(input.files?.[0] ?? null), 400), { once: true });
+    input.click();
+  });
+  if (!file) return { ok: false, error: "fayl seçilmədi" };
+  try {
+    const data = JSON.parse(await file.text()) as { env?: string; pkgs?: unknown; files?: unknown };
+    if (!data.files || typeof data.files !== "object") return { ok: false, error: "ehtiyat səhvdir" };
+    const files: Record<string, string> = {};
+    for (const [path, body] of Object.entries(data.files)) {
+      if (!path.startsWith("/") || path.includes("..") || typeof body !== "string" || body.length > 100_000) continue;
+      files[path] = body;
+    }
+    const env = data.env === "alpine" || data.env === "debian" || data.env === "ubuntu" ? data.env : null;
+    const pkgs = Array.isArray(data.pkgs) ? data.pkgs.filter((item): item is string => typeof item === "string").slice(0, 40) : [];
+    return { ok: true, files, env, pkgs, message: `${Object.keys(files).length} fayl qayıtdı` };
+  } catch {
+    return { ok: false, error: "ehtiyat səhvdir" };
+  }
+}
+
+function listenSpeech() {
+  const Box = window as Window & { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
+  const Ctor = Box.SpeechRecognition || Box.webkitSpeechRecognition;
+  if (!Ctor) return Promise.resolve("!səs tanınmır");
+  return new Promise<string>((resolve) => {
+    const rec = new Ctor();
+    rec.lang = "az-AZ";
+    rec.onresult = (event) => resolve(event.results[0]?.[0]?.transcript || "!səs tanınmır");
+    rec.onerror = () => resolve("!səs tanınmır");
+    try {
+      rec.start();
+    } catch {
+      resolve("!səs tanınmır");
+    }
+  });
+}
+
+type SpeechRec = {
+  lang: string;
+  start: () => void;
+  onresult: ((event: { results: Array<Array<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+};
+
+async function readSensor() {
+  const motion = await new Promise<DeviceMotionEvent | null>((resolve) => {
+    const timer = window.setTimeout(() => resolve(null), 1200);
+    window.addEventListener(
+      "devicemotion",
+      (event) => {
+        window.clearTimeout(timer);
+        resolve(event);
+      },
+      { once: true },
+    );
+  });
+  const acc = motion?.accelerationIncludingGravity;
+  if (acc?.x == null || acc.y == null || acc.z == null) return "!sensor yoxdur";
+  return `x ${acc.x.toFixed(2)} · y ${acc.y.toFixed(2)} · z ${acc.z.toFixed(2)}`;
+}
+
 async function installPip(py: Pyodide, name: string) {
   if (!py.loadPackage || !py.pyimport) throw new Error("pip yoxdur");
   await py.loadPackage("micropip");
@@ -2040,6 +2169,8 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
     return `${link.effectiveType ?? "şəbəkə"} · ${link.downlink ?? "?"} Mb/s · ${link.rtt ?? "?"} ms`;
   }
   if (device.kind === "video") return mergeVideos();
+  if (device.kind === "listen") return listenSpeech();
+  if (device.kind === "sensor") return readSensor();
   if (!("Notification" in window) || device.kind !== "notify") return "!bildiriş yoxdur";
   const permit = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
   if (permit !== "granted") return "!bildiriş bağlıdır";

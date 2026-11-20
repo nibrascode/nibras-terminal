@@ -82,7 +82,11 @@ export type ShellOut = {
     | { kind: "share"; text: string }
     | { kind: "network" }
     | { kind: "video" }
-    | { kind: "storage" };
+    | { kind: "storage" }
+    | { kind: "backup" }
+    | { kind: "restore" }
+    | { kind: "listen" }
+    | { kind: "sensor" };
   pip?: string;
   keygen?: { path: string };
 };
@@ -533,6 +537,12 @@ function dispatch(session: Session, cmd: string, args: string[], answer: string 
       return yesCmd(session, args);
     case "z":
       return zCmd(session, args[0] || answer);
+    case "host":
+      return hostCmd(session, args, answer);
+    case "snippet":
+      return snippetCmd(session, args, answer);
+    case "preview":
+      return previewCmd(session, args[0] || answer);
     case "df":
     case "free":
       return ok(session, diskLine(session));
@@ -2625,7 +2635,149 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
   }
   if (cmd === "nibras-wifi-connectioninfo") return { ...ok(session, ""), device: { kind: "network" } };
   if (cmd === "nibras-video") return { ...ok(session, ""), device: { kind: "video" } };
-  return fail(session, "nibras-setup-storage | clipboard | toast | vibrate | battery-status | tts-speak | open-url | notification | dialog | wake-lock | share | video");
+  if (cmd === "nibras-doctor") return ok(session, doctor(session));
+  if (cmd === "nibras-backup") return { ...ok(session, ""), device: { kind: "backup" } };
+  if (cmd === "nibras-restore") return { ...ok(session, ""), device: { kind: "restore" } };
+  if (cmd === "nibras-listen") return { ...ok(session, ""), device: { kind: "listen" } };
+  if (cmd === "nibras-sensor") return { ...ok(session, ""), device: { kind: "sensor" } };
+  return fail(session, "nibras-setup-storage | clipboard | toast | doctor | backup | restore | listen | sensor | video");
+}
+
+function doctor(session: Session) {
+  const home = session.home || "/root";
+  const files = Object.keys(session.files).filter((path) => path === home || path.startsWith(`${home}/`)).length;
+  return [
+    `mühit: ${session.env ?? "yox"}`,
+    `istifadəçi: ${session.user || "root"}`,
+    `qovluq: ${session.cwd}`,
+    `paket: ${session.pkgs.join(" ") || "yox"}`,
+    `fayl: ${files}`,
+    `veb: ${session.web ? "hə" : "yox"}`,
+    `ssh: ${session.hasSsh ? "açıq" : "bağlı"}`,
+    `iş: ${session.jobs.length}`,
+  ].join("\n");
+}
+
+function hostRows(session: Session) {
+  const path = `${session.home || "/root"}/.nibras/hosts`;
+  return (session.files[path] ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((row) => {
+      const [name, user, host, port] = row.split(/\s+/);
+      return { name: name ?? "", user: user ?? "", host: host ?? "", port: Number(port) || 22 };
+    })
+    .filter((row) => row.name && row.user && row.host);
+}
+
+function saveHostRows(session: Session, rows: Array<{ name: string; user: string; host: string; port: number }>) {
+  const path = `${session.home || "/root"}/.nibras/hosts`;
+  ensureDir(session, parent(path));
+  session.files[path] = rows.map((row) => `${row.name} ${row.user} ${row.host} ${row.port}`).join("\n") + (rows.length ? "\n" : "");
+}
+
+function hostCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const verb = args[0] || "";
+  const rows = hostRows(session);
+  if (!verb || verb === "list") {
+    return ok(session, rows.map((row) => `${row.name} ${row.user}@${row.host}:${row.port}`).join("\n") || "host yoxdur");
+  }
+  if (verb === "add") {
+    const name = args[1] || "";
+    const target = args[2] || answer || "";
+    if (!/^[A-Za-z0-9._-]{1,32}$/.test(name)) return fail(session, "ad səhvdir");
+    const at = /^([^@\s]+)@([^:\s]+)(?::(\d+))?$/.exec(target);
+    if (!at) return askFor(session, { id: "text", title: "Host", label: "istifadəçi@ünvan", resume: `host add ${name}` });
+    const host = at[2] ?? "";
+    if (isBlockedHost(host)) return fail(session, "bu ünvan bağlıdır");
+    const next = rows.filter((row) => row.name !== name);
+    next.push({ name, user: at[1] ?? "root", host, port: Number(at[3]) || 22 });
+    saveHostRows(session, next);
+    return ok(session, name);
+  }
+  if (verb === "rm") {
+    const name = args[1] || answer || "";
+    if (!rows.some((row) => row.name === name)) return fail(session, `host yoxdur: ${name}`);
+    saveHostRows(session, rows.filter((row) => row.name !== name));
+    return ok(session, name);
+  }
+  const found = rows.find((row) => row.name === verb);
+  if (!found) return fail(session, `host yoxdur: ${verb}`);
+  return sshCmd(session, [`${found.user}@${found.host}`, "-p", String(found.port), ...args.slice(1)], answer);
+}
+
+function snippetRows(session: Session) {
+  const path = `${session.home || "/root"}/.nibras/snippets`;
+  return (session.files[path] ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((row) => {
+      const cut = row.indexOf("\t");
+      return { name: cut < 0 ? row : row.slice(0, cut), command: cut < 0 ? "" : row.slice(cut + 1) };
+    })
+    .filter((row) => row.name && row.command);
+}
+
+function snippetCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const verb = args[0] || "";
+  const rows = snippetRows(session);
+  if (!verb || verb === "list") return ok(session, rows.map((row) => `${row.name} ${row.command}`).join("\n") || "snippet yoxdur");
+  if (verb === "save") {
+    const name = args[1] || "";
+    const command = args.slice(2).join(" ") || answer || "";
+    if (!/^[A-Za-z0-9._-]{1,32}$/.test(name)) return fail(session, "ad səhvdir");
+    if (!command) return askFor(session, { id: "text", title: "Snippet", label: "əmr", resume: `snippet save ${name}` });
+    const path = `${session.home || "/root"}/.nibras/snippets`;
+    const next = rows.filter((row) => row.name !== name);
+    next.push({ name, command });
+    ensureDir(session, parent(path));
+    session.files[path] = next.map((row) => `${row.name}\t${row.command}`).join("\n") + "\n";
+    return ok(session, name);
+  }
+  if (verb === "rm") {
+    const name = args[1] || answer || "";
+    if (!rows.some((row) => row.name === name)) return fail(session, `snippet yoxdur: ${name}`);
+    const path = `${session.home || "/root"}/.nibras/snippets`;
+    const next = rows.filter((row) => row.name !== name);
+    session.files[path] = next.map((row) => `${row.name}\t${row.command}`).join("\n") + (next.length ? "\n" : "");
+    return ok(session, name);
+  }
+  const name = verb === "run" ? args[1] || answer || "" : verb;
+  const found = rows.find((row) => row.name === name);
+  if (!found) return fail(session, `snippet yoxdur: ${name}`);
+  return runSequence(session, found.command, undefined, 1);
+}
+
+function previewCmd(session: Session, arg?: string): ShellOut {
+  if (!arg) return askFor(session, { id: "text", title: "Önizləmə", label: "fayl.md", resume: "preview" });
+  const path = resolve(session.cwd, arg);
+  const body = session.files[path];
+  if (body === undefined) return fail(session, `fayl yoxdur: ${arg}`);
+  const page = /\.html?$/.test(path) ? body : markdownPage(body);
+  session.server = { port: 8080, html: page };
+  return ok(session, path);
+}
+
+function markdownPage(source: string) {
+  const safe = source.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">");
+  const html = safe
+    .split("\n")
+    .map((line) => {
+      if (line.startsWith("### ")) return `<h3>${inlineMd(line.slice(4))}</h3>`;
+      if (line.startsWith("## ")) return `<h2>${inlineMd(line.slice(3))}</h2>`;
+      if (line.startsWith("# ")) return `<h1>${inlineMd(line.slice(2))}</h1>`;
+      if (line.startsWith("- ")) return `<li>${inlineMd(line.slice(2))}</li>`;
+      if (!line.trim()) return "";
+      return `<p>${inlineMd(line)}</p>`;
+    })
+    .join("");
+  return `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#111;color:#eee;font:16px sans-serif;padding:16px">${html}</body>`;
+}
+
+function inlineMd(line: string) {
+  return line
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>');
 }
 
 function pipCmd(session: Session, args: string[], answer?: string): ShellOut {
@@ -3391,7 +3543,7 @@ function helpTopic(session: Session, name?: string): ShellOut {
   return ok(session, TOPICS[name] ?? `kömək yoxdur: ${name}\nhelp`);
 }
 
-const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3"];
+const COMMANDS = ["help", "man", "clear", "pwd", "ls", "cd", "cat", "mkdir", "rmdir", "touch", "rm", "cp", "mv", "echo", "grep", "egrep", "fgrep", "rg", "head", "tail", "wc", "sort", "uniq", "cut", "diff", "base64", "expr", "sed", "tr", "seq", "stat", "du", "tree", "which", "nl", "tac", "jq", "cal", "find", "edit", "history", "export", "unset", "printenv", "alias", "unalias", "curl", "wget", "ping", "ssh", "sftp", "gcc", "python3", "node", "php", "git", "nibras", "sh", "uname", "df", "true", "false", "test", "tee", "rev", "basename", "dirname", "file", "xxd", "sha256sum", "sha1sum", "md5sum", "fold", "paste", "realpath", "hostname", "arch", "uptime", "strings", "shuf", "comm", "expand", "fmt", "mktemp", "factor", "xargs", "read", "nproc", "tty", "logname", "who", "type", "command", "sudo", "awk", "column", "cmp", "join", "split", "truncate", "dos2unix", "unix2dos", "less", "more", "tar", "chmod", "time", "groups", "apt", "apk", "apt-cache", "dpkg", "lsb_release", "ip", "ss", "jobs", "sleep", "ln", "readlink", "adduser", "passwd", "su", "source", "nano", "vi", "pkg", "nibras-distro", "top", "htop", "ssh-keygen", "nibras-setup-storage", "nibras-clipboard-get", "nibras-clipboard-set", "nibras-toast", "nibras-vibrate", "nibras-battery-status", "nibras-tts-speak", "nibras-open-url", "nibras-notification", "nibras-dialog", "nibras-reload-settings", "pushd", "popd", "dirs", "watch", "fc", "open", "reset", "logcat", "adb", "nibras-wake-lock", "nibras-wake-unlock", "nibras-share", "nibras-wifi-connectioninfo", "neofetch", "screenfetch", "ffmpeg", "bc", "banner", "yes", "z", "pip", "pip3", "host", "snippet", "preview"];
 
 export function complete(session: Session, line: string): string[] {
   if (!line || /\s$/.test(line)) return [];
