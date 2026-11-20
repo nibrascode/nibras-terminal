@@ -91,7 +91,10 @@ export type ShellOut = {
     | { kind: "download"; url: string; dest: string }
     | { kind: "camera" }
     | { kind: "torch"; on: boolean }
-    | { kind: "notify-remove"; title: string };
+    | { kind: "notify-remove"; title: string }
+    | { kind: "palette" }
+    | { kind: "bright"; level: number }
+    | { kind: "volume"; level: number };
   pip?: string;
   keygen?: { path: string };
 };
@@ -2669,7 +2672,47 @@ function phoneCmd(session: Session, cmd: string, args: string[], answer?: string
     if (!title) return askFor(session, { id: "text", title: "Bildiriş", label: "başlıq", resume: "nibras-notification-remove" });
     return { ...ok(session, ""), device: { kind: "notify-remove", title } };
   }
-  return fail(session, "nibras-info | setup-storage | clipboard | download | camera-photo | torch | doctor | backup | restore");
+  if (cmd === "nibras-when") return whenCmd(session, args, answer);
+  if (cmd === "nibras-palette") return { ...ok(session, ""), device: { kind: "palette" } };
+  if (cmd === "nibras-brightness") return levelCmd(session, args[0] || answer, "bright", 10, 100, "nibras-brightness");
+  if (cmd === "nibras-volume") return levelCmd(session, args[0] || answer, "volume", 0, 100, "nibras-volume");
+  return fail(session, "nibras-info | setup-storage | download | torch | when | brightness | volume | backup");
+}
+
+function whenCmd(session: Session, args: string[], answer?: string): ShellOut {
+  const path = `${session.home || "/root"}/.nibras/when`;
+  const rows = (session.files[path] ?? "")
+    .split("\n")
+    .filter(Boolean)
+    .map((row) => {
+      const cut = row.indexOf("\t");
+      return { event: cut < 0 ? row : row.slice(0, cut), command: cut < 0 ? "" : row.slice(cut + 1) };
+    })
+    .filter((row) => row.event && row.command);
+  const verb = args[0] || "";
+  if (!verb || verb === "list") return ok(session, rows.map((row) => `${row.event} ${row.command}`).join("\n") || "qayda yoxdur");
+  if (verb === "rm") {
+    const name = args[1] || answer || "";
+    if (!rows.some((row) => row.event === name)) return fail(session, "hadisə yoxdur");
+    const next = rows.filter((row) => row.event !== name);
+    session.files[path] = next.map((row) => `${row.event}\t${row.command}`).join("\n") + (next.length ? "\n" : "");
+    return ok(session, name);
+  }
+  if (verb !== "online" && verb !== "offline" && verb !== "battery") return fail(session, "online | offline | battery");
+  const command = args.slice(1).join(" ") || answer || "";
+  if (!command) return askFor(session, { id: "text", title: "Qayda", label: "əmr", resume: `nibras-when ${verb}` });
+  const next = rows.filter((row) => row.event !== verb);
+  next.push({ event: verb, command });
+  ensureDir(session, parent(path));
+  session.files[path] = next.map((row) => `${row.event}\t${row.command}`).join("\n") + "\n";
+  return ok(session, verb);
+}
+
+function levelCmd(session: Session, raw: string | undefined, kind: "bright" | "volume", low: number, high: number, resume: string): ShellOut {
+  if (!raw) return askFor(session, { id: "text", title: resume, label: `${low}-${high}`, resume });
+  const level = Number(raw);
+  if (!Number.isInteger(level) || level < low || level > high) return fail(session, `${low}-${high}`);
+  return { ...ok(session, String(level)), device: { kind, level } };
 }
 
 function nibrasInfo(session: Session) {

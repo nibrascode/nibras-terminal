@@ -340,6 +340,10 @@ export function NibrasTerminal() {
   const [scriptText, setScriptText] = useState("echo bir\necho iki");
   const [needle, setNeedle] = useState("");
   const [drawer, setDrawer] = useState(false);
+  const [palette, setPalette] = useState(false);
+  const [pq, setPq] = useState("");
+  const [bright, setBright] = useState(100);
+  const live = useRef(session);
   const [findOn, setFindOn] = useState(false);
   const [size, setSize] = useState(1);
   const [lang, setLang] = useState<Lang>("az");
@@ -412,6 +416,44 @@ export function NibrasTerminal() {
       return list.map((item, index) => (index === slot ? { ...item, session, lines } : item));
     });
   }, [ready, session, lines, slot]);
+
+  useEffect(() => {
+    live.current = session;
+  }, [session]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const rules = (session.files[`${session.home || "/root"}/.nibras/when`] ?? "")
+      .split("\n")
+      .filter(Boolean)
+      .map((row) => {
+        const cut = row.indexOf("\t");
+        return { event: cut < 0 ? "" : row.slice(0, cut), command: cut < 0 ? "" : row.slice(cut + 1) };
+      })
+      .filter((row) => row.command);
+    const fire = (event: string) => {
+      for (const rule of rules) {
+        if (rule.event === event) void apply(runLine(live.current, rule.command));
+      }
+    };
+    const on = () => fire("online");
+    const off = () => fire("offline");
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    let dead = false;
+    const nav = navigator as Navigator & { getBattery?: () => Promise<{ level: number; addEventListener: (name: string, fn: () => void) => void }> };
+    void nav.getBattery?.().then((bat) => {
+      if (dead) return;
+      bat.addEventListener("levelchange", () => {
+        if (bat.level < 0.2) fire("battery");
+      });
+    });
+    return () => {
+      dead = true;
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
+  }, [ready, session.files, session.home]);
 
   useEffect(() => {
     if (!ready) return;
@@ -610,6 +652,13 @@ export function NibrasTerminal() {
         push([{ kind: "out", text: mounted.message }]);
       }
       setBusy("");
+    } else if (result.device?.kind === "palette") {
+      setPalette(true);
+      setPq("");
+    } else if (result.device?.kind === "bright") {
+      setBright(result.device.level);
+    } else if (result.device?.kind === "volume") {
+      speechVolume = result.device.level / 100;
     } else if (result.device?.kind === "reset") {
       localStorage.removeItem(STORE);
       localStorage.removeItem(LINES);
@@ -1065,7 +1114,7 @@ export function NibrasTerminal() {
 
   return (
     <div className="nt-app">
-      <div className={`nt-window ${bell ? "outline outline-1 outline-[#c04040]" : ""}`}>
+      <div className={`nt-window ${bell ? "outline outline-1 outline-[#c04040]" : ""}`} style={bright < 100 ? { filter: `brightness(${bright}%)` } : undefined}>
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-black">
           {tab === "term" ? (
             <div className="flex min-h-0 flex-1 flex-col">
@@ -1266,6 +1315,36 @@ export function NibrasTerminal() {
             </button>
           </div>
         ) : null}
+        {palette ? (
+          <form
+            className="nt-drawer"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const found = ACTIONS.find((item) => `${item.label} ${item.line}`.toLowerCase().includes(pq.trim().toLowerCase()));
+              setPalette(false);
+              setPq("");
+              if (found) submit(found.line);
+            }}
+          >
+            <input className="nt-field m-3" value={pq} placeholder={say(lang, "əmr axtar")} autoFocus onChange={(event) => setPq(event.target.value)} />
+            {ACTIONS.filter((item) => `${item.label} ${item.line}`.toLowerCase().includes(pq.trim().toLowerCase()))
+              .slice(0, 12)
+              .map((item) => (
+                <button
+                  key={`${item.group}-${item.line}-${item.label}`}
+                  className="nt-sess"
+                  type="button"
+                  onClick={() => {
+                    setPalette(false);
+                    setPq("");
+                    submit(item.line);
+                  }}
+                >
+                  {say(lang, item.label)}
+                </button>
+              ))}
+          </form>
+        ) : null}
       </div>
       {scriptOpen ? (
         <div className="fixed inset-0 z-20 flex items-end justify-center bg-deep/80 p-4" role="dialog" aria-modal="true">
@@ -1373,6 +1452,8 @@ function FilePane({
   const [folderName, setFolderName] = useState("");
   const [sure, setSure] = useState(false);
   const [bySize, setBySize] = useState(false);
+  const [find, setFind] = useState("");
+  const [replace, setReplace] = useState("");
   const incoming = useRef<HTMLInputElement>(null);
   const editor = useRef<HTMLTextAreaElement>(null);
   const gutter = useRef<HTMLPreElement>(null);
@@ -1479,6 +1560,22 @@ function FilePane({
           );
         })}
       </ul>
+      <div className="mt-3 flex gap-2">
+        <input className="nt-field min-w-0 flex-1" value={find} placeholder={say(lang, "faylda axtar")} onChange={(event) => setFind(event.target.value)} />
+        <input className="nt-field min-w-0 flex-1" value={replace} placeholder={say(lang, "əvəz")} onChange={(event) => setReplace(event.target.value)} />
+        <button
+          className="min-h-11 px-3 text-sm text-gold"
+          type="button"
+          onClick={() => {
+            if (!find) return;
+            const count = text.split(find).length - 1;
+            setText(text.split(find).join(replace));
+            setNote(count ? `${count} dəyişdi` : "tapılmadı");
+          }}
+        >
+          {say(lang, "Dəyiş")}
+        </button>
+      </div>
       <div className="mt-3 grid max-h-64 grid-cols-[auto_1fr] overflow-hidden border border-line">
         <pre
           ref={gutter}
@@ -1487,15 +1584,20 @@ function FilePane({
         >
           {lines.map((_, index) => String(index + 1)).join("\n")}
         </pre>
-        <textarea
-          ref={editor}
-          className="min-h-48 w-full resize-y overflow-auto bg-surface p-3 font-mono text-sm leading-6 text-fg outline-none"
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onScroll={() => {
-            if (gutter.current && editor.current) gutter.current.scrollTop = editor.current.scrollTop;
-          }}
-        />
+        <div className="relative min-h-48">
+          <pre aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words p-3 font-mono text-sm leading-6 text-[#d7d7d7]">
+            {paintCode(text, editing)}
+          </pre>
+          <textarea
+            ref={editor}
+            className="relative min-h-48 w-full resize-y overflow-auto bg-transparent p-3 font-mono text-sm leading-6 text-transparent caret-[#eee] outline-none"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onScroll={() => {
+              if (gutter.current && editor.current) gutter.current.scrollTop = editor.current.scrollTop;
+            }}
+          />
+        </div>
       </div>
       <p className="mt-1 font-mono text-xs text-muted">{linesLabel(lang, lines.length)}</p>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -1771,6 +1873,35 @@ function PromptMark({ text }: { text: string }) {
   return <span className="text-[#e8e8e8]">{text} </span>;
 }
 
+function paintCode(source: string, path: string) {
+  const words = path.endsWith(".py")
+    ? new Set(["def", "class", "return", "if", "else", "elif", "for", "while", "import", "from", "in", "not", "and", "or", "True", "False", "None", "try", "except", "with", "pass"])
+    : path.endsWith(".js") || path.endsWith(".ts")
+      ? new Set(["function", "const", "let", "var", "return", "if", "else", "for", "while", "import", "from", "class", "new", "async", "await", "export", "true", "false", "null"])
+      : path.endsWith(".sh")
+        ? new Set(["if", "then", "else", "fi", "for", "while", "do", "done", "echo", "case", "esac"])
+        : null;
+  const mark = path.endsWith(".py") || path.endsWith(".sh") ? "#" : "//";
+  return source.split("\n").map((line, index) => {
+    const cut = words && line.includes(mark) ? line.indexOf(mark) : -1;
+    const code = cut >= 0 ? line.slice(0, cut) : line;
+    const note = cut >= 0 ? line.slice(cut) : "";
+    const bits = code.split(/("[^"]*"|'[^']*'|\b[A-Za-z_]\w*\b)/g);
+    return (
+      <span key={index}>
+        {bits.map((bit, bitIndex) => {
+          if (!bit) return null;
+          if (bit.startsWith("\"") || bit.startsWith("'")) return <span key={bitIndex} className="text-[#3dff9a]">{bit}</span>;
+          if (words?.has(bit)) return <span key={bitIndex} className="text-[#e6c84a]">{bit}</span>;
+          return <span key={bitIndex}>{bit}</span>;
+        })}
+        {note ? <span className="text-[#6d6d6d]">{note}</span> : null}
+        {index < source.split("\n").length - 1 ? "\n" : ""}
+      </span>
+    );
+  });
+}
+
 function paintLine(text: string, kind: "in" | "out" | "err") {
   if (kind === "in") {
     const dollar = text.indexOf(" $ ");
@@ -1850,6 +1981,7 @@ async function createKey(path: string) {
   };
 }
 
+let speechVolume = 1;
 let phoneNotes: Notification[] = [];
 let torchTrack: MediaStreamTrack | null = null;
 
@@ -2270,7 +2402,9 @@ async function runDevice(device: NonNullable<ShellOut["device"]>) {
   if (device.kind === "speak") {
     if (!window.speechSynthesis) return "!səs yoxdur";
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new SpeechSynthesisUtterance(device.text));
+    const utter = new SpeechSynthesisUtterance(device.text);
+    utter.volume = speechVolume;
+    window.speechSynthesis.speak(utter);
     return device.text;
   }
   if (device.kind === "open") {
