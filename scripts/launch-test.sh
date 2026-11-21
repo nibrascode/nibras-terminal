@@ -25,7 +25,14 @@ adb shell input keyevent 66
 sleep 3
 adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
 # Termux:API compatible phone commands from the Android shell session.
-adb exec-in run-as com.nibras.terminal sh -c 'cat > files/home/apitest.sh' < "$(dirname "$0")/api-test.sh"
+adb exec-in run-as com.nibras.terminal sh -c 'cat > files/home/apitest.sh' < "$(dirname "$0")/api-test.sh" || true
+if ! adb shell run-as com.nibras.terminal ls files/home/apitest.sh >/dev/null 2>&1; then
+  # older adb/run-as (API 30): stage in /data/local/tmp and copy as the app
+  adb push "$(dirname "$0")/api-test.sh" /data/local/tmp/apitest.sh >/dev/null
+  adb shell chmod 644 /data/local/tmp/apitest.sh
+  adb shell run-as com.nibras.terminal cp /data/local/tmp/apitest.sh files/home/apitest.sh || true
+fi
+adb shell run-as com.nibras.terminal ls -l files/home/apitest.sh files/home/.nibras/android-rc 2>&1 | tee -a "$OUT/alive.txt"
 # Typing can be lost while the slow ARM-translated emulator is busy: retry (focus the terminal first).
 for attempt in 1 2 3; do
   adb shell input tap 540 900 >/dev/null 2>&1 || true
