@@ -92,6 +92,12 @@ customize            # look & feel menu
 | 🛡️ | **Security** | fingerprint lock, `vault` (encrypted), `trash`, `snapshot` |
 | ⚙️ | **Automation** | Tasker plugin, RUN_COMMAND intent, `cron`, `~/.nibras/boot`, home-screen widget |
 | 🕌 | **Extras** | `quran`, `hadith`, `prayer`, `games`, `webterm`, split screen, floating window, XFCE desktop |
+| 🧩 | **Script store** | `scripts`: browse, read, install and run ready-made scripts (sha256-checked) |
+| 🖥️ | **Use from a computer** | `remote`: this terminal in a computer browser on the same Wi-Fi, one-time link + QR, file upload/download |
+| 🔐 | **Encrypted backup** | `backup drive` / `restore drive`: hosts and settings, AES-256-GCM with your passphrase, to Google Drive or any folder |
+| 🎓 | **Lessons** | `learn`: interactive Linux, shell, git, Python and APK lessons in 19 languages, checked automatically |
+| 📱 | **Widgets** | home-screen shortcuts, server status and prayer-time widgets |
+| 🗣️ | **Commands in your language** | `kömək`, `qur python`, `yardım`, `помощь`, `مساعدة`… next to the English names (which always work) |
 
 ## 🎨 Colors in one line
 
