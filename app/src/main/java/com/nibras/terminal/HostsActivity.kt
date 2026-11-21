@@ -22,6 +22,7 @@ import com.nibras.terminal.core.HostCommands
 import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Records
 import com.nibras.terminal.core.Rootfs
+import com.nibras.terminal.core.shQuote
 import com.nibras.terminal.ui.Ui
 import java.io.File
 
@@ -75,8 +76,26 @@ class HostsActivity : Activity() {
         root.addView(Ui.label(this, getString(R.string.hosts_tip)).apply { setPadding(Ui.dp(context, 16), 0, Ui.dp(context, 16), Ui.dp(context, 8)) })
     }
 
-    private fun visible() = hosts.filter { filter.isBlank() || "${it.name} ${it.target} ${it.group}".contains(filter, true) }
-        .sortedWith(compareBy({ it.group.lowercase() }, { it.name.lowercase() }))
+    private val usage by lazy { getSharedPreferences("hosts_usage", MODE_PRIVATE) }
+    private var sortMode: String
+        get() = usage.getString("sort", "group") ?: "group"
+        set(v) { usage.edit().putString("sort", v).apply() }
+    private fun last(h: Host) = usage.getLong("last:${h.id}", 0L)
+    private fun count(h: Host) = usage.getInt("count:${h.id}", 0)
+
+    private fun visible() = hosts.filter { filter.isBlank() || "${it.name} ${it.target} ${it.group} ${it.protocol}".contains(filter, true) }
+        .sortedWith(when (sortMode) {
+            "recent" -> compareByDescending<Host> { last(it) }.thenBy { it.name.lowercase() }
+            "used" -> compareByDescending<Host> { count(it) }.thenBy { it.name.lowercase() }
+            "name" -> compareBy { it.name.lowercase().ifBlank { it.host } }
+            else -> compareBy({ it.group.lowercase() }, { it.name.lowercase() })
+        })
+
+    private fun ago(t: Long): String {
+        if (t == 0L) return ""
+        val m = (System.currentTimeMillis() - t) / 60000
+        return "· " + when { m < 1 -> "now"; m < 60 -> "${m}m"; m < 1440 -> "${m / 60}h"; else -> "${m / 1440}d" }
+    }
 
     private val adapter = object : BaseAdapter() {
         override fun getCount() = visible().size
@@ -93,38 +112,116 @@ class HostsActivity : Activity() {
                 h.group.takeIf { it.isNotBlank() }?.let { "[$it]" },
                 h.forwards.takeIf { it.isNotEmpty() }?.let { "⇄${it.size}" },
                 h.jump.takeIf { it.isNotBlank() }?.let { "via $it" },
+                h.identity.takeIf { it.isNotBlank() }?.let { "🔑" },
+                count(h).takeIf { it > 0 }?.let { "×$it" },
+                ago(last(h)).ifBlank { null },
             ).joinToString(" ")
             v.text = "$icon ${h.name.ifBlank { h.target }}\n   ${h.protocol}://${h.target}:${h.port} $extras"
             return v
         }
     }
 
+    private fun touch(h: Host) { usage.edit().putLong("last:${h.id}", System.currentTimeMillis()).putInt("count:${h.id}", count(h) + 1).apply() }
+
     private fun connect(h: Host) {
+        if (hosts.any { it.id == h.id }) touch(h)
         Launcher.run(this, null, HostCommands.connectLine(h), h.name.ifBlank { h.host })
         finish()
     }
 
     private fun menu(h: Host) {
-        val items = arrayOf(getString(R.string.hosts_connect), "SFTP", getString(R.string.hosts_edit), getString(R.string.hosts_duplicate),
-            getString(R.string.hosts_send_key), getString(R.string.hosts_copy_cmd), getString(R.string.hosts_delete))
-        AlertDialog.Builder(this).setTitle(h.name.ifBlank { h.target }).setItems(items) { _, w ->
-            when (w) {
-                0 -> connect(h)
-                1 -> { Launcher.run(this, null, HostCommands.sftpLine(h), "sftp ${h.host}"); finish() }
-                2 -> edit(h)
-                3 -> edit(h.copy(id = java.util.UUID.randomUUID().toString(), name = h.name + " (2)"), isNew = true)
-                4 -> pickKey { pub -> Launcher.run(this, null, HostCommands.copyIdLine(h, pub), "key → ${h.host}", keepShell = true); finish() }
-                5 -> copy(HostCommands.connectLine(h).substringAfter("exec "))
-                6 -> AlertDialog.Builder(this).setMessage(getString(R.string.hosts_delete) + "?")
-                    .setPositiveButton(R.string.ok) { _, _ -> hosts.removeAll { it.id == h.id }; save(this, hosts); adapter.notifyDataSetChanged() }
-                    .setNegativeButton(R.string.cancel, null).show()
+        val acts = mutableListOf<Pair<String, () -> Unit>>()
+        acts += getString(R.string.hosts_connect) to { connect(h) }
+        acts += "SFTP" to { touch(h); Launcher.run(this, null, HostCommands.sftpLine(h), "sftp ${h.host}"); finish() }
+        if (h.protocol != "telnet") {
+            acts += "⇄ " + getString(R.string.hosts_tunnel_only) to {
+                touch(h)
+                val args = HostCommands.sshArgs(h.copy(startup = "")).toMutableList().apply { add(1, "-N"); add(1, "-v") }
+                Launcher.run(this, null, "nibras-need ssh && echo '⇄ ${h.forwards.joinToString(", ").replace("'", "")}' && exec " + args.joinToString(" ") { shQuote(it) }, "⇄ ${h.host}", keepShell = true); finish()
             }
-        }.show()
+        }
+        acts += "📡 " + getString(R.string.hosts_test) to {
+            Launcher.run(this, null, "nibras-need ping; ping -c 3 -W 2 ${shQuote(h.host)}; nibras-need nc; nc -zv -w 4 ${shQuote(h.host)} ${h.port}", "test ${h.host}", keepShell = true); finish()
+        }
+        acts += getString(R.string.hosts_edit) to { edit(h) }
+        acts += getString(R.string.hosts_duplicate) to { edit(h.copy(id = java.util.UUID.randomUUID().toString(), name = h.name + " (2)"), isNew = true) }
+        acts += getString(R.string.hosts_send_key) to { pickKey { pub -> Launcher.run(this, null, HostCommands.copyIdLine(h, pub), "key → ${h.host}", keepShell = true); finish() } }
+        acts += getString(R.string.hosts_copy_cmd) to { copy(HostCommands.connectLine(h).substringAfter("exec ")) }
+        acts += getString(R.string.hosts_delete) to {
+            AlertDialog.Builder(this).setMessage(getString(R.string.hosts_delete) + "?")
+                .setPositiveButton(R.string.ok) { _, _ -> hosts.removeAll { it.id == h.id }; save(this, hosts); adapter.notifyDataSetChanged() }
+                .setNegativeButton(R.string.cancel, null).show()
+        }
+        AlertDialog.Builder(this).setTitle(h.name.ifBlank { h.target }).setItems(acts.map { it.first }.toTypedArray()) { _, w -> acts[w].second() }.show()
+    }
+
+    /** Termius-style multi-exec: one command on many hosts, output labelled per host. */
+    private fun multiExec() {
+        val ssh = hosts.filter { it.protocol != "telnet" }
+        if (ssh.isEmpty()) { Toast.makeText(this, R.string.hosts_none, Toast.LENGTH_SHORT).show(); return }
+        val picked = BooleanArray(ssh.size)
+        AlertDialog.Builder(this).setTitle(R.string.hosts_multi_exec).setMultiChoiceItems(ssh.map { it.name.ifBlank { it.target } }.toTypedArray(), picked) { _, w, on -> picked[w] = on }
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val chosen = ssh.filterIndexed { i, _ -> picked[i] }
+                if (chosen.isEmpty()) return@setPositiveButton
+                val cmdField = Ui.field(this, "uptime && df -h", mono = true)
+                AlertDialog.Builder(this).setTitle(R.string.hosts_multi_exec).setView(cmdField).setPositiveButton(R.string.ok) { _, _ ->
+                    val cmd = cmdField.text.toString().trim().ifEmpty { return@setPositiveButton }
+                    val par = cmd.isNotEmpty()
+                    val lines = chosen.joinToString("\n") { h ->
+                        val args = HostCommands.sshArgs(h.copy(startup = "", forwards = emptyList())).toMutableList().apply { add(1, "-o"); add(2, "BatchMode=yes") } + cmd
+                        val label = shQuote("[" + h.name.ifBlank { h.host } + "] ")
+                        "( " + args.joinToString(" ") { shQuote(it) } + " 2>&1 | while IFS= read -r l; do printf '%s%s\\n' $label \"\$l\"; done ) &"
+                    }
+                    chosen.forEach { touch(it) }
+                    Launcher.run(this, null, "nibras-need ssh && {\n$lines\nwait; echo '✓ ${chosen.size}'; }", "multi-exec", keepShell = par); finish()
+                }.show()
+            }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    /** Import Host blocks from ~/.ssh/config (Termius / JuiceSSH "import"), and export everything as an ssh_config. */
+    private fun sshConfig(import: Boolean) {
+        val cfg = File(sshDir(), "config")
+        if (import) {
+            if (!cfg.isFile) { Toast.makeText(this, "~/.ssh/config ?", Toast.LENGTH_SHORT).show(); return }
+            val found = mutableListOf<Host>(); var cur: MutableMap<String, String>? = null; var alias = ""
+            fun flush() { cur?.let { m -> if (!alias.contains('*')) found += Host(java.util.UUID.randomUUID().toString(), alias, m["hostname"] ?: alias, m["user"].orEmpty(),
+                m["port"]?.toIntOrNull() ?: 22, "ssh", m["identityfile"].orEmpty(), m["proxyjump"].orEmpty(), group = "ssh_config") } }
+            cfg.readLines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.forEach { l ->
+                val k = l.substringBefore(' ').substringBefore('=').lowercase(); val v = l.substringAfter(' ').substringAfter('=').trim()
+                if (k == "host") { flush(); alias = v.split(' ').first(); cur = mutableMapOf() } else cur?.put(k, v)
+            }
+            flush()
+            val fresh = found.filter { f -> hosts.none { it.name == f.name && it.host == f.host } }
+            hosts += fresh; save(this, hosts); adapter.notifyDataSetChanged()
+            Toast.makeText(this, "+${fresh.size}", Toast.LENGTH_SHORT).show()
+        } else {
+            val text = hosts.filter { it.protocol != "telnet" }.joinToString("\n") { h ->
+                buildString {
+                    append("Host ${h.name.ifBlank { h.host }.replace(' ', '-')}\n  HostName ${h.host}\n")
+                    if (h.user.isNotBlank()) append("  User ${h.user}\n"); if (h.port != 22) append("  Port ${h.port}\n")
+                    if (h.identity.isNotBlank()) append("  IdentityFile ${h.identity}\n"); if (h.jump.isNotBlank()) append("  ProxyJump ${h.jump}\n")
+                    if (h.keepAlive) append("  ServerAliveInterval 30\n"); if (h.agent) append("  ForwardAgent yes\n")
+                    h.forwards.forEach { f -> when (f.substringBefore(' ').uppercase()) {
+                        "L" -> append("  LocalForward ${f.substringAfter(' ').replaceFirst(':', ' ')}\n")
+                        "R" -> append("  RemoteForward ${f.substringAfter(' ').replaceFirst(':', ' ')}\n")
+                        "D" -> append("  DynamicForward ${f.substringAfter(' ')}\n") } }
+                }
+            }
+            val out = File(sshDir().apply { mkdirs() }, "config.nibras")
+            out.writeText(text); copy(text)
+            Toast.makeText(this, "~/.ssh/config.nibras", Toast.LENGTH_LONG).show()
+        }
     }
 
     /** Move saved hosts between phones (no cloud account needed). Keys stay in ~/.ssh. */
     private fun exportImport() {
-        AlertDialog.Builder(this).setItems(arrayOf(getString(R.string.hosts_export), getString(R.string.hosts_import))) { _, w ->
+        AlertDialog.Builder(this).setItems(arrayOf(getString(R.string.hosts_export), getString(R.string.hosts_import),
+            getString(R.string.hosts_import_config), getString(R.string.hosts_export_config), getString(R.string.hosts_multi_exec),
+            getString(R.string.files_sort) + ": " + sortMode)) { _, w ->
+            if (w == 2 || w == 3) { sshConfig(w == 2); return@setItems }
+            if (w == 4) { multiExec(); return@setItems }
+            if (w == 5) { val m = listOf("group", "recent", "used", "name"); sortMode = m[(m.indexOf(sortMode) + 1) % m.size]; adapter.notifyDataSetChanged(); return@setItems }
             if (w == 0) {
                 save(this, hosts)
                 val out = File(cacheDir, "nibras-hosts.txt").also { file(this).copyTo(it, overwrite = true) }

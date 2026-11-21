@@ -13,7 +13,7 @@ for c in "$@"; do
       ffprobe|ffmpeg) p=ffmpeg ;; magick|convert|identify|mogrify) p=imagemagick ;; gs) p=ghostscript ;;
       pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler-utils ;; aria2c) p=aria2 ;;
       tesseract) p="tesseract-ocr tesseract-ocr-data-eng" ;; speedtest-cli) p=speedtest-cli ;; ping) p=iputils ;;
-      dig|nslookup) p=bind-tools ;; 7z) p=7zip ;; sox) p=sox ;; lame) p=lame ;; whois) p=whois ;; traceroute) p=traceroute ;; *) p=$c ;;
+      dig|nslookup) p=bind-tools ;; 7z) p=7zip ;; sox) p=sox ;; lame) p=lame ;; whois) p=whois ;; traceroute) p=traceroute ;; nc) p=netcat-openbsd ;; zstd) p=zstd ;; Rscript) p=R ;; cargo) p=cargo ;; sqlite3) p=sqlite ;; make) p=make ;; *) p=$c ;;
     esac
     nmsg need_tool "$c" >&2
     # shellcheck disable=SC2086
@@ -27,7 +27,7 @@ for c in "$@"; do
       ffprobe|ffmpeg) p=ffmpeg ;; magick|convert|identify|mogrify) p=imagemagick ;; gs) p=ghostscript ;;
       pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler-utils ;; aria2c) p=aria2 ;;
       tesseract) p="tesseract-ocr tesseract-ocr-eng" ;; ping) p=iputils-ping ;; dig|nslookup) p=dnsutils ;;
-      7z) p=p7zip-full ;; node|npm) p="nodejs npm" ;; *) p=$c ;;
+      7z) p=p7zip-full ;; nc) p=netcat-openbsd ;; Rscript) p=r-base-core ;; *) p=$c ;;
     esac
     nmsg need_tool "$c" >&2
     ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update >&2
