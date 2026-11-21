@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut android:shortcutId="new_session" android:enabled="true"
-        android:icon="@drawable/ic_launcher" android:shortcutShortLabel="@string/shortcut_new">
+        android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/shortcut_new">
         <intent android:action="com.nibras.terminal.NEW_SESSION"
             android:targetPackage="com.nibras.terminal" android:targetClass="com.nibras.terminal.MainActivity"/>
     </shortcut>

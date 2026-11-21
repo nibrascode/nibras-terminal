@@ -33,6 +33,8 @@ import android.widget.BaseAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
@@ -46,6 +48,11 @@ import com.nibras.terminal.core.DeviceAbi
 import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Prefs
 import com.nibras.terminal.core.Rootfs
+import com.nibras.terminal.core.Search
+import com.nibras.terminal.core.Snippet
+import com.nibras.terminal.core.Snippets
+import com.nibras.terminal.core.Suggest
+import com.nibras.terminal.core.VoiceCommands
 import com.nibras.terminal.ui.ExtraKeysView
 import com.nibras.terminal.ui.Themes
 import com.termux.terminal.KeyHandler
@@ -86,6 +93,20 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private var volumeUp = false
     private var pendingIntent: Intent? = null
     private var background = Color.BLACK
+    private lateinit var primary: TerminalView
+    private var secondary: TerminalView? = null
+    private lateinit var panes: LinearLayout
+    private lateinit var suggestBar: LinearLayout
+    private lateinit var suggestScroll: HorizontalScrollView
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val suggestTask = Runnable { updateSuggestions() }
+    private lateinit var monitorView: TextView
+    private lateinit var lockOverlay: TextView
+    private var stoppedAt = 0L
+    private var unlocked = false
+    private val monitorTask = object : Runnable {
+        override fun run() { updateMonitor(); if (prefs.sp.getBoolean("monitor", false)) handler.postDelayed(this, 2000) }
+    }
 
     override fun attachBaseContext(base: Context) = super.attachBaseContext(Lang.wrap(base))
 
@@ -153,12 +174,17 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun buildLayout() {
-        terminal = TerminalView(this, null).apply {
-            setTerminalViewClient(viewClient)
-            isFocusable = true
-            isFocusableInTouchMode = true
-            keepScreenOn = prefs.keepScreenOn
-            setTextSize(defaultFontSize())
+        primary = newPane()
+        terminal = primary
+        panes = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(primary, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        }
+        suggestBar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        suggestScroll = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            visibility = View.GONE
+            addView(suggestBar)
         }
         keys = ExtraKeysView(this, ::onExtraKey) { }
         input = EditText(this).apply {
@@ -177,7 +203,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }
         content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(terminal, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(panes, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(suggestScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(keys, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
@@ -203,6 +230,16 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
             addView(bootOverlay, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         }
+        monitorView = TextView(this).apply {
+            setTextColor(0xFFD6B36A.toInt()); textSize = 10f; typeface = Typeface.MONOSPACE
+            setBackgroundColor(0x99000000.toInt()); setPadding(dp(6), dp(2), dp(6), dp(2)); visibility = View.GONE
+        }
+        main.addView(monitorView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END))
+        lockOverlay = TextView(this).apply {
+            text = "🔒\n\nNibras Terminal"; gravity = Gravity.CENTER; textSize = 22f; setTextColor(0xFFD6B36A.toInt())
+            setBackgroundColor(Color.BLACK); visibility = View.GONE; isClickable = true; setOnClickListener { askUnlock() }
+        }
+        main.addView(lockOverlay, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         drawerPanel = buildDrawer()
         drawer = DrawerLayout(this).apply {
             addView(main, DrawerLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -227,11 +264,19 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             setBackgroundColor(0xFF101418.toInt())
             isClickable = true
         }
-        panel.addView(TextView(this).apply {
-            text = getString(R.string.app_name)
-            setTextColor(0xFFD6B36A.toInt())
-            textSize = 20f
-            typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+        panel.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(ImageView(this@MainActivity).apply {
+                setImageResource(R.mipmap.ic_launcher)
+                contentDescription = getString(R.string.app_name)
+            }, LinearLayout.LayoutParams(dp(44), dp(44)).apply { marginEnd = dp(10) })
+            addView(TextView(this@MainActivity).apply {
+                text = getString(R.string.app_name)
+                setTextColor(0xFFD6B36A.toInt())
+                textSize = 20f
+                typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            })
         })
         panel.addView(TextView(this).apply {
             text = "${versionName()} · ${DeviceAbi.label}"
@@ -279,6 +324,23 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         row3.addView(button(getString(R.string.exit_app)) {
             startService(Intent(this, TerminalService::class.java).setAction(TerminalService.ACTION_STOP))
         }, LinearLayout.LayoutParams(lp))
+        val tools1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tools1.addView(button(getString(R.string.tool_hosts)) { drawer.closeDrawers(); startActivity(Intent(this, HostsActivity::class.java)) }, LinearLayout.LayoutParams(lp))
+        tools1.addView(button(getString(R.string.tool_files)) { drawer.closeDrawers(); FilesActivity.open(this, currentEnv(), null) }, LinearLayout.LayoutParams(lp))
+        tools1.addView(button(getString(R.string.tool_snippets)) { drawer.closeDrawers(); snippets() }, LinearLayout.LayoutParams(lp))
+        val tools2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tools2.addView(button(getString(R.string.tool_search)) { drawer.closeDrawers(); searchScrollback() }, LinearLayout.LayoutParams(lp))
+        tools2.addView(button(getString(R.string.tool_split)) { drawer.closeDrawers(); toggleSplit() }, LinearLayout.LayoutParams(lp))
+        tools2.addView(button(getString(R.string.tool_desktop), long = { DesktopActivity.open(this, currentEnv()) }) {
+            drawer.closeDrawers(); newSession(currentEnv(), Launcher.command(this, currentEnv(), "nibras-desktop start", keepShell = true), "desktop")
+        }, LinearLayout.LayoutParams(lp))
+        val tools3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tools3.addView(button(getString(R.string.tool_store)) { drawer.closeDrawers(); startActivity(Intent(this, StoreActivity::class.java)) }, LinearLayout.LayoutParams(lp))
+        tools3.addView(button(getString(R.string.tool_float)) { drawer.closeDrawers(); FloatService.start(this) }, LinearLayout.LayoutParams(lp))
+        tools3.addView(button("🎤 " + getString(R.string.tool_voice)) { drawer.closeDrawers(); voiceInput() }, LinearLayout.LayoutParams(lp))
+        panel.addView(tools1)
+        panel.addView(tools2)
+        panel.addView(tools3)
         panel.addView(row1)
         panel.addView(row2)
         panel.addView(row3)
@@ -349,7 +411,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
                 bootOverlay.visibility = View.GONE
                 if (problem != null) Toast.makeText(this, getString(R.string.boot_failed, problem), Toast.LENGTH_LONG).show()
                 val svc = service ?: return@runOnUiThread
-                if (!handleIntent(pendingIntent) && svc.sessions.isEmpty()) newSession(null)
+                if (!handleIntent(pendingIntent) && svc.sessions.isEmpty()) restoreOrNew(svc)
             }
         }
     }
@@ -363,6 +425,19 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private fun handleIntent(intent: Intent?): Boolean {
         pendingIntent = null
         intent ?: return false
+        // Open a tool screen (also used by the launch test): store, hosts, files, editor, split, search, snippets.
+        intent.getStringExtra("open")?.let { what ->
+            intent.removeExtra("open")
+            when (what) {
+                "store" -> startActivity(Intent(this, StoreActivity::class.java))
+                "hosts" -> startActivity(Intent(this, HostsActivity::class.java))
+                "files" -> FilesActivity.open(this, currentEnv(), null)
+                "editor" -> EditorActivity.open(this, Rootfs.ANDROID, java.io.File(filesDir, "snippets.txt").absolutePath)
+                "split" -> toggleSplit()
+                "clipboard" -> clipboardHistory()
+                "monitor" -> { prefs.sp.edit().putBoolean("monitor", true).apply(); startMonitor() }
+            }
+        }
         val command = intent.getStringArrayExtra(EXTRA_COMMAND)
         if (command != null && intent.getBooleanExtra(EXTRA_BACKGROUND, false)) {
             service?.createSession(intent.getStringExtra(EXTRA_ENV), command.toList(), intent.getStringExtra(EXTRA_TITLE), inBackground = true)
@@ -391,6 +466,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     }
 
     override fun showSession(session: TerminalSession) {
+        val other = listOfNotNull(primary, secondary).firstOrNull { it !== terminal && it.currentSession == session }
+        if (other != null) { focusPane(other); return }
         terminal.attachSession(session)
         applyCursor()
         terminal.onScreenUpdated()
@@ -410,10 +487,16 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     private fun chooseEnvironment() {
         val ids = Rootfs.ready(this).map { it.id } + Rootfs.ANDROID
-        val labels = ids.map { if (it == Rootfs.ANDROID) getString(R.string.android_shell) else Rootfs.name(it) }
+        val su = listOf("/system/bin/su", "/system/xbin/su", "/sbin/su", "/debug_ramdisk/su").firstOrNull { java.io.File(it).exists() }
+        val labels = ids.map { if (it == Rootfs.ANDROID) getString(R.string.android_shell) else Rootfs.name(it) } +
+            listOfNotNull(su?.let { getString(R.string.root_shell) })
         AlertDialog.Builder(this)
             .setTitle(R.string.new_session_in)
-            .setItems(labels.toTypedArray()) { _, which -> newSession(ids[which]); drawer.closeDrawers() }
+            .setItems(labels.toTypedArray()) { _, which ->
+                if (which < ids.size) newSession(ids[which])
+                else newSession(Rootfs.ANDROID, listOf("/system/bin/sh", "-c", "exec $su"), "root")
+                drawer.closeDrawers()
+            }
             .show()
     }
 
@@ -473,6 +556,13 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             getString(R.string.menu_wakelock) + if (service?.wakeLocked == true) " ✓" else "",
             getString(R.string.menu_toggle_keys) + if (prefs.extraKeys) " ✓" else "",
             getString(R.string.menu_font_bigger), getString(R.string.menu_font_smaller), getString(R.string.menu_help),
+            getString(R.string.menu_suggestions) + if (prefs.sp.getBoolean("suggestions", true)) " ✓" else "",
+            getString(R.string.menu_restore) + if (prefs.sp.getBoolean("restoreSessions", true)) " ✓" else "",
+            getString(R.string.menu_external_apps) + if (Automation.allowed(this)) " ✓" else "",
+            getString(R.string.menu_clipboard_history),
+            getString(R.string.menu_monitor) + if (prefs.sp.getBoolean("monitor", false)) " ✓" else "",
+            getString(R.string.menu_battery_saver) + if (prefs.sp.getBoolean("batterySaver", false)) " ✓" else "",
+            getString(R.string.menu_app_lock) + if (prefs.sp.getBoolean("appLock", false)) " ✓" else "",
         )
         AlertDialog.Builder(this).setItems(items) { _, which ->
             when (which) {
@@ -489,12 +579,24 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
                 9 -> changeFontSize(true)
                 10 -> changeFontSize(false)
                 11 -> s.write("nibras-help\r")
+                12 -> { val on = !prefs.sp.getBoolean("suggestions", true); prefs.sp.edit().putBoolean("suggestions", on).apply(); if (!on) suggestScroll.visibility = View.GONE }
+                13 -> prefs.sp.edit().putBoolean("restoreSessions", !prefs.sp.getBoolean("restoreSessions", true)).apply()
+                14 -> if (Automation.allowed(this)) Automation.set(this, false) else AlertDialog.Builder(this)
+                    .setMessage(R.string.external_apps_warning)
+                    .setPositiveButton(R.string.ok) { _, _ -> Automation.set(this, true) }
+                    .setNegativeButton(R.string.cancel, null).show()
+                15 -> clipboardHistory()
+                16 -> { prefs.sp.edit().putBoolean("monitor", !prefs.sp.getBoolean("monitor", false)).apply(); startMonitor() }
+                17 -> toggleBatterySaver()
+                18 -> if (prefs.sp.getBoolean("appLock", false)) prefs.sp.edit().putBoolean("appLock", false).apply()
+                    else authenticate { prefs.sp.edit().putBoolean("appLock", true).apply(); Toast.makeText(this, R.string.app_lock_on, Toast.LENGTH_SHORT).show() }
             }
         }.show()
     }
 
     private fun copy(text: String) {
         getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("terminal", text))
+        rememberClip(text)
         if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
     }
 
@@ -553,6 +655,10 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     override fun onResume() {
         super.onResume()
         applySettings()
+        startMonitor()
+        if (prefs.sp.getBoolean("appLock", false) && (!unlocked || System.currentTimeMillis() - stoppedAt > 30_000)) {
+            unlocked = false; lockOverlay.visibility = View.VISIBLE; askUnlock()
+        }
         if (prefs.cursorBlink) {
             terminal.setTerminalCursorBlinkerRate(500)
             terminal.setTerminalCursorBlinkerState(true, true)
@@ -561,6 +667,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     }
 
     override fun onStop() {
+        stoppedAt = System.currentTimeMillis()
+        handler.removeCallbacks(monitorTask)
         terminal.setTerminalCursorBlinkerState(false, true)
         super.onStop()
     }
@@ -600,11 +708,13 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         // setTextSize must run before setTypeface: TerminalView has no renderer until a text size is set,
         // and setTypeface() dereferences it (this NPE closed 0.2.113 right after launch).
         fontSize = if (prefs.fontSize > 0) prefs.fontSize else if (fontSize > 0) fontSize else defaultFontSize()
-        terminal.setTextSize(fontSize)
-        runCatching { terminal.setTypeface(Themes.typeface(home)) }
-        terminal.keepScreenOn = prefs.keepScreenOn
+        for (pane in listOfNotNull(primary, secondary)) {
+            pane.setTextSize(fontSize)
+            runCatching { pane.setTypeface(Themes.typeface(home)) }
+            pane.keepScreenOn = prefs.keepScreenOn
+            pane.invalidate()
+        }
         applyCursor()
-        terminal.invalidate()
         drawer.requestApplyInsets()
     }
 
@@ -620,7 +730,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         val max = dp(40)
         fontSize = (fontSize + if (bigger) 2 else -2).coerceIn(min, max)
         prefs.fontSize = fontSize
-        terminal.setTextSize(fontSize)
+        listOfNotNull(primary, secondary).forEach { it.setTextSize(fontSize) }
     }
 
     // ---------------------------------------------------------------- extra keys
@@ -654,6 +764,229 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         if (alt) m = m or KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
         if (shift) m = m or KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
         return m
+    }
+
+    // ---------------------------------------------------------------- panes, split, search, snippets, suggestions
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun newPane(): TerminalView = TerminalView(this, null).apply {
+        setTerminalViewClient(viewClient)
+        isFocusable = true
+        isFocusableInTouchMode = true
+        keepScreenOn = prefs.keepScreenOn
+        setTextSize(if (fontSize > 0) fontSize else defaultFontSize())
+        val self = this
+        setOnTouchListener { _, e -> if (e.action == MotionEvent.ACTION_DOWN) focusPane(self); false }
+    }
+
+    private fun focusPane(pane: TerminalView) {
+        if (terminal === pane) return
+        terminal = pane
+        listOfNotNull(primary, secondary).forEach { it.alpha = if (it === pane || secondary == null) 1f else 0.7f }
+        pane.requestFocus()
+        sessionAdapter.notifyDataSetChanged()
+    }
+
+    /** Two terminals side by side (landscape) or stacked (portrait); each pane shows its own session. */
+    private fun toggleSplit() {
+        val svc = service ?: return
+        val second = secondary
+        if (second != null) {
+            panes.removeView(second)
+            secondary = null
+            terminal = primary
+            primary.alpha = 1f
+            primary.requestFocus()
+            return
+        }
+        val pane = newPane()
+        runCatching { pane.setTypeface(Themes.typeface(runCatching { Rootfs.homeOf(this) }.getOrNull())) }
+        secondary = pane
+        val landscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        panes.orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+        val lp = if (landscape) LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+        else LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        primary.layoutParams = lp
+        panes.addView(View(this).apply { setBackgroundColor(0xFFD6B36A.toInt()); tag = "divider" },
+            if (landscape) LinearLayout.LayoutParams(dp(1), ViewGroup.LayoutParams.MATCH_PARENT) else LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)))
+        panes.addView(pane, LinearLayout.LayoutParams(lp))
+        val other = svc.sessions.firstOrNull { it != primary.currentSession }
+        focusPane(pane)
+        if (other != null) showSession(other) else newSession(currentEnv())
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (secondary == null) return
+        val landscape = newConfig.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        panes.orientation = if (landscape) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+        for (i in 0 until panes.childCount) {
+            val v = panes.getChildAt(i)
+            v.layoutParams = if (v.tag == "divider") {
+                if (landscape) LinearLayout.LayoutParams(dp(1), ViewGroup.LayoutParams.MATCH_PARENT) else LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1))
+            } else if (landscape) LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+            else LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
+        }
+    }
+
+    private fun currentEnv(): String? = currentSession()?.let { service?.envOf?.get(it) }
+
+    /** Sessions that were open when Android killed the app come back in their last folder. */
+    private fun restoreOrNew(svc: TerminalService) {
+        val saved = if (prefs.sp.getBoolean("restoreSessions", true)) svc.savedSessions() else emptyList()
+        if (saved.isEmpty()) { newSession(null); return }
+        var last: TerminalSession? = null
+        for (s in saved.take(8)) {
+            val env = s.env.takeIf { it == Rootfs.ANDROID || Rootfs.isReady(this, it) } ?: continue
+            last = runCatching { svc.createSession(env, null, s.name.ifBlank { null }, startDir = s.cwd.ifBlank { null }, key = s.key.ifBlank { null }) }
+                .onFailure { NibrasApp.record(this, "restore", it) }.getOrNull() ?: last
+        }
+        if (last != null) {
+            showSession(last)
+            Toast.makeText(this, getString(R.string.sessions_restored, svc.sessions.size), Toast.LENGTH_SHORT).show()
+        } else newSession(null)
+    }
+
+    /** All lines of the scrollback + screen, with their row numbers (negative = history). */
+    private fun transcript(s: TerminalSession): List<Pair<Int, String>> {
+        val emu = s.emulator ?: return emptyList()
+        val screen = emu.screen
+        val cols = emu.mColumns
+        return (-screen.activeTranscriptRows until emu.mRows).map { row ->
+            row to runCatching { screen.getSelectedText(0, row, cols, row).trimEnd() }.getOrDefault("")
+        }
+    }
+
+    /** Search the scrollback; tap a result to jump there. */
+    private fun searchScrollback() {
+        val s = currentSession() ?: return
+        val field = EditText(this).apply { hint = getString(R.string.search_hint); setSingleLine() }
+        AlertDialog.Builder(this).setTitle(R.string.tool_search).setView(field)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val q = field.text.toString()
+                val all = transcript(s)
+                val hits = Search.lines(all.map { it.second }, q)
+                if (hits.isEmpty()) { Toast.makeText(this, R.string.search_none, Toast.LENGTH_SHORT).show(); return@setPositiveButton }
+                val labels = hits.reversed().take(200).map { i ->
+                    val ctx = listOfNotNull(all.getOrNull(i - 1)?.second?.takeIf { it.isNotBlank() }?.let { "  $it" }, "▸ " + all[i].second)
+                    ctx.joinToString("\n").take(300)
+                }
+                val rows = hits.reversed().take(200).map { all[it].first }
+                AlertDialog.Builder(this).setTitle(getString(R.string.search_results, hits.size))
+                    .setItems(labels.toTypedArray()) { _, w -> jumpToRow(rows[w]) }
+                    .setNegativeButton(R.string.cancel, null).show()
+            }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    private fun jumpToRow(row: Int) {
+        val emu = terminal.mEmulator ?: return
+        val top = (row - emu.mRows / 2).coerceIn(-emu.screen.activeTranscriptRows, 0)
+        terminal.topRow = top
+        terminal.invalidate()
+    }
+
+    private fun snippetsFile() = java.io.File(filesDir, "snippets.txt")
+
+    private fun loadSnippets(): List<Snippet> {
+        val f = snippetsFile()
+        if (!f.isFile) runCatching { f.writeText(Snippets.format(Snippets.defaults)) }
+        return runCatching { Snippets.parse(f.readText()) }.getOrDefault(Snippets.defaults)
+    }
+
+    /** Saved commands (Termius / JuiceSSH snippets): tap runs, long list edit opens the editor. */
+    private fun snippets() {
+        val list = loadSnippets()
+        val labels = list.map { (if (it.run) "▶ " else "⎘ ") + it.name } + listOf("+ " + getString(R.string.snippet_add_current), "✎ " + getString(R.string.snippet_edit))
+        AlertDialog.Builder(this).setTitle(R.string.tool_snippets).setItems(labels.toTypedArray()) { _, w ->
+            when {
+                w < list.size -> {
+                    val sn = list[w]
+                    currentSession()?.write(sn.command.replace("\n", "\r") + if (sn.run) "\r" else "")
+                }
+                w == list.size -> addSnippetFromLine()
+                else -> EditorActivity.open(this, Rootfs.ANDROID, snippetsFile().absolutePath)
+            }
+        }.show()
+    }
+
+    private fun addSnippetFromLine() {
+        val typed = currentTyped().trim()
+        val name = EditText(this).apply { hint = getString(R.string.host_name); setSingleLine() }
+        val cmd = EditText(this).apply { setText(typed); typeface = Typeface.MONOSPACE }
+        val form = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), 0); addView(name); addView(cmd) }
+        AlertDialog.Builder(this).setTitle(R.string.snippet_add_current).setView(form)
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val c = cmd.text.toString(); if (c.isBlank()) return@setPositiveButton
+                val all = loadSnippets() + Snippet(name.text.toString().ifBlank { c.take(24) }, c)
+                runCatching { snippetsFile().writeText(Snippets.format(all)) }
+            }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    private fun currentTyped(): String {
+        val emu = terminal.mEmulator ?: return ""
+        val row = emu.cursorRow
+        val line = runCatching { emu.screen.getSelectedText(0, row, emu.mColumns, row) }.getOrDefault("")
+        return Suggest.typed(line, emu.cursorCol)
+    }
+
+    private val pathCache = HashMap<String, Pair<Long, Set<String>>>()
+    private val historyCache = HashMap<String, Pair<Long, List<String>>>()
+
+    private fun commandsOn(env: String): Set<String> {
+        val now = System.currentTimeMillis()
+        pathCache[env]?.let { if (now - it.first < 60_000) return it.second }
+        val dirs = if (env == Rootfs.ANDROID) listOf(java.io.File("/system/bin"))
+        else listOf("usr/local/bin", "usr/bin", "bin", "usr/sbin", "sbin", "root/bin").map { java.io.File(Rootfs.dir(this, env), it) }
+        val set = dirs.flatMap { d -> d.list()?.toList() ?: emptyList() }.filter { !it.startsWith("termux-") }.toSet()
+        pathCache[env] = now to set
+        return set
+    }
+
+    private fun historyOf(env: String): List<String> {
+        val now = System.currentTimeMillis()
+        historyCache[env]?.let { if (now - it.first < 5_000) return it.second }
+        val home = Rootfs.homeOf(this, env)
+        val lines = listOf(".ash_history", ".bash_history", ".zsh_history", ".local/share/fish/fish_history").flatMap { name ->
+            java.io.File(home, name).takeIf { it.isFile && it.length() < 2_000_000 }?.readLines()?.takeLast(2000).orEmpty()
+        }.map { it.substringAfter(';', it).removePrefix("- cmd: ").trim() }.filter { it.isNotEmpty() && it.length < 300 }
+        historyCache[env] = now to lines
+        return lines
+    }
+
+    /** Suggestion chips above the extra keys, from history, snippets and commands on PATH. */
+    private fun updateSuggestions() {
+        val s = terminal.currentSession
+        val env = s?.let { service?.envOf?.get(it) }
+        val emu = terminal.mEmulator
+        if (s == null || env == null || emu == null || emu.isAlternateBufferActive || !prefs.sp.getBoolean("suggestions", true)) {
+            suggestScroll.visibility = View.GONE; return
+        }
+        val typed = currentTyped()
+        if (typed.isBlank() || typed.length > 200) { suggestScroll.visibility = View.GONE; return }
+        val choices = runCatching { Suggest.rank(typed, historyOf(env), commandsOn(env), loadSnippets(), 8) }.getOrDefault(emptyList())
+        if (choices.isEmpty()) { suggestScroll.visibility = View.GONE; return }
+        suggestBar.removeAllViews()
+        val light = com.termux.terminal.TerminalColors.getPerceivedBrightnessOfColor(background) > 130
+        for (c in choices) {
+            suggestBar.addView(TextView(this).apply {
+                text = c
+                typeface = Typeface.MONOSPACE
+                textSize = 13f
+                maxLines = 1
+                setTextColor(if (light) Color.BLACK else 0xFFEDEDED.toInt())
+                setPadding(dp(10), dp(5), dp(10), dp(5))
+                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(12).toFloat(); setColor(if (light) 0x22000000 else 0x33FFFFFF) }
+                setOnClickListener {
+                    val (back, add) = Suggest.completion(currentTyped(), c)
+                    val sess = terminal.currentSession ?: return@setOnClickListener
+                    if (back > 0) sess.write("\u007f".repeat(back))
+                    sess.write(add)
+                    suggestScroll.visibility = View.GONE
+                }
+            }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { setMargins(dp(3), dp(2), dp(3), dp(2)) })
+        }
+        suggestScroll.visibility = View.VISIBLE
+        suggestScroll.scrollTo(0, 0)
     }
 
     // ---------------------------------------------------------------- permissions
@@ -697,7 +1030,11 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     override val sessionClient: TerminalSessionClient = object : TerminalSessionClient {
         override fun onTextChanged(changedSession: TerminalSession) {
-            if (terminal.currentSession == changedSession) terminal.onScreenUpdated()
+            if (primary.currentSession == changedSession) primary.onScreenUpdated()
+            secondary?.let { if (it.currentSession == changedSession) it.onScreenUpdated() }
+            if (terminal.currentSession == changedSession && prefs.sp.getBoolean("suggestions", true)) {
+                handler.removeCallbacks(suggestTask); handler.postDelayed(suggestTask, 250)
+            }
         }
         override fun onTitleChanged(changedSession: TerminalSession) { sessionAdapter.notifyDataSetChanged() }
         override fun onSessionFinished(finishedSession: TerminalSession) { sessionAdapter.notifyDataSetChanged() }
@@ -707,7 +1044,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             if (prefs.bellVibrate) getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
         }
         override fun onColorsChanged(session: TerminalSession) {
-            if (terminal.currentSession == session) terminal.invalidate()
+            if (primary.currentSession == session) primary.invalidate()
+            secondary?.let { if (it.currentSession == session) it.invalidate() }
         }
         override fun onTerminalCursorStateChange(state: Boolean) {
             if (state && prefs.cursorBlink) terminal.setTerminalCursorBlinkerState(true, false)
@@ -844,6 +1182,131 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) = Unit
         override fun logStackTrace(tag: String?, e: Exception?) = Unit
     }
+
+    // ---------------------------------------------------------------- voice, clipboard, monitor, battery, lock
+
+    private val REQ_VOICE = 41
+
+    /** Speak a command (AZ/TR/EN/RU); the text is typed at the prompt for you to check, then Enter. */
+    private fun voiceInput() {
+        val tag = when (Lang.current(this)) { "az" -> "az-AZ"; "tr" -> "tr-TR"; "ru" -> "ru-RU"; else -> "en-US" }
+        val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, tag)
+            .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, getString(R.string.voice_prompt))
+        runCatching { startActivityForResult(i, REQ_VOICE) }.onFailure { Toast.makeText(this, R.string.voice_missing, Toast.LENGTH_LONG).show() }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_LOCK && resultCode == RESULT_OK) { pendingUnlock?.invoke(); pendingUnlock = null }
+        if (requestCode == REQ_VOICE && resultCode == RESULT_OK) {
+            val said = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull() ?: return
+            val cmd = VoiceCommands.toCommand(said)
+            currentSession()?.write(cmd)
+        }
+    }
+
+    private fun clipFile() = java.io.File(filesDir, "clipboard.txt")
+
+    private fun rememberClip(text: String) {
+        if (text.isBlank() || text.length > 20_000) return
+        runCatching {
+            val old = if (clipFile().isFile) com.nibras.terminal.core.Records.decode(clipFile().readText()).mapNotNull { it["t"] } else emptyList()
+            val list = (listOf(text) + old.filter { it != text }).take(50)
+            clipFile().writeText(com.nibras.terminal.core.Records.encode(list.map { mapOf("t" to it) }))
+        }
+    }
+
+    private fun clipboardHistory() {
+        getSystemService(ClipboardManager::class.java).primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()?.let { rememberClip(it) }
+        val list = runCatching { com.nibras.terminal.core.Records.decode(clipFile().readText()).mapNotNull { it["t"] } }.getOrDefault(emptyList())
+        if (list.isEmpty()) { Toast.makeText(this, R.string.search_none, Toast.LENGTH_SHORT).show(); return }
+        AlertDialog.Builder(this).setTitle(R.string.menu_clipboard_history)
+            .setItems(list.map { it.replace('\n', '⏎').take(120) }.toTypedArray()) { _, w -> currentSession()?.write(list[w]) }
+            .setNeutralButton(R.string.files_delete) { _, _ -> clipFile().delete() }
+            .setNegativeButton(R.string.cancel, null).show()
+    }
+
+    private fun startMonitor() {
+        handler.removeCallbacks(monitorTask)
+        val on = prefs.sp.getBoolean("monitor", false)
+        monitorView.visibility = if (on) View.VISIBLE else View.GONE
+        if (on) handler.post(monitorTask)
+    }
+
+    private var lastCpu = 0L to 0L
+
+    private fun updateMonitor() {
+        val am = getSystemService(android.app.ActivityManager::class.java)
+        val mi = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+        val usedMb = (mi.totalMem - mi.availMem) / 1048576
+        val bm = getSystemService(android.os.BatteryManager::class.java)
+        val batt = bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        // CPU used by Nibras and everything it started (all sessions), from /proc/self/stat + children.
+        val now = android.os.SystemClock.elapsedRealtime()
+        val cpu = android.os.Process.getElapsedCpuTime() + childCpuMs()
+        val (t0, c0) = lastCpu
+        val pct = if (t0 > 0 && now > t0) ((cpu - c0) * 100 / ((now - t0) * Runtime.getRuntime().availableProcessors())).coerceIn(0, 100) else 0
+        lastCpu = now to cpu
+        val free = java.io.File(filesDir.absolutePath).usableSpace / 1073741824.0
+        monitorView.text = "CPU %d%% · RAM %d/%d MB · 🔋%d%% · %.1f GB".format(pct, usedMb, mi.totalMem / 1048576, batt, free)
+    }
+
+    private fun childCpuMs(): Long = runCatching {
+        val f = java.io.File("/proc/self/stat").readText().substringAfterLast(')').trim().split(' ')
+        // fields after ')' : index 13,14 = cutime, cstime (clock ticks, 100 Hz on Android)
+        (f[13].toLong() + f[14].toLong()) * 10
+    }.getOrDefault(0L)
+
+    /** Battery saver: no wake lock, no cursor blink, no suggestions or monitor. */
+    private fun toggleBatterySaver() {
+        val on = !prefs.sp.getBoolean("batterySaver", false)
+        prefs.sp.edit().putBoolean("batterySaver", on).apply()
+        if (on) {
+            service?.setWakeLock(false)
+            prefs.cursorBlink = false
+            prefs.sp.edit().putBoolean("suggestions", false).putBoolean("monitor", false).apply()
+            terminal.setTerminalCursorBlinkerState(false, true)
+            suggestScroll.visibility = View.GONE
+            startMonitor()
+        } else {
+            prefs.sp.edit().putBoolean("suggestions", true).apply()
+        }
+        Toast.makeText(this, if (on) R.string.battery_saver_on else R.string.battery_saver_off, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun askUnlock() = authenticate {
+        unlocked = true
+        lockOverlay.visibility = View.GONE
+    }
+
+    /** Fingerprint / face / screen lock (BiometricPrompt on Android 9+, lock-screen check before). */
+    private fun authenticate(onOk: () -> Unit) {
+        val km = getSystemService(android.app.KeyguardManager::class.java)
+        if (!km.isDeviceSecure) { Toast.makeText(this, R.string.app_lock_no_screen_lock, Toast.LENGTH_LONG).show(); onOk(); return }
+        if (Build.VERSION.SDK_INT >= 28) {
+            val b = android.hardware.biometrics.BiometricPrompt.Builder(this).setTitle(getString(R.string.app_name))
+                .setSubtitle(getString(R.string.app_lock_prompt))
+            if (Build.VERSION.SDK_INT >= 30) {
+                b.setAllowedAuthenticators(android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            } else {
+                @Suppress("DEPRECATION") b.setDeviceCredentialAllowed(true)
+            }
+            b.build().authenticate(android.os.CancellationSignal(), mainExecutor, object : android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: android.hardware.biometrics.BiometricPrompt.AuthenticationResult?) { onOk() }
+            })
+        } else {
+            @Suppress("DEPRECATION")
+            val i = km.createConfirmDeviceCredentialIntent(getString(R.string.app_name), getString(R.string.app_lock_prompt))
+            if (i == null) onOk() else { pendingUnlock = onOk; startActivityForResult(i, REQ_LOCK) }
+        }
+    }
+
+    private var pendingUnlock: (() -> Unit)? = null
+    private val REQ_LOCK = 42
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)

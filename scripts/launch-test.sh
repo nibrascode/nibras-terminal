@@ -24,6 +24,18 @@ adb shell input text "echo%sNIBRAS_OK_\$((6*7))"
 adb shell input keyevent 66
 sleep 3
 adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
+# Open every tool screen once; each must come up without killing the app.
+for screen in store hosts files editor; do
+  adb shell am start -n com.nibras.terminal/.MainActivity --es open $screen >/dev/null
+  sleep 4
+  adb exec-out screencap -p > "$OUT/screen-$screen.png" || true
+  adb shell dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -1 | tee -a "$OUT/screens.txt"
+  adb shell input keyevent 4; sleep 1
+  [ -z "$(adb shell pidof com.nibras.terminal | tr -d '\r')" ] && { echo "app died on $screen" | tee -a "$OUT/alive.txt"; ok=0; }
+done
+adb shell am start -n com.nibras.terminal/.MainActivity --es open split >/dev/null; sleep 3
+adb shell am start -n com.nibras.terminal/.MainActivity --es open monitor >/dev/null; sleep 4
+adb exec-out screencap -p > "$OUT/screen-split-monitor.png" || true
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | tee "$OUT/top.txt"
 adb shell ps -A -o PID,NAME,ARGS | grep -iE "proot|nibras" | tee "$OUT/processes.txt" || true
 adb shell run-as com.nibras.terminal ls files/unpacked 2>&1 | tee "$OUT/unpacked.txt" || true

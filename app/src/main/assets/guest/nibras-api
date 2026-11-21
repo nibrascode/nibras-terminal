@@ -1,26 +1,36 @@
 #!/bin/sh
-# Bridge from the Linux environment to Android (clipboard, notifications, battery, torch, ...).
-# Works like Termux:API. Usage: nibras-api <command> [args] or termux-<command> / nibras-<command>.
+# Bridge from the Linux environment to the phone (clipboard, notifications, battery, torch, dialogs, …).
+# Usage: nibras-api <command> [args]   or   nibras-<command> [args]
+. /usr/local/share/nibras/msg.sh
 name=${0##*/}
 if [ "$name" = nibras-api ]; then
   if [ $# -eq 0 ]; then
-    echo "usage: nibras-api <command> [args]"
-    ls /usr/local/bin | sed -n 's/^termux-//p' | tr '\n' ' '; echo
+    echo "nibras-api <command> [args]"
+    ls /usr/local/bin | sed -n 's/^nibras-//p' | tr '\n' ' '; echo
     exit 1
   fi
   name=$1; shift
 fi
 name=${name#termux-}; name=${name#nibras-}
 conf=/etc/nibras/api
-if [ ! -r "$conf" ]; then echo "nibras-api: the app bridge is not available" >&2; exit 1; fi
+if [ ! -r "$conf" ]; then nmsg api_down >&2; exit 1; fi
 . "$conf"
 args="$*"
 case "$name" in
   clipboard-set|toast|notification|share|tts-speak)
     if [ -z "$args" ] && [ ! -t 0 ]; then args=$(cat); fi ;;
-  open)
-    # open a file from the environment with an Android app: pass the guest path
-    [ -n "$1" ] && args=$(readlink -f "$1" 2>/dev/null || echo "$1") ;;
+  dialog|job-scheduler|storage-get|camera-photo|media-scan)
+    # keep each argument intact (separated by \037)
+    args=$(printf '%s\037' "$@")
+    if [ "$name" != dialog ] && [ "$name" != job-scheduler ]; then
+      args=; for a in "$@"; do case "$a" in -*|[0-9]) args="$args$a$(printf '\037')" ;; /*) args="$args$a$(printf '\037')" ;; *) args="$args$PWD/$a$(printf '\037')" ;; esac; done
+    fi ;;
+  wallpaper)
+    lock=; [ "${1:-}" = -l ] && { lock="-l "; shift; }
+    args="$lock$(readlink -f "${1:-}" 2>/dev/null || echo "${1:-}")" ;;
+  open|edit|files)
+    # pass absolute guest paths
+    if [ -n "${1:-}" ]; then args=$(readlink -f "$1" 2>/dev/null || echo "$1"); else args=$PWD; fi ;;
 esac
 payload=$(printf '%s\n%s\n%s' "$name" "${NIBRAS_ENV:-}" "$args" | base64 | tr -d '\n')
 req="$NIBRAS_API_TOKEN $payload"
@@ -31,9 +41,9 @@ elif command -v bash >/dev/null 2>&1; then
 elif command -v python3 >/dev/null 2>&1; then
   resp=$(python3 -c 'import socket,sys;s=socket.create_connection(("127.0.0.1",int(sys.argv[1])));s.sendall((sys.argv[2]+"\n").encode());print(s.makefile().read(),end="")' "$NIBRAS_API_PORT" "$req")
 else
-  echo "nibras-api: need nc, bash or python3" >&2; exit 1
+  echo "nibras-api: nc / bash / python3" >&2; exit 1
 fi
-if [ -z "$resp" ]; then echo "nibras-api: no answer from the app (is Nibras Terminal running?)" >&2; exit 1; fi
+if [ -z "$resp" ]; then nmsg api_down >&2; exit 1; fi
 status=$(printf '%s\n' "$resp" | head -n 1)
 printf '%s\n' "$resp" | sed '1d'
 [ "$status" = OK ]

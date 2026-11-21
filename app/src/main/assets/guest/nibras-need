@@ -1,0 +1,40 @@
+#!/bin/sh
+# nibras-need <command>…  installs the package that provides each missing command (apk or apt).
+. /usr/local/share/nibras/msg.sh
+rc=0
+for c in "$@"; do
+  command -v "$c" >/dev/null 2>&1 && continue
+  if command -v apk >/dev/null 2>&1; then
+    case "$c" in
+      ssh|scp|sftp|ssh-keygen) p=openssh-client ;; sshd) p=openssh-server ;; mosh) p=mosh ;; telnet) p=busybox-extras ;;
+      python3|pip3) p="python3 py3-pip" ;; node|npm) p="nodejs npm" ;; g++) p=g++ ;; gcc) p="gcc musl-dev" ;;
+      java) p=openjdk17-jre ;; adb|fastboot) p=android-tools ;; rustc) p=rust ;; kotlinc) p=kotlin ;;
+      Xvnc|vncpasswd) p=tigervnc ;; websockify) p=py3-websockify ;;
+      ffprobe|ffmpeg) p=ffmpeg ;; magick|convert|identify|mogrify) p=imagemagick ;; gs) p=ghostscript ;;
+      pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler-utils ;; aria2c) p=aria2 ;;
+      tesseract) p="tesseract-ocr tesseract-ocr-data-eng" ;; speedtest-cli) p=speedtest-cli ;; ping) p=iputils ;;
+      dig|nslookup) p=bind-tools ;; 7z) p=7zip ;; sox) p=sox ;; lame) p=lame ;; whois) p=whois ;; traceroute) p=traceroute ;; *) p=$c ;;
+    esac
+    nmsg need_tool "$c" >&2
+    # shellcheck disable=SC2086
+    apk add $p >&2 || { nmsg need_fail "$c" >&2; rc=1; }
+  elif command -v apt-get >/dev/null 2>&1; then
+    case "$c" in
+      ssh|scp|sftp|ssh-keygen) p=openssh-client ;; sshd) p=openssh-server ;; telnet) p=telnet ;;
+      python3|pip3) p="python3 python3-pip" ;; node|npm) p="nodejs npm" ;; gcc) p=gcc ;; g++) p=g++ ;;
+      java) p=default-jre-headless ;; adb|fastboot) p="adb fastboot" ;; rustc) p=rustc ;;
+      Xvnc|vncpasswd) p="tigervnc-standalone-server tigervnc-tools" ;; websockify) p=websockify ;;
+      ffprobe|ffmpeg) p=ffmpeg ;; magick|convert|identify|mogrify) p=imagemagick ;; gs) p=ghostscript ;;
+      pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler-utils ;; aria2c) p=aria2 ;;
+      tesseract) p="tesseract-ocr tesseract-ocr-eng" ;; ping) p=iputils-ping ;; dig|nslookup) p=dnsutils ;;
+      7z) p=p7zip-full ;; node|npm) p="nodejs npm" ;; *) p=$c ;;
+    esac
+    nmsg need_tool "$c" >&2
+    ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update >&2
+    # shellcheck disable=SC2086
+    DEBIAN_FRONTEND=noninteractive apt-get install -y $p >&2 || { nmsg need_fail "$c" >&2; rc=1; }
+  else
+    nmsg no_pm >&2; exit 1
+  fi
+done
+exit $rc

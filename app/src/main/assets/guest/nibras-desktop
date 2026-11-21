@@ -1,34 +1,53 @@
 #!/bin/sh
-# Experimental: XFCE desktop over VNC. Connect a VNC viewer app to 127.0.0.1:5901.
-# nibras-desktop [install|start|stop]
-set -e
-act="${1:-start}"
+# Linux desktop (XFCE) for Nibras Terminal. It opens inside the app (built-in noVNC viewer);
+# any VNC app can also connect to 127.0.0.1:5901.
+#   nibras-desktop [start|stop|restart|status|view|install|log] [WxH]
+. /usr/local/share/nibras/msg.sh
+act="${1:-start}"; geo="${2:-${GEOMETRY:-1280x720}}"
+LOG="$HOME/.vnc/nibras-desktop.log"
+mkdir -p "$HOME/.vnc"
 install_desktop() {
   if command -v apk >/dev/null 2>&1; then
-    apk add xfce4 xfce4-terminal tigervnc dbus dbus-x11 font-dejavu adwaita-icon-theme
+    apk add xfce4 xfce4-terminal tigervnc dbus dbus-x11 font-dejavu adwaita-icon-theme novnc py3-websockify procps
   else
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update
-    apt-get install -y --no-install-recommends xfce4 xfce4-terminal tigervnc-standalone-server tigervnc-tools dbus-x11 fonts-dejavu-core
+    ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update
+    apt-get install -y --no-install-recommends xfce4 xfce4-terminal tigervnc-standalone-server tigervnc-tools dbus-x11 fonts-dejavu-core novnc websockify procps
   fi
 }
+novnc_dir() { for d in /usr/share/novnc /usr/share/webapps/novnc /usr/share/noVNC; do [ -f "$d/vnc.html" ] && { echo "$d"; return; }; done; }
+port_open() { (echo > "/dev/tcp/127.0.0.1/$1") 2>/dev/null || nc -z 127.0.0.1 "$1" 2>/dev/null; }
+stop_all() {
+  pkill -f "websockify.*6080" 2>/dev/null; pkill -f "Xvnc :1" 2>/dev/null; pkill -f xfce4-session 2>/dev/null
+  pkill -f "dbus-daemon.*session" 2>/dev/null
+  rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+}
+status() { if pgrep -f "Xvnc :1" >/dev/null 2>&1; then nmsg running; return 0; else nmsg not_running; return 1; fi; }
 case "$act" in
   install) install_desktop ;;
-  stop)
-    pkill -f "Xvnc :1" 2>/dev/null || true
-    pkill -f xfce4-session 2>/dev/null || true
-    rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
-    echo "desktop stopped" ;;
-  start)
-    command -v Xvnc >/dev/null 2>&1 || install_desktop
-    mkdir -p "$HOME/.vnc"
-    if [ ! -s "$HOME/.vnc/passwd" ]; then echo "Choose a VNC password:"; vncpasswd "$HOME/.vnc/passwd"; fi
-    "$0" stop >/dev/null 2>&1 || true
-    Xvnc :1 -geometry "${GEOMETRY:-1280x720}" -depth 24 -rfbport 5901 -localhost -SecurityTypes VncAuth \
-      -PasswordFile "$HOME/.vnc/passwd" >"$HOME/.vnc/xvnc.log" 2>&1 &
-    sleep 2
-    DISPLAY=:1 dbus-launch --exit-with-session startxfce4 >"$HOME/.vnc/xfce.log" 2>&1 &
-    echo "Desktop is running. Open a VNC viewer app and connect to 127.0.0.1:5901"
-    echo "Stop with: nibras-desktop stop" ;;
-  *) echo "usage: nibras-desktop [install|start|stop]"; exit 1 ;;
+  stop) stop_all; nmsg desk_stopped ;;
+  status) status ;;
+  log) tail -n 60 "$LOG" ;;
+  view) exec nibras-api desktop-view ;;
+  start|restart)
+    command -v Xvnc >/dev/null 2>&1 && [ -n "$(novnc_dir)" ] || install_desktop || exit 1
+    stop_all
+    mkdir -p /tmp/.X11-unix; chmod 1777 /tmp/.X11-unix
+    pw="$HOME/.vnc/nibras-pass"
+    [ -s "$pw" ] || head -c 12 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 8 > "$pw"
+    printf '%s\n%s\n' "$(cat "$pw")" "$(cat "$pw")" | vncpasswd -f > "$HOME/.vnc/passwd" 2>/dev/null; chmod 600 "$HOME/.vnc/passwd"
+    nmsg desk_wait
+    : > "$LOG"
+    Xvnc :1 -geometry "$geo" -depth 24 -rfbport 5901 -localhost -SecurityTypes VncAuth -PasswordFile "$HOME/.vnc/passwd" \
+      -AlwaysShared >>"$LOG" 2>&1 &
+    i=0; while [ $i -lt 20 ] && ! [ -e /tmp/.X11-unix/X1 ]; do sleep 0.5; i=$((i+1)); done
+    if ! [ -e /tmp/.X11-unix/X1 ]; then nmsg desk_fail "$LOG"; tail -n 15 "$LOG"; exit 1; fi
+    (export DISPLAY=:1 XDG_RUNTIME_DIR=/tmp/runtime-root; mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR"
+     dbus-launch --exit-with-session startxfce4 >>"$LOG" 2>&1 &)
+    websockify --web "$(novnc_dir)" 127.0.0.1:6080 127.0.0.1:5901 >>"$LOG" 2>&1 &
+    i=0; while [ $i -lt 20 ] && ! port_open 6080; do sleep 0.5; i=$((i+1)); done
+    printf '%s' "$(cat "$pw")" > /tmp/.nibras-vnc-pass; chmod 600 /tmp/.nibras-vnc-pass
+    nmsg desk_running
+    nibras-api desktop-view >/dev/null 2>&1 || true ;;
+  *) echo "nibras-desktop [start|stop|restart|status|view|install|log] [WxH]"; exit 1 ;;
 esac

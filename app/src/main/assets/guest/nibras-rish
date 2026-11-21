@@ -1,0 +1,18 @@
+#!/system/bin/sh
+# Shizuku shell for Nibras Terminal (runs in the Android shell session).
+# In the Shizuku app: "Use Shizuku in terminal apps" → Export files → choose Download/nibras-rish.
+# Then: nibras-rish   (opens a shell with ADB/root rights granted by Shizuku)
+dir=""
+for d in "$HOME/.nibras/rish" /sdcard/Download/nibras-rish /sdcard/Download/rish /sdcard/Shizuku; do
+  [ -f "$d/rish_shizuku.dex" ] && { dir="$d"; break; }
+done
+if [ -z "$dir" ]; then
+  echo "Shizuku: rish_shizuku.dex not found."
+  echo "Shizuku → Use Shizuku in terminal apps → Export files → /sdcard/Download/nibras-rish"
+  exit 1
+fi
+mkdir -p "$HOME/.nibras/rish"
+cp "$dir/rish_shizuku.dex" "$HOME/.nibras/rish/rish_shizuku.dex" 2>/dev/null
+chmod 400 "$HOME/.nibras/rish/rish_shizuku.dex" 2>/dev/null
+export RISH_APPLICATION_ID=com.nibras.terminal
+exec /system/bin/app_process -Djava.class.path="$HOME/.nibras/rish/rish_shizuku.dex" /system/bin --nice-name=nibras-rish rikka.shizuku.shell.ShizukuShellLoader "$@"

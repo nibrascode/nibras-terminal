@@ -24,6 +24,7 @@ object Rootfs {
         Env("rootfs-alpine", "Alpine"),
         Env("rootfs-debian", "Debian"),
         Env("rootfs-ubuntu", "Ubuntu"),
+        Env("rootfs-custom", "Custom"),
     )
 
     fun name(id: String) = all.firstOrNull { it.id == id }?.name ?: if (id == ANDROID) "Android" else id
@@ -113,14 +114,31 @@ object Rootfs {
         exe(f("usr/local/bin/nibras-desktop"), guest(context, "nibras-desktop"))
         exe(f("usr/local/bin/nibras-sshd"), guest(context, "nibras-sshd"))
         exe(f("usr/local/bin/nibras-shell"), guest(context, "nibras-shell"))
-        exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/help\n")
+        writeReplacing(f("usr/local/share/nibras/msg.sh"), guest(context, "nibras-msg.sh"))
+        for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish")) exe(f("usr/local/bin/$tool"), guest(context, tool))
+        exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/banner /etc/nibras/help 2>/dev/null\n")
         for (cmd in API_COMMANDS) {
+            // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.
             for (prefix in listOf("termux-", "nibras-")) {
                 val link = f("usr/local/bin/$prefix$cmd")
                 runCatching {
                     Files.deleteIfExists(link.toPath())
                     Files.createSymbolicLink(link.toPath(), Paths.get("nibras-api"))
                 }
+            }
+        }
+        // Nibras toolkit: nibras-video … plus short names (video, download, ask …) in a directory
+        // that comes last on PATH, so real programs are never shadowed.
+        exe(f("usr/local/bin/nibras-kit"), guest(context, "nibras-kit"))
+        val shortDir = f("usr/local/lib/nibras/short").apply { mkdirs() }
+        for (cmd in KIT_COMMANDS) {
+            runCatching {
+                val long = f("usr/local/bin/nibras-$cmd").toPath()
+                Files.deleteIfExists(long)
+                Files.createSymbolicLink(long, Paths.get("nibras-kit"))
+                val short = File(shortDir, cmd).toPath()
+                Files.deleteIfExists(short)
+                Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
             }
         }
         // Storage shortcuts like Termux's ~/storage (work after "nibras-setup-storage").
@@ -155,7 +173,11 @@ object Rootfs {
     fun refreshSessionFiles(context: Context, id: String, apiPort: Int, apiToken: String) {
         val root = dir(context, id)
         val etc = File(root, "etc/nibras").apply { mkdirs() }
-        writeReplacing(File(etc, "motd"), context.getString(R.string.motd, name(id), DeviceAbi.label) + "\n")
+        val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+        val banner = Banner.text(name(id), DeviceAbi.label, version)
+        writeReplacing(File(etc, "banner"), banner)
+        writeReplacing(File(etc, "motd"), banner + context.getString(R.string.motd) + "\n")
+        writeReplacing(File(etc, "lang"), guestLang(context) + "\n")
         writeReplacing(File(etc, "help"), context.getString(R.string.shell_help) + "\n")
         val api = File(etc, "api")
         writeReplacing(api, "NIBRAS_API_PORT=$apiPort\nNIBRAS_API_TOKEN=$apiToken\n")
@@ -165,18 +187,33 @@ object Rootfs {
     data class Launch(val exe: String, val args: Array<String>, val env: Array<String>, val cwd: String)
 
     /** Builds the PTY command for a session in [id]; [command] runs a script instead of a login shell. */
-    fun launch(context: Context, id: String, command: List<String>? = null): Launch {
+    fun guestLang(context: Context): String =
+        context.resources.configuration.locales[0].language.takeIf { it in setOf("az", "tr", "ru") } ?: "en"
+
+    /** Android-side helpers (Android shell sessions): banner + Shizuku shell. */
+    fun prepareAndroidHome(context: Context) {
+        val home = File(context.filesDir, "home")
+        val bin = File(home, "bin").apply { mkdirs() }
+        runCatching { exe(File(bin, "nibras-rish"), guest(context, "nibras-rish")) }
+        val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+        runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
+    }
+
+    fun launch(context: Context, id: String, command: List<String>? = null, extraEnv: List<String> = emptyList()): Launch {
         val home = File(context.filesDir, "home").apply { mkdirs() }
         val tmp = File(context.cacheDir, "proot-tmp").apply { mkdirs() }
         val lang = "LANG=C.UTF-8"
         val term = "TERM=xterm-256color"
         if (id == ANDROID || !isReady(context, id)) {
-            val args = if (command != null) arrayOf("sh", "-c", command.joinToString(" ") { quote(it) }) else arrayOf("-sh")
+            runCatching { prepareAndroidHome(context) }
+            val start = extraEnv.firstOrNull { it.startsWith("NIBRAS_START_DIR=") }?.substringAfter('=')?.takeIf { File(it).isDirectory }
+            val args = if (command != null) arrayOf("sh", "-c", command.joinToString(" ") { quote(it) })
+                else arrayOf("sh", "-c", "cat \"\$HOME/.nibras-motd\" 2>/dev/null; exec /system/bin/sh -i")
             return Launch(
                 "/system/bin/sh", args,
-                arrayOf("HOME=${home.absolutePath}", "TMPDIR=${tmp.absolutePath}", term, lang, "COLORTERM=truecolor",
-                    "PATH=/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data"),
-                home.absolutePath,
+                (listOf("HOME=${home.absolutePath}", "TMPDIR=${tmp.absolutePath}", term, lang, "COLORTERM=truecolor",
+                    "PATH=${home.absolutePath}/bin:/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data") + extraEnv).toTypedArray(),
+                start ?: home.absolutePath,
             )
         }
         val native = nativeDir(context)
@@ -218,6 +255,9 @@ object Rootfs {
             "PATH=/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/python/bin:/opt/node/bin",
             "TMPDIR=/tmp", "NIBRAS_ENV=${name(id).lowercase()}", "NIBRAS_ABI=${DeviceAbi.current}",
             "ANDROID_ROOT=/system", "ANDROID_DATA=/data",
+        )
+        args += extraEnv
+        args += listOf(
             "/usr/local/bin/nibras-login",
         )
         if (command != null) args += command
@@ -292,7 +332,16 @@ object Rootfs {
         "share", "wifi-connectioninfo", "torch", "brightness", "volume", "camera-info",
         "microphone-record", "location", "sensor", "fingerprint", "download", "setup-storage",
         "open-url", "open", "info", "media-player", "contact-list", "call-log", "sms-list", "sms-send",
-        "reload-settings", "new-session",
+        "reload-settings", "new-session", "edit", "files", "hosts", "dialog", "storage-get", "job-scheduler",
+        "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
+        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo",
+    )
+
+    /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */
+    val KIT_COMMANDS = listOf(
+        "video", "audio", "image", "pdf", "download", "web", "py", "backup", "snapshot", "net", "share", "webterm",
+        "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "learn", "ask", "explain", "recipes", "fix", "trash",
+        "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office",
     )
 
     fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"

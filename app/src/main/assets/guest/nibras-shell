@@ -1,16 +1,14 @@
 #!/bin/sh
 # Choose the login shell for new sessions: nibras-shell [bash|zsh|fish|ash|sh|auto]
+. /usr/local/share/nibras/msg.sh
 want="${1:-}"
 mkdir -p "$HOME/.nibras"
 if [ -z "$want" ]; then
-  echo "current: $(cat "$HOME/.nibras/shell" 2>/dev/null || echo auto)"
-  echo "usage: nibras-shell bash|zsh|fish|ash|sh|auto"
+  nmsg shell_cur "$(cat "$HOME/.nibras/shell" 2>/dev/null || echo auto)"
+  echo "nibras-shell bash|zsh|fish|ash|sh|auto"
   exit 0
 fi
-if [ "$want" = auto ]; then rm -f "$HOME/.nibras/shell"; echo "auto"; exit 0; fi
-if ! command -v "$want" >/dev/null 2>&1; then
-  echo "$want is not installed, installing: pkg install $want"
-  pkg install "$want" || exit 1
-fi
+if [ "$want" = auto ]; then rm -f "$HOME/.nibras/shell"; nmsg shell_now auto; exit 0; fi
+nibras-need "$want" || exit 1
 command -v "$want" > "$HOME/.nibras/shell"
-echo "New sessions will use $(cat "$HOME/.nibras/shell")"
+nmsg shell_now "$(cat "$HOME/.nibras/shell")"

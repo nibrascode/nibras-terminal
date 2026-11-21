@@ -1,0 +1,19 @@
+#!/bin/sh
+# nibras: one entry point for every Nibras Terminal tool.
+case "${1:-menu}" in
+  menu) exec nibras-kit menu ;;
+  list|tools) exec nibras-kit list ;;
+  help|-h|--help) exec nibras-help ;;
+  hosts|ssh) shift; [ $# -gt 0 ] && exec nibras-need ssh && exec ssh "$@"; exec nibras-api hosts ;;
+  edit) shift; exec nibras-api edit "$@" ;;
+  files|fm) shift; exec nibras-api files "$@" ;;
+  desktop) shift; exec nibras-desktop "$@" ;;
+  adb) shift; exec nibras-adb "$@" ;;
+  apk) shift; exec nibras-apk "$@" ;;
+  sshd) shift; exec nibras-sshd "$@" ;;
+  shell) shift; exec nibras-shell "$@" ;;
+  need) shift; exec nibras-need "$@" ;;
+  install|add) shift; exec nibras-kit install "$@" ;;
+  video|audio|image|pdf|download|dl|web|git|py|python|node|backup|net|ocr) n=$1; shift; exec nibras-kit "$n" "$@" ;;
+  *) n=$1; shift; command -v "nibras-$n" >/dev/null 2>&1 && exec "nibras-$n" "$@"; echo "nibras: $n?"; exec nibras-help ;;
+esac
