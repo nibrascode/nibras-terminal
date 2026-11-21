@@ -171,6 +171,38 @@ lang auto
 
 Ərəb, fars və urdu dillərində ekran sağdan sola düzülür. Terminalın içində ərəb mətnini birləşmiş hərflərlə göstərmək üçün `rtl` əmrindən istifadə edin, məsələn: `cat note.txt | rtl`.
 
+### Öz dilinizdə əmrlər
+
+Nibras əmrlərini Azərbaycan dilində də yaza bilərsiniz. İngiliscə adlar həmişə işləyir, `ls`, `git` və `cd` kimi standart Linux əmrlərinin adı isə dəyişmir. Əmrlər diakritik işarələrlə və onlarsız işləyir, məsələn `kömək` və `komek`.
+
+| Azərbaycanca | İngiliscə |
+|---|---|
+| `kömək` | `help` |
+| `qur python` | `install python` |
+| `sil` | `remove` |
+| `yenilə` | `update` |
+| `işlət hello.py` | `run hello.py` |
+| `mövzu dracula` | `theme dracula` |
+| `rəng red Salam` | `color red Salam` |
+| `başlıq` | `banner` |
+| `promt` | `prompt` |
+| `fərdiləşdir` | `customize` |
+| `skriptlər` | `scripts` |
+| `uzaqdan` | `remote` |
+| `ehtiyat` | `backup` |
+| `bərpa` | `restore` |
+| `öyrən` | `learn` |
+| `düzəlt` | `fix` |
+| `soruş` | `ask` |
+| `izah` | `explain` |
+| `namaz` | `prayer` |
+| `səs` | `audio` |
+| `endir` | `download` |
+| `fayllar` | `files` |
+| `redaktə` | `edit` |
+| `menyu` | `menu` |
+<!-- native-commands -->
+
 ## 14. Yalnız Nibras-da olan imkanlar
 
 - `ask`, `explain` və `fix` əmrlərlə və xətalarla işləməyə kömək edir.
@@ -180,6 +212,11 @@ lang auto
 - `llm` telefonda internetsiz süni zəka söhbəti işlədir.
 - `webterm` bu terminalı Wi-Fi üzərindən kompüterin brauzerində açır.
 - Ekranı bölmək, üzən pəncərə və Linux masaüstü (XFCE) tətbiqin içində işləyir.
+- `scripts` skript mağazasını açır. Orada hazır skriptlərə baxmaq, onları oxumaq, quraşdırmaq və işə salmaq olar.
+- `remote` bu terminalı eyni Wi-Fi-dakı kompüterin brauzerində açır. Birdəfəlik link QR kod kimi də göstərilir.
+- `backup drive` hostları və ayarları öz parolunuzla şifrələyib Google Drive-a və ya istənilən qovluğa saxlayır. `restore drive` onları geri qaytarır.
+- `learn` interaktiv dərsləri başladır: əsl əmrləri yazırsınız və onlar avtomatik yoxlanılır.
+- Ana ekran vidjetləri sevdiyiniz əmrləri bir toxunuşla işə salır, serverlərin vəziyyətini və namaz vaxtlarını göstərir.
 
 ## 15. İcazələr
 

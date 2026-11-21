@@ -171,6 +171,38 @@ lang auto
 
 Bildschirme auf Arabisch, Persisch und Urdu werden von rechts nach links aufgebaut. Um arabischen Text im Terminal mit verbundenen Buchstaben anzuzeigen, verwenden Sie den Befehl `rtl`, zum Beispiel `cat note.txt | rtl`.
 
+### Befehle in Ihrer Sprache
+
+Sie können Nibras-Befehle auch auf Deutsch eingeben. Die englischen Namen funktionieren immer, und Standard-Linux-Befehle wie `ls`, `git` und `cd` werden nicht umbenannt. Die Befehle funktionieren mit und ohne Umlaute, zum Beispiel `ausführen` und `ausfuhren`.
+
+| Deutsch | Englisch |
+|---|---|
+| `hilfe` | `help` |
+| `installieren python` | `install python` |
+| `entfernen` | `remove` |
+| `aktualisieren` | `update` |
+| `ausführen hello.py` | `run hello.py` |
+| `sprache` | `lang` |
+| `thema dracula` | `theme dracula` |
+| `farbe red Salam` | `color red Salam` |
+| `anpassen` | `customize` |
+| `skripte` | `scripts` |
+| `fernzugriff` | `remote` |
+| `sicherung` | `backup` |
+| `wiederherstellen` | `restore` |
+| `lernen` | `learn` |
+| `reparieren` | `fix` |
+| `fragen` | `ask` |
+| `erklären` | `explain` |
+| `gebet` | `prayer` |
+| `herunterladen` | `download` |
+| `medien` | `media` |
+| `dateien` | `files` |
+| `bearbeiten` | `edit` |
+| `menü` | `menu` |
+| `koran` | `quran` |
+<!-- native-commands -->
+
 ## 14. Funktionen, die nur Nibras hat
 
 - `ask`, `explain` und `fix` helfen Ihnen bei Befehlen und Fehlern.
@@ -180,6 +212,11 @@ Bildschirme auf Arabisch, Persisch und Urdu werden von rechts nach links aufgeba
 - `llm` betreibt einen Offline-KI-Chat auf dem Telefon.
 - `webterm` öffnet dieses Terminal über WLAN im Browser eines Computers.
 - Geteilter Bildschirm, ein schwebendes Fenster und ein Linux-Desktop (XFCE) laufen innerhalb der App.
+- `scripts` öffnet den Skript-Store. Dort können Sie fertige Skripte durchsuchen, lesen, installieren und ausführen.
+- `remote` öffnet dieses Terminal im Browser eines Computers im selben WLAN. Der Einmal-Link wird auch als QR-Code angezeigt.
+- `backup drive` speichert Ihre Hosts und Einstellungen, verschlüsselt mit Ihrer eigenen Passphrase, in Google Drive oder einem beliebigen Ordner. `restore drive` stellt sie wieder her.
+- `learn` startet interaktive Lektionen: Sie geben echte Befehle ein, und diese werden automatisch geprüft.
+- Widgets auf dem Startbildschirm starten Ihre Lieblingsbefehle mit einem Tippen und zeigen den Serverstatus und die Gebetszeiten an.
 
 ## 15. Berechtigungen
 

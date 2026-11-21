@@ -171,6 +171,42 @@ lang auto
 
 阿拉伯语、波斯语和乌尔都语界面采用从右到左的布局。要在终端中以连写形式显示阿拉伯文字，请使用 `rtl` 命令，例如 `cat note.txt | rtl`。
 
+### 用您的语言输入命令
+
+您也可以用中文输入 Nibras 命令。英文名称始终可用，`ls`、`git`、`cd` 等标准 Linux 命令不会被改名。
+
+| 中文 | 英文 |
+|---|---|
+| `帮助` | `help` |
+| `安装 python` | `install python` |
+| `卸载` | `remove` |
+| `更新` | `update` |
+| `运行 hello.py` | `run hello.py` |
+| `语言` | `lang` |
+| `主题 dracula` | `theme dracula` |
+| `颜色 red Salam` | `color red Salam` |
+| `横幅` | `banner` |
+| `提示符` | `prompt` |
+| `自定义` | `customize` |
+| `脚本` | `scripts` |
+| `远程` | `remote` |
+| `备份` | `backup` |
+| `恢复` | `restore` |
+| `学习` | `learn` |
+| `修复` | `fix` |
+| `提问` | `ask` |
+| `解释` | `explain` |
+| `礼拜` | `prayer` |
+| `视频` | `video` |
+| `音频` | `audio` |
+| `下载` | `download` |
+| `媒体` | `media` |
+| `文件` | `files` |
+| `编辑` | `edit` |
+| `菜单` | `menu` |
+| `古兰经` | `quran` |
+<!-- native-commands -->
+
 ## 14. Nibras 独有的功能
 
 - `ask`、`explain` 和 `fix` 帮助你理解命令、解决错误。
@@ -180,6 +216,11 @@ lang auto
 - `llm` 可在手机上运行离线 AI 聊天。
 - `webterm` 可通过 Wi-Fi 在电脑浏览器中打开此终端。
 - 分屏、悬浮窗口和 Linux 桌面（XFCE）都可以在应用内运行。
+- `scripts` 打开脚本商店，您可以在其中浏览、阅读、安装并运行现成的脚本。
+- `remote` 在同一 Wi-Fi 下的电脑浏览器中打开此终端，一次性链接也会以二维码显示。
+- `backup drive` 用您自己的密码短语加密主机和设置，并保存到 Google 云端硬盘或任意文件夹。`restore drive` 可将其恢复。
+- `learn` 开始互动课程：您输入真实的命令，系统会自动检查。
+- 主屏幕小部件可一键运行常用命令，并显示服务器状态和礼拜时间。
 
 ## 15. 权限
 

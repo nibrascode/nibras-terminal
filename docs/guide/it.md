@@ -171,6 +171,33 @@ lang auto
 
 Le schermate in arabo, persiano e urdu sono disposte da destra a sinistra. Per mostrare nel terminale un testo arabo con le lettere unite, usa il comando `rtl`, ad esempio `cat note.txt | rtl`.
 
+### Comandi nella tua lingua
+
+Puoi scrivere i comandi di Nibras anche in italiano. I nomi inglesi funzionano sempre, e i comandi Linux standard come `ls`, `git` e `cd` non vengono rinominati. I comandi funzionano con e senza accenti.
+
+| Italiano | Inglese |
+|---|---|
+| `aiuto` | `help` |
+| `installa python` | `install python` |
+| `rimuovi` | `remove` |
+| `aggiorna` | `update` |
+| `esegui hello.py` | `run hello.py` |
+| `lingua` | `lang` |
+| `tema dracula` | `theme dracula` |
+| `colore red Salam` | `color red Salam` |
+| `personalizza` | `customize` |
+| `remoto` | `remote` |
+| `ripristina` | `restore` |
+| `impara` | `learn` |
+| `correggi` | `fix` |
+| `chiedi` | `ask` |
+| `spiega` | `explain` |
+| `preghiera` | `prayer` |
+| `scarica` | `download` |
+| `modifica` | `edit` |
+| `corano` | `quran` |
+<!-- native-commands -->
+
 ## 14. Funzioni esclusive di Nibras
 
 - `ask`, `explain` e `fix` ti aiutano con comandi ed errori.
@@ -180,6 +207,11 @@ Le schermate in arabo, persiano e urdu sono disposte da destra a sinistra. Per m
 - `llm` esegue una chat IA offline sul telefono.
 - `webterm` apre questo terminale nel browser di un computer tramite Wi-Fi.
 - Schermo diviso, finestra mobile e un desktop Linux (XFCE) funzionano all'interno dell'app.
+- `scripts` apre il negozio di script, dove puoi sfogliare, leggere, installare ed eseguire script pronti all'uso.
+- `remote` apre questo terminale nel browser di un computer collegato alla stessa rete Wi-Fi. Il link monouso viene mostrato anche come codice QR.
+- `backup drive` salva host e impostazioni, cifrati con la tua passphrase, su Google Drive o in qualsiasi cartella. `restore drive` li ripristina.
+- `learn` avvia lezioni interattive: digiti comandi veri e vengono verificati automaticamente.
+- I widget della schermata Home eseguono i tuoi comandi preferiti con un tocco e mostrano lo stato dei server e gli orari della preghiera.
 
 ## 15. Autorizzazioni
 

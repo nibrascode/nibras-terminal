@@ -171,6 +171,37 @@ lang auto
 
 Skrin dalam bahasa Arab, Parsi dan Urdu disusun dari kanan ke kiri. Untuk memaparkan teks Arab dengan huruf bersambung di dalam terminal, gunakan arahan `rtl`, contohnya `cat note.txt | rtl`.
 
+### Arahan dalam bahasa anda
+
+Anda juga boleh menaip arahan Nibras dalam bahasa Melayu. Nama bahasa Inggeris sentiasa berfungsi, dan arahan Linux standard seperti `ls`, `git` dan `cd` tidak ditukar nama.
+
+| Bahasa Melayu | Bahasa Inggeris |
+|---|---|
+| `bantuan` | `help` |
+| `pasang python` | `install python` |
+| `buang` | `remove` |
+| `kemaskini` | `update` |
+| `jalankan hello.py` | `run hello.py` |
+| `bahasa` | `lang` |
+| `tema dracula` | `theme dracula` |
+| `warna red Salam` | `color red Salam` |
+| `sepanduk` | `banner` |
+| `gesaan` | `prompt` |
+| `sesuaikan` | `customize` |
+| `skrip` | `scripts` |
+| `jauh` | `remote` |
+| `sandaran` | `backup` |
+| `pulihkan` | `restore` |
+| `belajar` | `learn` |
+| `baiki` | `fix` |
+| `tanya` | `ask` |
+| `terangkan` | `explain` |
+| `solat` | `prayer` |
+| `muatturun` | `download` |
+| `fail` | `files` |
+| `sunting` | `edit` |
+<!-- native-commands -->
+
 ## 14. Ciri yang hanya ada dalam Nibras
 
 - `ask`, `explain` dan `fix` membantu anda dengan arahan dan ralat.
@@ -180,6 +211,11 @@ Skrin dalam bahasa Arab, Parsi dan Urdu disusun dari kanan ke kiri. Untuk memapa
 - `llm` menjalankan sembang AI luar talian pada telefon.
 - `webterm` membuka terminal ini dalam pelayar komputer melalui Wi-Fi.
 - Skrin pisah, tetingkap terapung dan desktop Linux (XFCE) berfungsi di dalam aplikasi.
+- `scripts` membuka kedai skrip, tempat anda boleh melayari, membaca, memasang dan menjalankan skrip sedia ada.
+- `remote` membuka terminal ini dalam pelayar komputer pada Wi-Fi yang sama. Pautan sekali guna juga dipaparkan sebagai kod QR.
+- `backup drive` menyimpan hos dan tetapan anda, disulitkan dengan frasa laluan anda sendiri, ke Google Drive atau mana-mana folder. `restore drive` memulihkannya.
+- `learn` memulakan pelajaran interaktif: anda menaip arahan sebenar dan ia disemak secara automatik.
+- Widget skrin utama menjalankan arahan kegemaran anda dengan satu sentuhan serta memaparkan status pelayan dan waktu solat.
 
 ## 15. Kebenaran
 

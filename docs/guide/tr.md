@@ -171,6 +171,40 @@ lang auto
 
 Arapça, Farsça ve Urduca ekranlar sağdan sola düzenlenir. Terminalde Arapça metni harfleri birleşik olarak göstermek için `rtl` komutunu kullanın, örneğin: `cat note.txt | rtl`.
 
+### Kendi dilinizde komutlar
+
+Nibras komutlarını Türkçe olarak da yazabilirsiniz. İngilizce adlar her zaman çalışır; `ls`, `git` ve `cd` gibi standart Linux komutlarının adları değişmez. Komutlar Türkçe karakterlerle de karaktersiz de çalışır, örneğin `yardım` ve `yardim`.
+
+| Türkçe | İngilizce |
+|---|---|
+| `yardım` | `help` |
+| `kur python` | `install python` |
+| `kaldır` | `remove` |
+| `güncelle` | `update` |
+| `çalıştır hello.py` | `run hello.py` |
+| `tema dracula` | `theme dracula` |
+| `renk red Salam` | `color red Salam` |
+| `başlık` | `banner` |
+| `istem` | `prompt` |
+| `özelleştir` | `customize` |
+| `betikler` | `scripts` |
+| `uzaktan` | `remote` |
+| `yedekle` | `backup` |
+| `geriyükle` | `restore` |
+| `öğren` | `learn` |
+| `düzelt` | `fix` |
+| `sor` | `ask` |
+| `açıkla` | `explain` |
+| `namaz` | `prayer` |
+| `ses` | `audio` |
+| `indir` | `download` |
+| `medya` | `media` |
+| `dosyalar` | `files` |
+| `düzenle` | `edit` |
+| `menü` | `menu` |
+| `kuran` | `quran` |
+<!-- native-commands -->
+
 ## 14. Yalnızca Nibras'ta olan özellikler
 
 - `ask`, `explain` ve `fix`, komutlar ve hatalar konusunda size yardımcı olur.
@@ -180,6 +214,11 @@ Arapça, Farsça ve Urduca ekranlar sağdan sola düzenlenir. Terminalde Arapça
 - `llm` telefonda çevrimdışı bir yapay zekâ sohbeti çalıştırır.
 - `webterm` bu terminali Wi-Fi üzerinden bir bilgisayarın tarayıcısında açar.
 - Bölünmüş ekran, yüzen pencere ve Linux masaüstü (XFCE) uygulamanın içinde çalışır.
+- `scripts` betik mağazasını açar. Orada hazır betiklere göz atabilir, kaynağını okuyabilir, kurabilir ve çalıştırabilirsiniz.
+- `remote` bu terminali aynı Wi-Fi ağındaki bir bilgisayarın tarayıcısında açar. Tek kullanımlık bağlantı QR kod olarak da gösterilir.
+- `backup drive` sunucularınızı ve ayarlarınızı kendi parolanızla şifreleyerek Google Drive'a veya herhangi bir klasöre kaydeder. `restore drive` onları geri yükler.
+- `learn` etkileşimli dersleri başlatır: gerçek komutları yazarsınız ve otomatik olarak kontrol edilir.
+- Ana ekran widget'ları sık kullandığınız komutları tek dokunuşla çalıştırır, sunucu durumunu ve namaz vakitlerini gösterir.
 
 ## 15. İzinler
 
