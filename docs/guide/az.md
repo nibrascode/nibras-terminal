@@ -134,7 +134,7 @@ nibras-apk screen list items MyApp
 nibras-apk dep androidx.recyclerview:recyclerview:1.4.0 MyApp
 ```
 
-Vizual resurs redaktoru (`nibras-apk res`) hər dil üçün mətnləri cədvəldə dəyişməyə, rəngləri redaktə etməyə, ikon və şəkilləri qalereyadan əvəz etməyə, tətbiqin adını, paket adını və versiyasını dəyişməyə imkan verir. Sonra bir toxunuşla tətbiq yenidən yığılır, imzalanır və quraşdırılır. `nibras-apk studio` layihə ekranıdır: fayllar, layout önbaxışı, qur və yeni activity. Qurmaq bu telefona qurur. İçəridə emulyator yoxdur. `perms` layihədə icazəni açır və ya bağlayır. `db` və `crash` başqa tətbiqi yalnız o, sənin debug quruluşun olanda və simsiz debugging qoşulanda oxuyur. Başqalarının lisenziya yoxlamasını və ya qorumasını sındıran funksiyalar qəsdən əlavə edilməyib.
+Vizual resurs redaktoru (`nibras-apk res`) hər dil üçün mətnləri cədvəldə dəyişməyə, rəngləri redaktə etməyə, ikon və şəkilləri qalereyadan əvəz etməyə, tətbiqin adını, paket adını və versiyasını dəyişməyə imkan verir. Sonra bir toxunuşla tətbiq yenidən yığılır, imzalanır və quraşdırılır. `nibras-apk studio` layihə ekranıdır: fayllar, layout önbaxışı, qur və yeni activity. Axtarış, istifadə, TODO və quruluş redaktoru həmin sətirdə açır. Xətalar son Gradle xətasını açır. Qurmaq bu telefona qurur. İçəridə emulyator yoxdur. `perms` layihədə icazəni açır və ya bağlayır. `db` və `crash` başqa tətbiqi yalnız o, sənin debug quruluşun olanda və simsiz debugging qoşulanda oxuyur. Başqalarının lisenziya yoxlamasını və ya qorumasını sındıran funksiyalar qəsdən əlavə edilməyib.
 
 ## 11. Video, audio, yükləmələr və sənədlər
 

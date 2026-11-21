@@ -80,6 +80,7 @@ class EditorActivity : Activity() {
     companion object {
         const val EXTRA_PATH = "path"    // guest path
         const val EXTRA_ENV = "env"      // environment id or name
+        const val EXTRA_LINE = "line"    // 1-based; 0 keeps the saved caret
         private val COMMON = "if|then|else|elif|fi|for|while|do|done|case|esac|function|return|in|break|continue|true|false|null"
         private val LANGS = mapOf(
             "sh" to "$COMMON|echo|export|local|read|set|unset|source|exit|shift|trap",
@@ -165,8 +166,9 @@ class EditorActivity : Activity() {
         private val WORD = Regex("[A-Za-z_][A-Za-z0-9_]{2,}")
         private val PAIRS = mapOf('(' to ')', '[' to ']', '{' to '}', '"' to '"', '\'' to '\'', '`' to '`')
 
-        fun open(context: Context, env: String?, guestPath: String) = context.startActivity(
+        fun open(context: Context, env: String?, guestPath: String, line: Int = 0) = context.startActivity(
             Intent(context, EditorActivity::class.java).putExtra(EXTRA_ENV, env).putExtra(EXTRA_PATH, guestPath)
+                .putExtra(EXTRA_LINE, line)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NEW_DOCUMENT or Intent.FLAG_ACTIVITY_MULTIPLE_TASK),
         )
     }
@@ -419,7 +421,15 @@ class EditorActivity : Activity() {
         saved = text; restoring = true
         editor.setText(text); editor.updateGutter()
         restoring = false
-        prefs.getInt("pos:$guest", 0).let { editor.setSelection(it.coerceIn(0, text.length)) }
+        val jump = intent.getIntExtra(EXTRA_LINE, 0)
+        val caret = if (jump > 0) offsetOf(text, jump - 1, 0) else prefs.getInt("pos:$guest", 0)
+        editor.setSelection(caret.coerceIn(0, text.length))
+        if (jump > 0) editor.post {
+            val layout = editor.layout ?: return@post
+            if (layout.lineCount <= 0) return@post
+            val row = (jump - 1).coerceIn(0, layout.lineCount - 1)
+            editor.scrollTo(0, (layout.getLineTop(row) - editor.height / 3).coerceAtLeast(0))
+        }
         updateStatus(); highlight()
         return true
     }

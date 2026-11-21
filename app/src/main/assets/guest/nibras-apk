@@ -51,6 +51,10 @@
 #   nibras-apk sync [dir]             Gradle sync (tasks)
 #   nibras-apk device                 this phone is the run device
 #   nibras-apk errors                 file and line from the last Gradle failure
+#   nibras-apk find <text> [dir]      search Java, Kotlin, XML and Gradle in the project
+#   nibras-apk todo [dir]             TODO, FIXME and XXX in the project
+#   nibras-apk outline <file>         classes and functions in one source file
+#   nibras-apk usages <name> [dir]    whole-word uses of one name
 set -e
 TOOLS=/opt/nibras-apk
 SDK=/opt/android-sdk
@@ -864,6 +868,55 @@ errors_cmd() {
   grep -E 'error:|^e: |What went wrong|FAILED|\.java:[0-9]+|\.kt:[0-9]+' "$f" | head -n 40 || true
   echo "full log: $f"
 }
+src_of() {
+  d="$1"
+  if [ -d "$d/app/src/main" ]; then printf '%s\n' "$d/app/src/main"
+  elif [ -d "$d/src/main" ]; then printf '%s\n' "$d/src/main"
+  else printf '%s\n' "$d"; fi
+}
+project_or_pwd() {
+  project_root "$1" 2>/dev/null || { [ -d "$1" ] && (cd "$1" && pwd); }
+}
+each_src() {
+  src=$(src_of "$1")
+  find "$src" \( -name build -o -name .gradle -o -name .git \) -prune -o -type f \
+    \( -name '*.kt' -o -name '*.java' -o -name '*.xml' -o -name '*.gradle' -o -name '*.kts' \) -print 2>/dev/null
+}
+find_cmd() {
+  q="${1:?nibras-apk find <text> [dir]}"
+  root=$(project_or_pwd "${2:-.}") || exit 1
+  each_src "$root" | while IFS= read -r f; do
+    grep -n -F -e "$q" "$f" 2>/dev/null | while IFS= read -r hit; do
+      echo "$f:$hit"
+    done
+  done | head -n 80
+  true
+}
+usages_cmd() {
+  q="${1:?nibras-apk usages <Name> [dir]}"
+  printf '%s' "$q" | grep -Eq '^[A-Za-z_][A-Za-z0-9_]*$' || { echo "name: letters, digits, _"; exit 1; }
+  root=$(project_or_pwd "${2:-.}") || exit 1
+  each_src "$root" | while IFS= read -r f; do
+    grep -n -E -e "(^|[^A-Za-z0-9_])$q([^A-Za-z0-9_]|$)" "$f" 2>/dev/null | while IFS= read -r hit; do
+      echo "$f:$hit"
+    done
+  done | head -n 80
+  true
+}
+todo_cmd() {
+  root=$(project_or_pwd "${1:-.}") || exit 1
+  each_src "$root" | while IFS= read -r f; do
+    grep -n -E 'TODO|FIXME|XXX' "$f" 2>/dev/null | while IFS= read -r hit; do
+      echo "$f:$hit"
+    done
+  done | head -n 80
+  true
+}
+outline_cmd() {
+  f="${1:?nibras-apk outline <file>}"
+  [ -f "$f" ] || { echo "no file: $f"; exit 1; }
+  grep -n -E '(class|interface|object|fun|enum)[[:space:]]+[A-Za-z_]' "$f" || echo "(no class or function)"
+}
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
   setup) setup "$@" ;;
@@ -1313,5 +1366,9 @@ G
   sync) gradle_task "$(project_root "${1:-.}")" tasks ;;
   device) device_cmd ;;
   errors|problems) errors_cmd ;;
+  find|grep-src) find_cmd "$@" ;;
+  usages) usages_cmd "$@" ;;
+  todo|fixme) todo_cmd "$@" ;;
+  outline|structure) outline_cmd "$@" ;;
   help|-h|--help|*) awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0" ;;
 esac

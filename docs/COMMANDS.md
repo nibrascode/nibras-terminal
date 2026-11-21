@@ -28,7 +28,7 @@ The public APK is published only when `versionName` changes. A later push with t
 
 `nibras-apk studio` `nibras-apk activity` `nibras-apk class` `nibras-apk screen` `nibras-apk dep` `nibras-apk sync` `nibras-apk device` `nibras-apk errors`
 
-`studio` opens the project screen: run, build, test, lint, logcat, layout preview, resources, and the source list. `activity Name` adds an activity, a layout and a manifest entry. `class Name` adds a Java or Kotlin file. `screen button|list|form|empty name` writes a layout. `dep group:artifact:version` adds `implementation`. The run device is this phone. There is no emulator inside the phone. The website's first screen is unchanged.
+`studio` opens the project screen: run, build, test, lint, logcat, layout preview, resources, and the source list. Find, usages, TODO and structure open the editor on the matching line. Problems does the same for the last Gradle failure. `nibras-apk find`, `usages`, `todo` and `outline` are the same search from the terminal. `activity Name` adds an activity, a layout and a manifest entry. `class Name` adds a Java or Kotlin file. `screen button|list|form|empty name` writes a layout. `dep group:artifact:version` adds `implementation`. The run device is this phone. There is no emulator inside the phone. The website's first screen is unchanged.
 
 ## Phone, 1.0.6
 

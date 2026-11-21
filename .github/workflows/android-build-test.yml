@@ -41,6 +41,12 @@ jobs:
           nibras-apk class Box /root/demo
           nibras-apk screen button home /root/demo
           nibras-apk dep androidx.recyclerview:recyclerview:1.4.0 /root/demo
+          src=$(find /root/demo/app/src/main/java -name 'ExtraActivity.*' | head -1)
+          printf '\n// TODO: ide-mark\n' >> "$src"
+          nibras-apk find ExtraActivity /root/demo | grep -q ExtraActivity
+          nibras-apk usages ExtraActivity /root/demo | grep -q ExtraActivity
+          nibras-apk todo /root/demo | grep -q ide-mark
+          nibras-apk outline "$src" | grep -q ExtraActivity
           test -f /root/demo/app/src/main/res/layout/activity_extra.xml
           test -f /root/demo/app/src/main/res/layout/activity_home.xml
           grep -q recyclerview /root/demo/app/build.gradle

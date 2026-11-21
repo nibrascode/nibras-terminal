@@ -134,7 +134,7 @@ nibras-apk screen list items MyApp
 nibras-apk dep androidx.recyclerview:recyclerview:1.4.0 MyApp
 ```
 
-The visual resource editor (`nibras-apk res`) lets you edit strings for every language in a table, change colors, replace icons and pictures from the gallery, and change the app name, package name and version. One tap then rebuilds, signs and installs the app. `nibras-apk studio` is the project screen: files, layout preview, run and new activities. Run installs on this phone. There is no emulator. `perms` edits permissions in your project. `db` and `crash` read another app only when it is a debug build you installed and wireless debugging is paired. Features that break other people's license checks or protection are intentionally not included.
+The visual resource editor (`nibras-apk res`) lets you edit strings for every language in a table, change colors, replace icons and pictures from the gallery, and change the app name, package name and version. One tap then rebuilds, signs and installs the app. `nibras-apk studio` is the project screen: files, layout preview, run and new activities. Find, usages, TODO and structure jump to a line in the editor. Problems jumps to the last Gradle error. Run installs on this phone. There is no emulator. `perms` edits permissions in your project. `db` and `crash` read another app only when it is a debug build you installed and wireless debugging is paired. Features that break other people's license checks or protection are intentionally not included.
 
 ## 11. Video, audio, downloads and documents
 
