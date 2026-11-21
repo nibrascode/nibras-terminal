@@ -57,11 +57,29 @@ pack_desc() {
     notes) say "Markdown notes in the terminal" "Terminalda Markdown qeydlər" "Terminalde Markdown notlar" "Заметки Markdown" ;;
     monitor) say "System monitor (htop, btop)" "Sistem monitoru (htop, btop)" "Sistem monitörü (htop, btop)" "Системный монитор" ;;
     security) say "Security tools (nmap, hydra, sqlmap…) for your own systems" "Təhlükəsizlik alətləri (yalnız öz sistemlərin üçün)" "Güvenlik araçları (sadece kendi sistemlerin için)" "Инструменты безопасности (для своих систем)" ;;
+    android-sdk) say "Android SDK + Gradle + JDK 17 for on-phone app builds (ACS style)" "Telefonda tətbiq yığmaq üçün Android SDK + Gradle + JDK 17" "Telefonda uygulama derlemek için Android SDK + Gradle + JDK 17" "Android SDK + Gradle + JDK 17 для сборки приложений" ;;
+    jdk) say "Java JDK (17 or 21): install jdk 21" "Java JDK (17 ya da 21): install jdk 21" "Java JDK (17 veya 21): install jdk 21" "Java JDK (17 или 21)" ;;
+    gradle) say "Gradle 8.11 (new enough for Android Gradle Plugin 8)" "Gradle 8.11 (Android Gradle Plugin 8 üçün)" "Gradle 8.11 (AGP 8 için)" "Gradle 8.11 (для AGP 8)" ;;
+    ndk) say "C/C++ for Android: clang, cmake, ninja (+ notes)" "Android üçün C/C++: clang, cmake, ninja" "Android için C/C++: clang, cmake, ninja" "C/C++: clang, cmake, ninja" ;;
+    java) say "Java + Kotlin + Maven" "Java + Kotlin + Maven" "Java + Kotlin + Maven" "Java + Kotlin + Maven" ;;
+    php) say "PHP + Composer" "PHP + Composer" "PHP + Composer" "PHP + Composer" ;;
+    ruby) say "Ruby + gems + bundler" "Ruby + gem + bundler" "Ruby + gem + bundler" "Ruby + bundler" ;;
+    perl) say "Perl + cpanminus" "Perl + cpanminus" "Perl + cpanminus" "Perl + cpanminus" ;;
+    lua) say "Lua + LuaRocks" "Lua + LuaRocks" "Lua + LuaRocks" "Lua + LuaRocks" ;;
+    zsh) say "Zsh + Oh My Zsh (+ autosuggestions, highlighting)" "Zsh + Oh My Zsh (+ təkliflər, rəngləmə)" "Zsh + Oh My Zsh" "Zsh + Oh My Zsh" ;;
+    fish) say "fish shell (friendly, autosuggestions)" "fish shell (rahat, təkliflər)" "fish kabuğu" "оболочка fish" ;;
+    editors) say "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" ;;
+    tmux) say "tmux + screen (split terminals, detach)" "tmux + screen (bölünmüş terminal)" "tmux + screen" "tmux + screen" ;;
+    code-server) say "VS Code in the browser (code-server)" "Brauzerdə VS Code (code-server)" "Tarayıcıda VS Code" "VS Code в браузере" ;;
+    jupyter) say "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" ;;
+    adb) say "adb + fastboot (control phones / this phone over Wi-Fi)" "adb + fastboot" "adb + fastboot" "adb + fastboot" ;;
+    metasploit) say "Metasploit Framework (in the Kali environment)" "Metasploit Framework (Kali mühitində)" "Metasploit (Kali ortamında)" "Metasploit (в Kali)" ;;
+    x11) say "Linux desktop (XFCE over VNC, opens in the app)" "Linux masaüstü (XFCE, tətbiqdə açılır)" "Linux masaüstü (XFCE)" "Рабочий стол Linux (XFCE)" ;;
     office) say "Documents: pandoc, Markdown → PDF/DOCX" "Sənədlər: pandoc, Markdown → PDF/DOCX" "Belgeler: pandoc, Markdown → PDF/DOCX" "Документы: pandoc" ;;
     *) return 1 ;;
   esac
 }
-PACKS="arch fedora kali debian ubuntu lsp video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
+PACKS="arch fedora kali debian ubuntu lsp android-sdk jdk gradle ndk java php ruby perl lua zsh fish editors tmux code-server jupyter adb metasploit x11 video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
 
 install_pack() {
   p=$1
@@ -78,7 +96,7 @@ install_pack() {
     pdf) need qpdf gs pdfinfo ;;
     download) need python3 ffmpeg aria2c curl; install_ytdlp ;;
     web) need python3 ;;
-    git) need git ssh ;;
+    git) need git ssh; nibras-need lazygit >/dev/null 2>&1 || install_lazygit || true; nibras-need tig >/dev/null 2>&1 || true ;;
     python|py) need python3 pip3; is_alpine && apk add py3-virtualenv >/dev/null 2>&1; true ;;
     node) need node ;;
     dev) need gcc g++ make; nibras-need cmake go rustc >/dev/null || true ;;
@@ -100,6 +118,42 @@ install_pack() {
     notes) nibras-need glow >/dev/null 2>&1 || true ;;
     monitor) need htop; nibras-need btop >/dev/null 2>&1 || true ;;
     security) need nmap; for t in hydra sqlmap nikto john hashcat aircrack-ng; do nibras-need "$t" >/dev/null 2>&1; done; true ;;
+    android-sdk|sdk|acs) nibras-apk setup --sdk && nibras-apk gradle ;;
+    jdk) nibras-apk jdk 17 ;;
+    gradle) nibras-apk gradle ;;
+    ndk) for t in clang cmake ninja make; do nibras-need "$t" >/dev/null 2>&1 || true; done
+      say "Ready: clang/cmake/ninja build native code for this phone (CMake projects, JNI .so for arm64/arm). Google's official NDK ships only x86_64 host tools, so Gradle externalNativeBuild needs prebuilt .so files in app/src/main/jniLibs/." \
+          "Hazırdır: clang/cmake/ninja bu telefon üçün native kod yığır (.so). Google-un rəsmi NDK-sı yalnız x86_64 üçündür, ona görə Gradle-də hazır .so faylları app/src/main/jniLibs/ qovluğuna qoyulur." \
+          "Hazır: clang/cmake/ninja bu telefon için native kod derler. Resmi NDK sadece x86_64; Gradle için .so dosyalarını app/src/main/jniLibs/ içine koyun." \
+          "Готово: clang/cmake/ninja. Официальный NDK только для x86_64; готовые .so кладите в app/src/main/jniLibs/." ;;
+    java) nibras-apk jdk; nibras-need mvn >/dev/null 2>&1 || nibras-need maven >/dev/null 2>&1 || true; nibras-need kotlin >/dev/null 2>&1 || nibras-need kotlinc >/dev/null 2>&1 || true ;;
+    php) need php; nibras-need composer >/dev/null 2>&1 || { has curl && curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer; } || true ;;
+    ruby) need ruby; nibras-need gem >/dev/null 2>&1 || true; gem install bundler --no-document >/dev/null 2>&1 || true ;;
+    perl) need perl; nibras-need cpanm >/dev/null 2>&1 || nibras-need cpanminus >/dev/null 2>&1 || true ;;
+    lua) nibras-need lua5.4 >/dev/null 2>&1 || nibras-need lua >/dev/null 2>&1 || need lua5.3; nibras-need luarocks >/dev/null 2>&1 || true ;;
+    zsh) need zsh git curl
+      [ -d "$HOME/.oh-my-zsh" ] || RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      c=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins
+      [ -d "$c/zsh-autosuggestions" ] || git clone -q --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$c/zsh-autosuggestions"
+      [ -d "$c/zsh-syntax-highlighting" ] || git clone -q --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$c/zsh-syntax-highlighting"
+      [ -f "$HOME/.zshrc" ] && sed -i 's/^plugins=(git)$/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
+      nibras-shell zsh ;;
+    fish) need fish; nibras-shell fish ;;
+    editors) for t in vim nvim nano micro emacs; do nibras-need "$t" >/dev/null 2>&1 || true; done ;;
+    tmux) need tmux; nibras-need screen >/dev/null 2>&1 || true ;;
+    code-server) need curl
+      if ! has code-server; then
+        v=4.96.4; a=$(uname -m); case "$a" in aarch64) a=arm64 ;; armv7l|armv8l|arm*) a=armv7l ;; x86_64) a=amd64 ;; esac
+        curl -fL "https://github.com/coder/code-server/releases/download/v$v/code-server-$v-linux-$a.tar.gz" | tar -xz -C /opt && ln -sf "/opt/code-server-$v-linux-$a/bin/code-server" /usr/local/bin/code-server
+      fi
+      say "Start: code-server --auth none --bind-addr 127.0.0.1:8080  → open http://127.0.0.1:8080" "Başlat: code-server --auth none --bind-addr 127.0.0.1:8080  → http://127.0.0.1:8080" "Başlat: code-server --auth none --bind-addr 127.0.0.1:8080" "Запуск: code-server --auth none --bind-addr 127.0.0.1:8080" ;;
+    jupyter) need python3 pip3; pip3 install -q jupyterlab notebook --break-system-packages 2>/dev/null || pip3 install -q jupyterlab notebook
+      say "Start: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Başlat: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Başlat: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Запуск: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" ;;
+    adb) need adb; nibras-need fastboot >/dev/null 2>&1 || true ;;
+    metasploit)
+      if grep -qi kali /etc/os-release 2>/dev/null; then DEBIAN_FRONTEND=noninteractive apt-get install -y metasploit-framework
+      else say "Metasploit is packaged by Kali: install kali, then in Kali run: install metasploit" "Metasploit Kali-də hazırdır: install kali, sonra Kali-də: install metasploit" "Metasploit Kali'de paketli: install kali, sonra Kali'de: install metasploit" "Metasploit есть в Kali: install kali, затем install metasploit"; return 1; fi ;;
+    x11) nibras-desktop install ;;
     office) need pandoc ;;
     *) die "$(say "Unknown pack: $p" "Naməlum paket: $p" "Bilinmeyen paket: $p" "Неизвестный пакет: $p")" ;;
   esac && printf '\033[32m✓ %s\033[0m\n' "$(say "Ready: $p" "Hazırdır: $p" "Hazır: $p" "Готово: $p")"
@@ -121,6 +175,12 @@ lsp_install() {
       "LSP готов: открывайте  hx <файл>  (helix) или nvim; в редакторе Nibras есть 🩺 Проверить код."
 }
 
+install_lazygit() { # full-screen Git client (stage, commit, push, branches, diff, merge) — the compact ACS Git UI
+  has lazygit && return 0
+  v=0.44.1; a=$(uname -m); case "$a" in aarch64) a=arm64 ;; armv7l|armv8l|arm*) a=armv6 ;; x86_64) a=x86_64 ;; esac
+  curl -fL "https://github.com/jesseduffield/lazygit/releases/download/v$v/lazygit_${v}_Linux_$a.tar.gz" | tar -xz -C /usr/local/bin lazygit
+}
+
 install_ytdlp() {
   has yt-dlp && return 0
   say "Downloading yt-dlp…" "yt-dlp yüklənir…" "yt-dlp indiriliyor…" "Загрузка yt-dlp…"
@@ -135,7 +195,9 @@ cmd_install() {
     say "Any other Linux package: pkg install <name>" "Başqa istənilən Linux paketi: pkg install <ad>" "Başka herhangi bir paket: pkg install <ad>" "Любой другой пакет: pkg install <имя>"
     return
   fi
+  case "${1:-}:${2:-}" in jdk:1[0-9]|jdk:2[0-9]) nibras-apk jdk "$2"; return ;; esac
   for p in "$@"; do
+    case "$p" in sdk|acs|android) p=android-sdk ;; neovim|vim|nano|emacs|micro) pkg install "$p"; continue ;; esac
     if pack_desc "$p" >/dev/null; then install_pack "$p"; else pkg install "$p"; fi
   done
 }
@@ -338,7 +400,11 @@ cmd_web() {
 cmd_git() {
   need git; a=${1:-help}; [ $# -gt 0 ] && shift
   case "$a" in
-    help) echo "git: get <url> · save \"message\" · sync · undo · log · setup"; ;;
+    help) echo "git: ui (lazygit) · get <url> · save \"message\" · sync · undo · log · branch · diff · status · setup"; ;;
+    ui) has lazygit || install_lazygit || die lazygit; exec lazygit ;;
+    branch) git branch -a ;;
+    diff) git diff --stat; git diff ;;
+    status|st) git status -sb ;;
     get) run git clone --depth 1 "$@" ;;
     save) git add -A && git commit -m "${1:-update $(date +%F)}" ;;
     sync) git pull --rebase && git push ;;

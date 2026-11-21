@@ -14,6 +14,12 @@
 #   nibras-apk verify <app.apk>       apksigner verify --print-certs
 #   nibras-apk align <app.apk>        zipalign -p 4
 #   nibras-apk dex <classes.jar|dir> [out]   d8 → classes.dex
+#   nibras-apk new <dir> [package] [--template basic|views|kotlin|compose|library]   project templates
+#   nibras-apk install [app.apk|dir]  open Android's installer for the built APK
+#   nibras-apk run [dir]              build → install → launch (like ACS ▶ Run)
+#   nibras-apk logcat [package]       app logs (full logcat through nibras-adb when paired)
+#   nibras-apk clean|tasks|deps [dir] gradle clean / task list / dependency tree
+#   nibras-apk jdk [17|21] · gradle · templates
 set -e
 TOOLS=/opt/nibras-apk
 SDK=/opt/android-sdk
@@ -30,11 +36,28 @@ fetch() { # url sha256 out
   if [ -n "$2" ]; then echo "$2  $3" | sha256sum -c - >/dev/null || { echo "SHA-256 mismatch: $3"; rm -f "$3"; exit 1; }; fi
 }
 jdk() {
-  command -v javac >/dev/null 2>&1 && return
-  if command -v apk >/dev/null 2>&1; then apk add openjdk17-jdk curl unzip
-  else export DEBIAN_FRONTEND=noninteractive; ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update
-    apt-get install -y --no-install-recommends openjdk-17-jdk-headless curl unzip ca-certificates; fi
+  v=${1:-17}
+  if command -v javac >/dev/null 2>&1 && [ -z "${1:-}" ]; then return; fi
+  if command -v apk >/dev/null 2>&1; then apk add "openjdk$v-jdk" curl unzip
+  elif command -v apt-get >/dev/null 2>&1; then export DEBIAN_FRONTEND=noninteractive; ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update
+    apt-get install -y --no-install-recommends "openjdk-$v-jdk-headless" curl unzip ca-certificates
+  elif command -v pacman >/dev/null 2>&1; then pacman -S --needed --noconfirm "jdk$v-openjdk" curl unzip
+  elif command -v dnf >/dev/null 2>&1; then dnf install -y "java-$v-openjdk-devel" curl unzip; fi
+  javac -version
 }
+GRADLE_VER=8.11.1
+gradle_dist() { # Gradle new enough for AGP 8.x (distro packages are often too old)
+  [ -x "/opt/gradle/bin/gradle" ] && return
+  jdk; fetch "https://services.gradle.org/distributions/gradle-$GRADLE_VER-bin.zip" f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6 /tmp/gradle.zip
+  rm -rf /opt/gradle "/opt/gradle-$GRADLE_VER"; unzip -q /tmp/gradle.zip -d /opt; mv "/opt/gradle-$GRADLE_VER" /opt/gradle; rm -f /tmp/gradle.zip
+  ln -sf /opt/gradle/bin/gradle /usr/local/bin/gradle
+  mkdir -p "$HOME/.gradle"; p="$HOME/.gradle/gradle.properties"
+  for kv in "org.gradle.jvmargs=-Xmx1536m -Dfile.encoding=UTF-8" "org.gradle.vfs.watch=false" "org.gradle.parallel=false" "kotlin.compiler.execution.strategy=in-process"; do
+    grep -q "^${kv%%=*}=" "$p" 2>/dev/null || echo "$kv" >> "$p"; done
+  echo "✓ Gradle $GRADLE_VER"
+}
+apk_out() { find "${1:-.}" -path '*/build/outputs/apk/*' -name '*.apk' 2>/dev/null | xargs ls -t 2>/dev/null | head -n 1; }
+app_id() { grep -hoE "applicationId[ =(]*['\"][^'\"]+" "${1:-.}"/app/build.gradle* 2>/dev/null | head -1 | sed -E "s/.*['\"]//"; }
 setup() {
   jdk
   command -v curl >/dev/null 2>&1 || nibras-need curl; command -v unzip >/dev/null 2>&1 || nibras-need unzip
@@ -86,43 +109,225 @@ apksigner_() { java -jar "$SDK/build-tools/$BT/lib/apksigner.jar" "$@"; }
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
   setup) setup "$@" ;;
+  templates) echo "basic    Java, no libraries (fastest first build)"
+    echo "views    Java + XML layout (activity_main.xml) + button"
+    echo "kotlin   Kotlin + XML layout + AndroidX AppCompat/Material"
+    echo "compose  Kotlin + Jetpack Compose (Material 3)"
+    echo "library  Android library module (AAR)" ;;
+  jdk) jdk "${1:-17}" ;;
+  gradle) gradle_dist ;;
   new)
-    dir="${1:?nibras-apk new <dir> [package]}"; pkg="${2:-com.example.app}"; p=$(echo "$pkg" | tr . /)
-    mkdir -p "$dir/app/src/main/java/$p" "$dir/app/src/main/res/values"
+    dir="${1:?nibras-apk new <dir> [package] [--template basic|views|kotlin|compose|library]}"; shift
+    pkg=com.example.app; tpl=basic
+    while [ $# -gt 0 ]; do case "$1" in --template|-t) tpl=$2; shift 2 ;; --*) tpl=${1#--}; shift ;; *) pkg=$1; shift ;; esac; done
+    p=$(echo "$pkg" | tr . /); name=$(basename "$dir")
+    mkdir -p "$dir/app/src/main/java/$p" "$dir/app/src/main/res/values" "$dir/app/src/main/res/layout"
+    kotlin=; compose=; deps=
+    case "$tpl" in kotlin) kotlin=1; deps="implementation 'androidx.appcompat:appcompat:1.7.0'
+  implementation 'com.google.android.material:material:1.12.0'" ;;
+      compose) kotlin=1; compose=1 ;; basic|views|library) ;; *) echo "unknown template: $tpl (nibras-apk templates)"; exit 1 ;; esac
     cat > "$dir/settings.gradle" <<G
 pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
 dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+rootProject.name = '$name'
 include ':app'
 G
-    echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > "$dir/build.gradle"
-    cat > "$dir/app/build.gradle" <<G
-plugins { id 'com.android.application' }
-android { namespace '$pkg'; compileSdk 35
-  defaultConfig { applicationId '$pkg'; minSdk 21; targetSdk 35; versionCode 1; versionName '1.0' } }
-G
-    cat > "$dir/app/src/main/AndroidManifest.xml" <<G
+    {
+      echo "plugins {"
+      echo "  id 'com.android.$( [ "$tpl" = library ] && echo library || echo application)' version '8.7.3' apply false"
+      [ -n "$kotlin" ] && echo "  id 'org.jetbrains.kotlin.android' version '2.0.21' apply false"
+      [ -n "$compose" ] && echo "  id 'org.jetbrains.kotlin.plugin.compose' version '2.0.21' apply false"
+      echo "}"
+    } > "$dir/build.gradle"
+    {
+      echo "plugins {"
+      echo "  id 'com.android.$( [ "$tpl" = library ] && echo library || echo application)'"
+      [ -n "$kotlin" ] && echo "  id 'org.jetbrains.kotlin.android'"
+      [ -n "$compose" ] && echo "  id 'org.jetbrains.kotlin.plugin.compose'"
+      echo "}"
+      echo "android {"
+      echo "  namespace '$pkg'; compileSdk 35"
+      if [ "$tpl" = library ]; then echo "  defaultConfig { minSdk 21 }"
+      else echo "  defaultConfig { applicationId '$pkg'; minSdk 21; targetSdk 35; versionCode 1; versionName '1.0' }"; fi
+      echo "  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }"
+      [ -n "$kotlin" ] && echo "  kotlinOptions { jvmTarget = '17' }"
+      [ -n "$compose" ] && echo "  buildFeatures { compose true }"
+      echo "}"
+      echo "dependencies {"
+      [ -n "$deps" ] && echo "  $deps"
+      [ -n "$compose" ] && cat <<'D'
+  implementation platform('androidx.compose:compose-bom:2024.10.01')
+  implementation 'androidx.activity:activity-compose:1.9.3'
+  implementation 'androidx.compose.material3:material3'
+  implementation 'androidx.compose.ui:ui-tooling-preview'
+D
+      echo "}"
+    } > "$dir/app/build.gradle"
+    echo "<resources><string name=\"app_name\">$name</string></resources>" > "$dir/app/src/main/res/values/strings.xml"
+    printf 'android.useAndroidX=true\nandroid.nonTransitiveRClass=true\n' > "$dir/gradle.properties"
+    printf '.gradle/\nbuild/\napp/build/\nlocal.properties\n*.jks\n' > "$dir/.gitignore"
+    if [ "$tpl" = library ]; then
+      echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"/>' > "$dir/app/src/main/AndroidManifest.xml"
+      printf 'package %s;\n\npublic final class Library {\n    public static String hello() { return "Hello from %s"; }\n}\n' "$pkg" "$name" > "$dir/app/src/main/java/$p/Library.java"
+    else
+      theme=; [ "$tpl" = kotlin ] && theme=' android:theme="@style/Theme.Material3.DayNight"'
+      cat > "$dir/app/src/main/AndroidManifest.xml" <<G
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-  <application android:label="@string/app_name"><activity android:name=".MainActivity" android:exported="true">
-    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
-  </activity></application></manifest>
+    <application android:label="@string/app_name"$theme>
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
 G
-    echo "<resources><string name=\"app_name\">My App</string></resources>" > "$dir/app/src/main/res/values/strings.xml"
-    cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+      if [ "$tpl" = views ] || [ "$tpl" = kotlin ]; then cat > "$dir/app/src/main/res/layout/activity_main.xml" <<'G'
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Built with Nibras Terminal"
+        android:textSize="22sp" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Tap me" />
+</LinearLayout>
+G
+      fi
+      case "$tpl" in
+        basic) cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
 package $pkg;
+
 public class MainActivity extends android.app.Activity {
-  @Override protected void onCreate(android.os.Bundle b) { super.onCreate(b);
-    android.widget.TextView t = new android.widget.TextView(this); t.setText("Built with Nibras Terminal"); setContentView(t); }
+    @Override
+    protected void onCreate(android.os.Bundle b) {
+        super.onCreate(b);
+        android.widget.TextView t = new android.widget.TextView(this);
+        t.setText("Built with Nibras Terminal");
+        setContentView(t);
+    }
 }
 G
-    printf 'android.useAndroidX=true\n' > "$dir/gradle.properties"
-    echo "✓ $dir  →  nibras-apk build $dir" ;;
+          ;;
+        views) cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+package $pkg;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
+
+public class MainActivity extends Activity {
+    private int taps = 0;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        TextView title = findViewById(R.id.title);
+        Button button = findViewById(R.id.button);
+        button.setOnClickListener(v -> title.setText("Taps: " + (++taps)));
+    }
+}
+G
+          ;;
+        kotlin) cat > "$dir/app/src/main/java/$p/MainActivity.kt" <<G
+package $pkg
+
+import android.os.Bundle
+import android.widget.Button
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    private var taps = 0
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        val title = findViewById<TextView>(R.id.title)
+        findViewById<Button>(R.id.button).setOnClickListener { title.text = "Taps: \${++taps}" }
+    }
+}
+G
+          ;;
+        compose) cat > "$dir/app/src/main/java/$p/MainActivity.kt" <<G
+package $pkg
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { MaterialTheme { Greeting() } }
+    }
+}
+
+@Composable
+fun Greeting() {
+    var taps by remember { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Built with Nibras Terminal", style = MaterialTheme.typography.headlineSmall)
+        Button(onClick = { taps++ }, modifier = Modifier.padding(top = 16.dp)) { Text("Taps: \$taps") }
+    }
+}
+G
+          ;;
+      esac
+    fi
+    gradle_dist && (cd "$dir" && gradle -q wrapper --gradle-version "$GRADLE_VER" >/dev/null 2>&1) || true
+    command -v git >/dev/null 2>&1 && (cd "$dir" && git init -q && git add -A && git -c user.name=Nibras -c user.email=nibras@localhost commit -qm "New $tpl project" 2>/dev/null) || true
+    echo "✓ $dir ($tpl)  →  nibras-apk run $dir" ;;
   build)
     dir="${1:-.}"; task="${2:-assembleDebug}"; [ -f "$SDK/build-tools/$BT/aapt2" ] || setup --sdk
     cd "$dir"; [ -f local.properties ] || echo "sdk.dir=$SDK" > local.properties
-    if [ -x ./gradlew ]; then ./gradlew "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
-    else nibras-need gradle || { command -v apk >/dev/null && apk add gradle; }
-      gradle "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"; fi
-    find . -path '*/build/outputs/*' \( -name '*.apk' -o -name '*.aab' \) -newer local.properties 2>/dev/null | sed 's/^/✓ /' ;;
+    if [ -x ./gradlew ]; then G=./gradlew; else gradle_dist; G=/opt/gradle/bin/gradle; fi
+    $G "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
+    find . -path '*/build/outputs/*' \( -name '*.apk' -o -name '*.aab' -o -name '*.aar' \) -newer local.properties 2>/dev/null | sed 's/^/✓ /' ;;
+  clean|tasks|deps|dependencies) dir="${1:-.}"; cd "$dir"; [ -x ./gradlew ] && G=./gradlew || { gradle_dist; G=/opt/gradle/bin/gradle; }
+    case "$cmd" in clean) $G clean ;; tasks) $G tasks ;; *) $G :app:dependencies --configuration debugRuntimeClasspath ;; esac ;;
+  install|i)
+    t="${1:-.}"; [ -d "$t" ] && t=$(apk_out "$t")
+    [ -f "$t" ] || { echo "no APK found — build first: nibras-apk build"; exit 1; }
+    nibras-api install-apk "$(readlink -f "$t")" ;;
+  run)
+    dir="${1:-.}"; "$0" build "$dir" assembleDebug
+    a=$(apk_out "$dir"); [ -n "$a" ] || exit 1
+    nibras-api install-apk "$(readlink -f "$a")"
+    id=$(app_id "$dir")
+    if [ -n "$id" ]; then
+      echo "After installing, starting $id …"
+      for i in $(seq 1 60); do sleep 2; nibras-api am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -p "$id" >/dev/null 2>&1 && { echo "▶ $id"; break; }; done
+    fi ;;
+  logcat)
+    if command -v adb >/dev/null 2>&1 && adb get-state >/dev/null 2>&1; then
+      if [ -n "${1:-}" ]; then pid=$(adb shell pidof "$1" | tr -d '\r'); [ -n "$pid" ] && exec adb logcat --pid="$pid" -v color; fi
+      exec adb logcat -v color
+    fi
+    echo "(Without nibras-adb pairing Android shows only Nibras Terminal's own log. Pair once: nibras-adb pair)" >&2
+    exec nibras-tools logcat -v color ;;
   decompile|d) need apktool; in="${1:?apk}"; out="${2:-${in%.apk}}"; apktool d -f "$in" -o "$out" && echo "✓ $out" ;;
   recompile|b) need apktool; dir="${1:?dir}"; out="${2:-${dir%/}-mod.apk}"; apktool b "$dir" -o "$out.unsigned.apk"
     "$0" align "$out.unsigned.apk" >/dev/null; mv "$out.unsigned.apk" "$out"; "$0" sign "$out" ;;
@@ -139,5 +344,5 @@ G
   verify) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; apksigner_ verify -v --print-certs "${1:?apk}" ;;
   dex|d8) [ -f "$SDK/build-tools/$BT/lib/d8.jar" ] || setup; in="${1:?jar}"; out="${2:-.}"; mkdir -p "$out"
     java -cp "$SDK/build-tools/$BT/lib/d8.jar" com.android.tools.r8.D8 --min-api 21 --output "$out" "$in" && echo "✓ $out/classes.dex" ;;
-  help|-h|--help|*) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
+  help|-h|--help|*) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

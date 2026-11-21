@@ -160,6 +160,18 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 main.post { host.newSession(id, if (cmd.isEmpty()) null else listOf("/bin/sh", "-c", cmd)) }
                 "OK\n${Rootfs.name(id)}: opened in a new session"
             }
+            "install-apk" -> {
+                val f = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), args.let { if (it.startsWith("/")) it else "$pwd/$it" })
+                if (f == null || !f.isFile) return "ERR\nno such APK: $args"
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    ui { context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    return "ERR\nAllow \"Install unknown apps\" for Nibras Terminal (screen opened), then run again"
+                }
+                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", f)
+                ui { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                "OK\nAndroid installer opened for ${f.name}"
+            }
             "environments" -> ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "nfc" -> {
                 val r = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "nfc", words(raw)))
