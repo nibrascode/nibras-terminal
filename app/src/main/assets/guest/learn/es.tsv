@@ -1,0 +1,43 @@
+title.linux	Fundamentos de Linux
+title.shell	La shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android y APK
+linux.1	pwd muestra la carpeta en la que estás. Tarea: muestra tu carpeta actual.
+linux.2	mkdir crea una carpeta. Tarea: crea una carpeta llamada notes.
+linux.3	echo imprime texto y > lo escribe en un archivo. Tarea: escribe cualquier texto en notes/a.txt.
+linux.4	cat muestra el contenido de un archivo. Tarea: muestra notes/a.txt.
+linux.5	cp copia un archivo. Tarea: copia notes/a.txt a notes/b.txt.
+linux.6	ls lista archivos; ls -l añade detalles. Tarea: lista la carpeta notes.
+shell.1	wc -l cuenta líneas. Tarea: cuenta las líneas de notes/a.txt.
+shell.2	Una tubería | pasa la salida de un comando a otro. Tarea: cuenta los archivos de notes con ls y wc -l.
+shell.3	>> añade al final del archivo en lugar de reemplazarlo. Tarea: añade una segunda línea a notes/a.txt.
+shell.4	Las variables guardan valores: NAME=Ali; luego $NAME lo usa. Tarea: define una variable y muéstrala con echo en una línea (usa ;).
+shell.5	grep encuentra líneas que contienen una palabra. Tarea: busca una palabra en notes/a.txt.
+shell.6	Un script es un archivo de comandos; chmod +x lo hace ejecutable. Tarea: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git guarda la historia de un proyecto. Tarea: crea un repositorio: git init proj
+git.2	Todo proyecto necesita un README. Tarea: escribe una línea en proj/README.md (echo … > proj/README.md).
+git.3	git add prepara un cambio. Tarea: git -C proj add README.md
+git.4	git commit guarda el cambio preparado en la historia. Tarea: git -C proj commit -m "primer commit"
+git.5	git log muestra la historia. Tarea: muestra el registro de proj (git -C proj log --oneline).
+python.1	python3 -c ejecuta una línea de Python. Tarea: imprime el resultado de 2+3 con python3 -c.
+python.2	Los programas de Python van en archivos .py. Tarea: crea hello.py que imprima un saludo (echo 'print("Hola")' > hello.py).
+python.3	Ejecuta un programa con python3 archivo.py. Tarea: ejecuta hello.py.
+python.4	for … in range(n) repite. Tarea: imprime 0, 1, 2 con un bucle for en python3 -c.
+web.1	curl habla con servidores web; -I muestra solo las cabeceras. Tarea: curl -I https://example.com
+web.2	-o guarda la página en un archivo. Tarea: guarda https://example.com como page.html con curl.
+web.3	Cada página tiene un <title>. Tarea: encuéntralo con grep title page.html
+web.4	Un sitio web son solo archivos HTML. Tarea: mkdir -p site && echo '<h1>Hola</h1>' > site/index.html (luego prueba: web site)
+android.1	nibras-apk compila y abre apps de Android en el propio teléfono. Tarea: muestra su ayuda.
+android.2	Los comandos nibras-* hablan con el teléfono. Tarea: muestra el estado de la batería.
+android.3	Tarea: muestra un mensaje breve en pantalla con nibras-toast.
+android.4	nibras-apk new crea un proyecto de app que puedes compilar aquí (nibras-apk build). Tarea: escribe el comando que crea un proyecto llamado MyApp.
+ui.intro	Lecciones interactivas: escribe el comando real de cada tarea. q = salir, s = saltar, h = pista.
+ui.choose	Elige un curso (número), r = reiniciar progreso, q = salir:
+ui.done	¡Curso terminado!
+ui.again	No del todo — inténtalo de nuevo (h = pista, s = saltar, q = salir)
+ui.ok	¡Correcto!
+ui.hint	Pista: el comando empieza por
+ui.progress	Progreso
+ui.lab	Tu carpeta de práctica:

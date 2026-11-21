@@ -102,4 +102,21 @@
     <string name="hosts_title">Hosts SSH</string>
     <string name="hosts_connect">Conectar</string>
     <string name="hosts_add">Adicionar</string>
+    <string name="scripts_title">Scripts</string>
+    <string name="scripts_hint">Pequenos scripts prontos. Leia o código e depois instale — cada um é conferido pela soma de verificação.</string>
+    <string name="scripts_search">Buscar scripts</string>
+    <string name="scripts_all">Todos</string>
+    <string name="scripts_install">Instalar</string>
+    <string name="scripts_source">Código</string>
+    <string name="scripts_run">Instalar e executar</string>
+    <string name="tool_learn">Aprender</string>
+    <string name="tool_remote">Remoto</string>
+    <string name="widget_status_label">Status dos servidores</string>
+    <string name="widget_status_empty">Adicione servidores no terminal: servers add meusite https://example.com</string>
+    <string name="widget_prayer_label">Horários de oração</string>
+    <string name="widget_prayer_empty">Defina sua cidade no terminal: prayer city Lisboa</string>
+    <string name="remote_title">Terminal remoto</string>
+    <string name="remote_note">Abra no computador (mesma Wi-Fi, link de uso único):\n%1$s</string>
+    <string name="remote_stop">Parar</string>
+    <string name="remote_used">Este link já foi usado ou expirou. Execute “remote” no Nibras Terminal para obter um novo.</string>
 </resources>

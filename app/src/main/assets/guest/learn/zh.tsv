@@ -1,0 +1,43 @@
+title.linux	Linux 基础
+title.shell	Shell 命令行
+title.git	Git
+title.python	Python
+title.web	网页
+title.android	Android 与 APK
+linux.1	pwd 显示你所在的文件夹。任务：显示当前文件夹。
+linux.2	mkdir 创建文件夹。任务：创建名为 notes 的文件夹。
+linux.3	echo 输出文字，> 把它写入文件。任务：向 notes/a.txt 写入任意文字。
+linux.4	cat 显示文件内容。任务：显示 notes/a.txt。
+linux.5	cp 复制文件。任务：把 notes/a.txt 复制为 notes/b.txt。
+linux.6	ls 列出文件；ls -l 显示详情。任务：列出 notes 文件夹。
+shell.1	wc -l 统计行数。任务：统计 notes/a.txt 的行数。
+shell.2	管道 | 把一个命令的输出交给另一个命令。任务：用 ls 和 wc -l 统计 notes 中的文件数。
+shell.3	>> 追加到文件末尾而不是覆盖。任务：给 notes/a.txt 添加第二行。
+shell.4	变量保存值：NAME=Ali; 然后用 $NAME 取值。任务：在一行中设置变量并用 echo 输出（用 ; 分隔）。
+shell.5	grep 查找包含某个词的行。任务：在 notes/a.txt 中搜索一个词。
+shell.6	脚本就是一组命令的文件；chmod +x 让它可执行。任务：echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git 记录项目的历史。任务：创建仓库：git init proj
+git.2	每个项目都需要 README。任务：向 proj/README.md 写一行（echo … > proj/README.md）。
+git.3	git add 把修改加入暂存区。任务：git -C proj add README.md
+git.4	git commit 把暂存的修改存入历史。任务：git -C proj commit -m "first commit"
+git.5	git log 显示历史。任务：显示 proj 的日志（git -C proj log --oneline）。
+python.1	python3 -c 运行一行 Python。任务：用 python3 -c 输出 2+3 的结果。
+python.2	Python 程序保存在 .py 文件中。任务：创建输出问候语的 hello.py（echo 'print("你好")' > hello.py）。
+python.3	用 python3 文件.py 运行程序。任务：运行 hello.py。
+python.4	for … in range(n) 用于重复。任务：在 python3 -c 中用 for 循环输出 0、1、2。
+web.1	curl 与网页服务器通信；-I 只显示响应头。任务：curl -I https://example.com
+web.2	-o 把页面保存到文件。任务：用 curl 把 https://example.com 保存为 page.html。
+web.3	每个页面都有 <title>。任务：用 grep title page.html 找到它。
+web.4	网站就是一些 HTML 文件。任务：mkdir -p site && echo '<h1>你好</h1>' > site/index.html（然后试试：web site）
+android.1	nibras-apk 直接在手机上构建并打开 Android 应用。任务：显示它的帮助。
+android.2	nibras-* 命令与手机交互。任务：显示电池状态。
+android.3	任务：用 nibras-toast 在屏幕上显示一条短消息。
+android.4	nibras-apk new 创建可在这里构建的应用项目（nibras-apk build）。任务：输入创建名为 MyApp 的项目的命令。
+ui.intro	互动课程：为每个任务输入真正的命令。q = 退出，s = 跳过，h = 提示。
+ui.choose	选择课程（编号），r = 重置进度，q = 退出：
+ui.done	课程完成！
+ui.again	还不对——再试一次（h = 提示，s = 跳过，q = 退出）
+ui.ok	正确！
+ui.hint	提示：命令以此开头
+ui.progress	进度
+ui.lab	你的练习文件夹：

@@ -102,4 +102,21 @@
     <string name="hosts_title">SSH होस्ट</string>
     <string name="hosts_connect">कनेक्ट करें</string>
     <string name="hosts_add">जोड़ें</string>
+    <string name="scripts_title">स्क्रिप्ट</string>
+    <string name="scripts_hint">छोटी तैयार स्क्रिप्ट। सोर्स पढ़ें, फिर इंस्टॉल करें — हर एक की चेकसम से जाँच होती है।</string>
+    <string name="scripts_search">स्क्रिप्ट खोजें</string>
+    <string name="scripts_all">सभी</string>
+    <string name="scripts_install">इंस्टॉल</string>
+    <string name="scripts_source">सोर्स</string>
+    <string name="scripts_run">इंस्टॉल करके चलाएँ</string>
+    <string name="tool_learn">सीखें</string>
+    <string name="tool_remote">रिमोट</string>
+    <string name="widget_status_label">सर्वर स्थिति</string>
+    <string name="widget_status_empty">टर्मिनल में सर्वर जोड़ें: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">नमाज़ के समय</string>
+    <string name="widget_prayer_empty">टर्मिनल में अपना शहर सेट करें: prayer city Delhi</string>
+    <string name="remote_title">रिमोट टर्मिनल</string>
+    <string name="remote_note">अपने कंप्यूटर पर खोलें (वही Wi-Fi, एक बार का लिंक):\n%1$s</string>
+    <string name="remote_stop">रोकें</string>
+    <string name="remote_used">यह लिंक पहले ही इस्तेमाल हो चुका है या समाप्त हो गया है। नया लिंक पाने के लिए Nibras Terminal में “remote” चलाएँ।</string>
 </resources>

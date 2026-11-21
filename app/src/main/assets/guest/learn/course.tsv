@@ -1,0 +1,30 @@
+# step	command-regex (ERE)	check after running (sh, in ~/learn-lab)	output-regex	flags	example
+linux.1	^pwd$				pwd
+linux.2	^mkdir( -p)? +notes/?$	[ -d notes ]			mkdir notes
+linux.3	^echo .+ >> ?notes/a\.txt$|^echo .+ > ?notes/a\.txt$	grep -q . notes/a.txt			echo hello > notes/a.txt
+linux.4	^cat +notes/a\.txt$				cat notes/a.txt
+linux.5	^cp +notes/a\.txt +notes/b\.txt$	[ -f notes/b.txt ]			cp notes/a.txt notes/b.txt
+linux.6	^ls( +-[a-zA-Z]+)? +notes/?$				ls -l notes
+shell.1	^wc +-l +notes/a\.txt$|^wc +-l *< *notes/a\.txt$				wc -l notes/a.txt
+shell.2	^ls.*\| *wc +-l$				ls notes | wc -l
+shell.3	^echo .+ >> ?notes/a\.txt$	[ "$(wc -l < notes/a.txt)" -ge 2 ]			echo second >> notes/a.txt
+shell.4	^[A-Za-z_]+=.+; *echo .*\$\{?[A-Za-z_]+				NAME=Ali; echo "Hi $NAME"
+shell.5	^grep( +-[a-zA-Z]+)* +[^ ]+ +notes/a\.txt$				grep hello notes/a.txt
+shell.6	chmod +(\+x|7[0-7][0-7]) +hi\.sh	[ -x hi.sh ]			echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	^git +init +proj$	[ -d proj/.git ]		need:git	git init proj
+git.2	> ?proj/README\.md$	[ -s proj/README.md ]			echo '# Demo' > proj/README.md
+git.3	^git +-C +proj +add	git -C proj diff --cached --name-only | grep -q README			git -C proj add README.md
+git.4	^git +-C +proj +commit +-m	git -C proj log --oneline 2>/dev/null | grep -q .			git -C proj commit -m "first commit"
+git.5	^git +-C +proj +log				git -C proj log --oneline
+python.1	^python3? +-c		^5$	need:python3	python3 -c "print(2+3)"
+python.2	> ?hello\.py$	[ -s hello.py ]			echo 'print("Hi")' > hello.py
+python.3	^python3? +hello\.py$				python3 hello.py
+python.4	^python3? +-c .*for .* in +range		2		python3 -c "for i in range(3): print(i)"
+web.1	^curl +(-[a-zA-Z]*I[a-zA-Z]*|--head) +https?://		HTTP	need:curl	curl -I https://example.com
+web.2	^curl .*-o +page\.html	[ -s page.html ]			curl -s https://example.com -o page.html
+web.3	^grep .*title.* page\.html$		title		grep title page.html
+web.4	site/index\.html	grep -qi '<h1' site/index.html			mkdir -p site && echo '<h1>Hello</h1>' > site/index.html
+android.1	^nibras-apk( +help| +-h)?$				nibras-apk help
+android.2	^(nibras|termux)-battery-status$				nibras-battery-status
+android.3	^(nibras|termux)-toast +.+				nibras-toast Hello
+android.4	^nibras-apk +new +[A-Za-z0-9_-]+			norun	nibras-apk new MyApp

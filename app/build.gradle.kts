@@ -100,3 +100,12 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
 }
+
+// Script store: catalog/scripts (index + scripts with sha256) is bundled as assets/scripts for offline browsing.
+val scriptStoreAssets = layout.buildDirectory.dir("generated/scriptStore")
+val copyScriptStore = tasks.register<Sync>("copyScriptStore") {
+    from(rootProject.file("catalog/scripts"))
+    into(scriptStoreAssets.map { it.dir("scripts") })
+}
+android.sourceSets.getByName("main").assets.srcDir(scriptStoreAssets)
+tasks.named("preBuild") { dependsOn(copyScriptStore) }

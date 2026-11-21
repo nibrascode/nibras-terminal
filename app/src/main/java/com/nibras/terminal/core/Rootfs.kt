@@ -134,6 +134,8 @@ object Rootfs {
         runCatching {
             val dir = f("usr/local/share/nibras/i18n").apply { mkdirs() }
             context.assets.list("guest/i18n")?.forEach { n -> writeReplacing(File(dir, n), guest(context, "i18n/$n")) }
+            val learn = f("usr/local/share/nibras/learn").apply { mkdirs() }
+            context.assets.list("guest/learn")?.forEach { n -> writeReplacing(File(learn, n), guest(context, "learn/$n")) }
         }
         for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish", "nibras-usb")) exe(f("usr/local/bin/$tool"), guest(context, tool))
         runCatching { Files.deleteIfExists(f("usr/local/bin/termux-usb").toPath()); Files.createSymbolicLink(f("usr/local/bin/termux-usb").toPath(), Paths.get("nibras-usb")) }
@@ -142,6 +144,12 @@ object Rootfs {
             runCatching { Files.deleteIfExists(f("usr/local/bin/$l").toPath()); Files.createSymbolicLink(f("usr/local/bin/$l").toPath(), Paths.get(t)) }
         exe(f("usr/local/bin/nibras-help"), guest(context, "nibras-help"))
         exe(f("usr/local/bin/nibras-alias"), guest(context, "nibras-alias"))
+        for (g in listOf("scripts", "remote", "learn")) exe(f("usr/local/bin/nibras-$g"), guest(context, "nibras-$g"))
+        // Script store catalog (catalog/scripts, copied into the APK at build time).
+        runCatching {
+            val dir = f("usr/local/share/nibras/scripts").apply { mkdirs() }
+            context.assets.list("scripts")?.forEach { n -> context.assets.open("scripts/$n").use { i -> File(dir, n).outputStream().use { i.copyTo(it) } } }
+        }
         for (cmd in API_COMMANDS) {
             // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.
             for (prefix in listOf("termux-", "nibras-")) {
@@ -180,7 +188,7 @@ object Rootfs {
             }
         }
         // Short names for app screens (last on PATH): edit, files, hosts, media builder.
-        for (cmd in listOf("edit", "files", "hosts")) runCatching {
+        for (cmd in listOf("edit", "files", "hosts", "scripts", "remote", "learn")) runCatching {
             val short = File(shortDir, cmd).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-$cmd"))
         }
         exe(f("usr/local/bin/nibras-look"), guest(context, "nibras-look"))
@@ -445,6 +453,7 @@ object Rootfs {
         "infrared-frequencies", "notification-channel", "sms-inbox", "tts-engines", "wifi-enable", "api-start", "api-stop",
         "install-apk", "env-list", "env-open", "environments", "lang", "apps", "install-apks", "res-edit",
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
+        "storage-put", "crypt", "remote-server", "widget-refresh", "app-data",
     )
 
     /** Termux core tools served by assets/guest/nibras-tools (termux-* and nibras-* names). */
@@ -454,9 +463,9 @@ object Rootfs {
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */
     val KIT_COMMANDS = listOf(
         "video", "audio", "image", "pdf", "download", "web", "py", "backup", "snapshot", "net", "share", "webterm",
-        "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "learn", "ask", "explain", "recipes", "fix", "trash",
+        "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "ask", "explain", "recipes", "fix", "trash",
         "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office", "media",
-        "lang", "run", "rtl",
+        "lang", "run", "rtl", "restore", "pin", "servers",
     )
     /** Look & feel commands (nibras-look): colored text, themes, fonts, prompt, banner, keys… */
     val LOOK_COMMANDS = listOf(

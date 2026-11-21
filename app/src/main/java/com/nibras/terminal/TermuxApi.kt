@@ -88,7 +88,7 @@ object TermuxApi {
         "media-player", "media-scan", "microphone-record", "notification", "notification-remove", "notification-list",
         "notification-channel", "sensor", "share", "sms-list", "sms-inbox", "sms-send", "telephony-call", "toast",
         "torch", "tts-engines", "tts-speak", "vibrate", "volume", "wifi-connectioninfo", "wifi-enable", "wifi-scaninfo",
-        "wallpaper", "open", "open-url", "info", "api-start", "api-stop", "storage-get", "dialog",
+        "wallpaper", "open", "open-url", "info", "api-start", "api-stop", "storage-get", "dialog", "storage-put", "crypt", "remote-server", "widget-refresh", "app-data",
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
     )
 
@@ -205,6 +205,11 @@ object TermuxApi {
         "info" -> info(c)
         "api-start", "api-stop" -> "Nibras API is built into the app; nothing to start or stop."
         "storage-get" -> storageGet(c)
+        "storage-put" -> storagePut(c)
+        "crypt" -> crypt(c)
+        "app-data" -> appData(c)
+        "remote-server" -> RemoteServer.command(c.context, c.envId, c.args)
+        "widget-refresh" -> { NibrasWidgets.refreshAll(c.context); "" }
         "dialog" -> dialog(c)
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm" -> saf(c, name)
         else -> throw Fail("unknown command: $name")
@@ -448,6 +453,66 @@ object TermuxApi {
         val target = c.host(c.args.firstOrNull() ?: throw Fail("usage: nibras-storage-get <output-file>"))
         val r = JSONObject(PromptActivity.ask(c.context, "storage-get", emptyList(), target))
         if (r.optInt("code") != -1) throw Fail(r.optString("text").ifBlank { "cancelled" })
+        return ""
+    }
+
+    /** nibras-storage-put <file> [suggested-name]: "Save as" picker (Drive, Downloads, USB…), copies the file there. */
+    private fun storagePut(c: Call): String {
+        val src = c.host(c.args.firstOrNull() ?: throw Fail("usage: nibras-storage-put <file> [name]"))
+        if (!src.isFile) throw Fail("no such file: ${c.args[0]}")
+        val r = JSONObject(PromptActivity.ask(c.context, "storage-put", listOf(c.args.getOrNull(1) ?: src.name), src))
+        if (r.optInt("code") != -1) throw Fail(r.optString("text").ifBlank { "cancelled" })
+        return r.optString("text")
+    }
+
+    /** nibras-crypt enc|dec <in> <out>, passphrase on stdin (AES-256-GCM, see BackupCrypt). */
+    private fun crypt(c: Call): String {
+        val mode = c.args.getOrNull(0); val a = c.args.getOrNull(1); val b = c.args.getOrNull(2)
+        if (mode !in setOf("enc", "dec") || a == null || b == null) throw Fail("usage: nibras-crypt enc|dec <in> <out>  (passphrase on stdin)")
+        val pass = (c.stdin?.let { String(it) } ?: "").trimEnd('\n', '\r').toCharArray()
+        if (pass.isEmpty()) throw Fail("passphrase needed on stdin")
+        try {
+            if (mode == "enc") BackupCrypt.encrypt(c.host(a), c.host(b), pass) else BackupCrypt.decrypt(c.host(a), c.host(b), pass)
+        } catch (e: IllegalArgumentException) { throw Fail(e.message ?: "failed") } finally { pass.fill(' ') }
+        return ""
+    }
+
+    /** nibras-app-data export|import <file.json>: saved hosts and app settings, for `backup drive`. */
+    private fun appData(c: Call): String {
+        val mode = c.args.getOrNull(0); val f = c.host(c.args.getOrNull(1) ?: throw Fail("usage: nibras-app-data export|import <file.json>"))
+        val prefsNames = listOf("nibras", "editor", "prayer")
+        val hosts = File(c.context.filesDir, "hosts.txt")
+        when (mode) {
+            "export" -> {
+                val o = JSONObject().put("format", "nibras-app-data-1").put("hosts", if (hosts.isFile) hosts.readText() else "")
+                val prefs = JSONObject()
+                for (n in prefsNames) {
+                    val p = JSONObject()
+                    for ((k, v) in c.context.getSharedPreferences(n, Context.MODE_PRIVATE).all) when (v) {
+                        is Boolean -> p.put(k, JSONObject().put("b", v)); is Int -> p.put(k, JSONObject().put("i", v))
+                        is Long -> p.put(k, JSONObject().put("l", v)); is Float -> p.put(k, JSONObject().put("f", v.toDouble()))
+                        is String -> if (!k.startsWith("times:")) p.put(k, JSONObject().put("s", v))
+                    }
+                    prefs.put(n, p)
+                }
+                f.writeText(o.put("prefs", prefs).toString())
+            }
+            "import" -> {
+                val o = JSONObject(f.readText())
+                if (o.optString("format") != "nibras-app-data-1") throw Fail("not a Nibras app-data file")
+                o.optString("hosts").takeIf { it.isNotBlank() }?.let { hosts.writeText(it) }
+                val prefs = o.optJSONObject("prefs") ?: JSONObject()
+                for (n in prefsNames) {
+                    val p = prefs.optJSONObject(n) ?: continue
+                    val e = c.context.getSharedPreferences(n, Context.MODE_PRIVATE).edit()
+                    for (k in p.keys()) { val v = p.getJSONObject(k)
+                        when { v.has("b") -> e.putBoolean(k, v.getBoolean("b")); v.has("i") -> e.putInt(k, v.getInt("i"))
+                            v.has("l") -> e.putLong(k, v.getLong("l")); v.has("f") -> e.putFloat(k, v.getDouble("f").toFloat()); v.has("s") -> e.putString(k, v.getString("s")) } }
+                    e.apply()
+                }
+            }
+            else -> throw Fail("usage: nibras-app-data export|import <file.json>")
+        }
         return ""
     }
 

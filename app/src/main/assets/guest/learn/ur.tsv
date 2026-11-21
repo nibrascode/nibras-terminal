@@ -1,0 +1,43 @@
+title.linux	لینکس کی بنیادی باتیں
+title.shell	شیل
+title.git	Git
+title.python	پائتھن
+title.web	ویب
+title.android	اینڈرائیڈ اور APK
+linux.1	pwd وہ فولڈر دکھاتا ہے جس میں آپ ہیں۔ کام: اپنا موجودہ فولڈر دکھائیں۔
+linux.2	mkdir فولڈر بناتا ہے۔ کام: notes نام کا فولڈر بنائیں۔
+linux.3	echo متن لکھتا ہے اور > اسے فائل میں لکھتا ہے۔ کام: notes/a.txt میں کوئی بھی متن لکھیں۔
+linux.4	cat فائل کے اندر کا مواد دکھاتا ہے۔ کام: notes/a.txt دکھائیں۔
+linux.5	cp فائل کاپی کرتا ہے۔ کام: notes/a.txt کو notes/b.txt میں کاپی کریں۔
+linux.6	ls فائلوں کی فہرست دیتا ہے؛ ls -l تفصیل بھی۔ کام: notes فولڈر کی فہرست دکھائیں۔
+shell.1	wc -l سطریں گنتا ہے۔ کام: notes/a.txt کی سطریں گنیں۔
+shell.2	پائپ | ایک کمانڈ کا آؤٹ پٹ دوسری کو دیتا ہے۔ کام: ls اور wc -l سے notes کی فائلیں گنیں۔
+shell.3	>> فائل بدلنے کے بجائے آخر میں جوڑتا ہے۔ کام: notes/a.txt میں دوسری سطر جوڑیں۔
+shell.4	ویری ایبل قدر رکھتے ہیں: NAME=Ali; پھر $NAME اسے استعمال کرتا ہے۔ کام: ایک سطر میں ویری ایبل بنائیں اور echo سے دکھائیں (; استعمال کریں)۔
+shell.5	grep کسی لفظ والی سطریں ڈھونڈتا ہے۔ کام: notes/a.txt میں کوئی لفظ تلاش کریں۔
+shell.6	اسکرپٹ کمانڈز کی فائل ہے؛ chmod +x اسے چلنے کے قابل بناتا ہے۔ کام: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git پروجیکٹ کی تاریخ رکھتا ہے۔ کام: ریپوزٹری بنائیں: git init proj
+git.2	ہر پروجیکٹ کو README چاہیے۔ کام: proj/README.md میں ایک سطر لکھیں (echo … > proj/README.md)۔
+git.3	git add تبدیلی کو اسٹیج پر رکھتا ہے۔ کام: git -C proj add README.md
+git.4	git commit اسٹیج کی تبدیلی تاریخ میں محفوظ کرتا ہے۔ کام: git -C proj commit -m "first commit"
+git.5	git log تاریخ دکھاتا ہے۔ کام: proj کی تاریخ دکھائیں (git -C proj log --oneline)۔
+python.1	python3 -c پائتھن کی ایک سطر چلاتا ہے۔ کام: python3 -c سے 2+3 کا نتیجہ پرنٹ کریں۔
+python.2	پائتھن پروگرام .py فائلوں میں ہوتے ہیں۔ کام: سلام پرنٹ کرنے والی hello.py بنائیں (echo 'print("Salam")' > hello.py)۔
+python.3	پروگرام python3 file.py سے چلائیں۔ کام: hello.py چلائیں۔
+python.4	for … in range(n) دہراتا ہے۔ کام: python3 -c میں for لوپ سے 0، 1، 2 پرنٹ کریں۔
+web.1	curl ویب سرورز سے بات کرتا ہے؛ -I صرف ہیڈرز دکھاتا ہے۔ کام: curl -I https://example.com
+web.2	-o صفحہ فائل میں محفوظ کرتا ہے۔ کام: curl سے https://example.com کو page.html کے نام سے محفوظ کریں۔
+web.3	ہر صفحے کا ایک <title> ہوتا ہے۔ کام: اسے grep title page.html سے تلاش کریں۔
+web.4	ویب سائٹ صرف HTML فائلیں ہیں۔ کام: mkdir -p site && echo '<h1>Salam</h1>' > site/index.html (پھر آزمائیں: web site)
+android.1	nibras-apk اینڈرائیڈ ایپس فون پر ہی بناتا اور کھولتا ہے۔ کام: اس کی مدد دکھائیں۔
+android.2	nibras-* کمانڈز فون سے بات کرتی ہیں۔ کام: بیٹری کی حالت دکھائیں۔
+android.3	کام: nibras-toast سے اسکرین پر مختصر پیغام دکھائیں۔
+android.4	nibras-apk new ایپ پروجیکٹ بناتا ہے جو یہیں بن سکتا ہے (nibras-apk build)۔ کام: MyApp نام کا پروجیکٹ بنانے والی کمانڈ لکھیں۔
+ui.intro	انٹرایکٹو اسباق: ہر کام کے لیے اصل کمانڈ لکھیں۔ q = باہر، s = چھوڑیں، h = اشارہ۔
+ui.choose	کورس منتخب کریں (نمبر)، r = پیش رفت ری سیٹ، q = باہر:
+ui.done	کورس مکمل!
+ui.again	بالکل نہیں — دوبارہ کوشش کریں (h = اشارہ، s = چھوڑیں، q = باہر)
+ui.ok	درست!
+ui.hint	اشارہ: کمانڈ یوں شروع ہوتی ہے
+ui.progress	پیش رفت
+ui.lab	آپ کا مشق فولڈر:

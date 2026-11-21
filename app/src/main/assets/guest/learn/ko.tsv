@@ -1,0 +1,43 @@
+title.linux	리눅스 기초
+title.shell	셸
+title.git	Git
+title.python	파이썬
+title.web	웹
+title.android	안드로이드와 APK
+linux.1	pwd는 현재 있는 폴더를 보여 줍니다. 과제: 현재 폴더를 표시하세요.
+linux.2	mkdir는 폴더를 만듭니다. 과제: notes라는 폴더를 만드세요.
+linux.3	echo는 글자를 출력하고 >는 그것을 파일에 씁니다. 과제: notes/a.txt에 아무 글이나 쓰세요.
+linux.4	cat은 파일 내용을 보여 줍니다. 과제: notes/a.txt를 표시하세요.
+linux.5	cp는 파일을 복사합니다. 과제: notes/a.txt를 notes/b.txt로 복사하세요.
+linux.6	ls는 파일 목록을, ls -l은 자세한 정보도 보여 줍니다. 과제: notes 폴더의 목록을 표시하세요.
+shell.1	wc -l은 줄 수를 셉니다. 과제: notes/a.txt의 줄 수를 세세요.
+shell.2	파이프 |는 한 명령의 출력을 다른 명령에 넘깁니다. 과제: ls와 wc -l로 notes의 파일 수를 세세요.
+shell.3	>>는 덮어쓰지 않고 파일 끝에 덧붙입니다. 과제: notes/a.txt에 두 번째 줄을 추가하세요.
+shell.4	변수는 값을 저장합니다: NAME=Ali; 다음 $NAME으로 사용합니다. 과제: 한 줄에서 변수를 정하고 echo로 출력하세요(; 사용).
+shell.5	grep은 단어가 들어 있는 줄을 찾습니다. 과제: notes/a.txt에서 단어를 검색하세요.
+shell.6	스크립트는 명령을 모아 둔 파일이고 chmod +x로 실행할 수 있게 됩니다. 과제: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git은 프로젝트의 기록을 관리합니다. 과제: 저장소 만들기: git init proj
+git.2	모든 프로젝트에는 README가 필요합니다. 과제: proj/README.md에 한 줄을 쓰세요(echo … > proj/README.md).
+git.3	git add는 변경 사항을 스테이지에 올립니다. 과제: git -C proj add README.md
+git.4	git commit은 스테이지의 변경을 기록에 저장합니다. 과제: git -C proj commit -m "first commit"
+git.5	git log는 기록을 보여 줍니다. 과제: proj의 로그를 표시하세요(git -C proj log --oneline).
+python.1	python3 -c는 파이썬 한 줄을 실행합니다. 과제: python3 -c로 2+3의 결과를 출력하세요.
+python.2	파이썬 프로그램은 .py 파일에 있습니다. 과제: 인사를 출력하는 hello.py를 만드세요(echo 'print("안녕")' > hello.py).
+python.3	프로그램은 python3 파일.py로 실행합니다. 과제: hello.py를 실행하세요.
+python.4	for … in range(n)은 반복합니다. 과제: python3 -c에서 for 반복문으로 0, 1, 2를 출력하세요.
+web.1	curl은 웹 서버와 통신하고 -I는 헤더만 보여 줍니다. 과제: curl -I https://example.com
+web.2	-o는 페이지를 파일로 저장합니다. 과제: curl로 https://example.com을 page.html로 저장하세요.
+web.3	모든 페이지에는 <title>이 있습니다. 과제: grep title page.html로 찾으세요.
+web.4	웹사이트는 HTML 파일일 뿐입니다. 과제: mkdir -p site && echo '<h1>안녕</h1>' > site/index.html (그다음 해 보기: web site)
+android.1	nibras-apk는 휴대폰에서 바로 안드로이드 앱을 빌드하고 엽니다. 과제: 도움말을 표시하세요.
+android.2	nibras-* 명령은 휴대폰과 통신합니다. 과제: 배터리 상태를 표시하세요.
+android.3	과제: nibras-toast로 화면에 짧은 메시지를 표시하세요.
+android.4	nibras-apk new는 여기서 빌드할 수 있는 앱 프로젝트를 만듭니다(nibras-apk build). 과제: MyApp이라는 프로젝트를 만드는 명령을 입력하세요.
+ui.intro	대화형 수업: 각 과제에 실제 명령을 입력하세요. q = 종료, s = 건너뛰기, h = 힌트.
+ui.choose	과정 선택(번호), r = 진도 초기화, q = 종료:
+ui.done	과정 완료!
+ui.again	아직 아니에요 — 다시 해 보세요(h = 힌트, s = 건너뛰기, q = 종료)
+ui.ok	정답!
+ui.hint	힌트: 명령은 이렇게 시작합니다
+ui.progress	진도
+ui.lab	연습 폴더:

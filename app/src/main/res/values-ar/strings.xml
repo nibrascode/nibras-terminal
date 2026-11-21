@@ -289,4 +289,21 @@
     <string name="res_app_name">اسم التطبيق</string>
     <string name="res_package">اسم الحزمة</string>
     <string name="res_app_note">اسم حزمة جديد يُثبَّت كتطبيق منفصل بجانب الأصلي. التطبيقات التي تتحقق من توقيعها قد لا تعمل بعد إعادة التوقيع.</string>
+    <string name="scripts_title">السكربتات</string>
+    <string name="scripts_hint">سكربتات صغيرة جاهزة. اقرأ الشيفرة ثم ثبّت — يُتحقق من كل واحد بمجموع التحقق.</string>
+    <string name="scripts_search">ابحث في السكربتات</string>
+    <string name="scripts_all">الكل</string>
+    <string name="scripts_install">تثبيت</string>
+    <string name="scripts_source">الشيفرة</string>
+    <string name="scripts_run">تثبيت وتشغيل</string>
+    <string name="tool_learn">تعلّم</string>
+    <string name="tool_remote">عن بُعد</string>
+    <string name="widget_status_label">حالة الخوادم</string>
+    <string name="widget_status_empty">أضف خوادم من الطرفية: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">مواقيت الصلاة</string>
+    <string name="widget_prayer_empty">حدّد مدينتك في الطرفية: prayer city Riyadh</string>
+    <string name="remote_title">طرفية عن بُعد</string>
+    <string name="remote_note">افتح على حاسوبك (نفس شبكة Wi-Fi، رابط لمرة واحدة):\n%1$s</string>
+    <string name="remote_stop">إيقاف</string>
+    <string name="remote_used">هذا الرابط استُخدم أو انتهت صلاحيته. شغّل «remote» في Nibras Terminal للحصول على رابط جديد.</string>
 </resources>

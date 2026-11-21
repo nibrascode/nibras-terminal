@@ -1,0 +1,57 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nibras Terminal</title>
+<link rel="stylesheet" href="/xterm.css">
+<style>
+ html,body{margin:0;height:100%;background:#101418;color:#ddd;font:14px system-ui,sans-serif}
+ #bar{display:flex;gap:8px;align-items:center;padding:6px 10px;background:#161b22;border-bottom:1px solid #2a2f36}
+ #bar b{color:#D6B36A} #bar span{flex:1;color:#8b949e;font-size:12px}
+ button{background:#21262d;color:#ddd;border:1px solid #30363d;border-radius:6px;padding:4px 10px;cursor:pointer}
+ #main{display:flex;height:calc(100% - 41px)} #term{flex:1;padding:4px;min-width:0}
+ #files{width:320px;display:none;border-left:1px solid #2a2f36;overflow:auto;padding:8px}
+ #files.on{display:block} #files a{color:#79c0ff;text-decoration:none;cursor:pointer}
+ #files .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #1f242b}
+ #drop{border:2px dashed #30363d;border-radius:8px;padding:10px;text-align:center;margin:8px 0;color:#8b949e}
+ #drop.over{border-color:#D6B36A;color:#D6B36A}
+</style></head>
+<body>
+<div id="bar"><b>Nibras Terminal</b><span id="st">…</span><button id="fb">📁 Files</button></div>
+<div id="main"><div id="term"></div>
+ <div id="files"><div id="path"></div>
+  <div id="drop">⬆ Drop files here to upload<br><input type="file" id="pick" multiple></div>
+  <div id="list"></div></div></div>
+<script src="/xterm.js"></script><script src="/addon-fit.js"></script>
+<script>
+const term=new Terminal({fontSize:15,cursorBlink:true,scrollback:5000,theme:{background:'#101418'}});
+const fit=new FitAddon.FitAddon();term.loadAddon(fit);term.open(document.getElementById('term'));fit.fit();
+const st=document.getElementById('st');let ws;
+function size(){fit.fit();if(ws&&ws.readyState===1)ws.send('\0'+JSON.stringify({rows:term.rows,cols:term.cols}));}
+function connect(){
+ ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');ws.binaryType='arraybuffer';
+ ws.onopen=()=>{st.textContent='connected';size();term.focus();};
+ ws.onmessage=e=>term.write(new Uint8Array(e.data));
+ ws.onclose=()=>{st.textContent='disconnected — reload the page to start a new shell';};
+}
+const enc=new TextEncoder();term.onData(d=>{if(ws&&ws.readyState===1)ws.send(enc.encode(d));});
+window.addEventListener('resize',size);connect();
+// Files
+let cwd=null;const fl=document.getElementById('files');
+document.getElementById('fb').onclick=()=>{fl.classList.toggle('on');size();if(fl.classList.contains('on'))ls(cwd);};
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function hs(n){return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(1)+' MB';}
+async function ls(p){
+ const r=await fetch('/api/ls'+(p?'?path='+encodeURIComponent(p):''));if(!r.ok)return;const j=await r.json();cwd=j.path;
+ document.getElementById('path').innerHTML='<b>'+esc(cwd)+'</b>';
+ let h=cwd!=='/'?'<div class="row"><a data-d="..">⬑ ..</a></div>':'';
+ for(const it of j.items)h+='<div class="row">'+(it.dir?'<a data-d="'+esc(it.name)+'">📁 '+esc(it.name)+'</a><span></span>':'<a href="/api/dl?path='+encodeURIComponent(cwd.replace(/\/$/,'')+'/'+it.name)+'">📄 '+esc(it.name)+'</a><span>'+hs(it.size)+'</span>')+'</div>';
+ const L=document.getElementById('list');L.innerHTML=h;
+ L.querySelectorAll('a[data-d]').forEach(a=>a.onclick=()=>{const d=a.dataset.d;ls(d==='..'?cwd.replace(/\/[^/]+\/?$/,'')||'/':cwd.replace(/\/$/,'')+'/'+d);});
+}
+async function up(files){for(const f of files){st.textContent='uploading '+f.name+'…';
+ await fetch('/api/up?path='+encodeURIComponent(cwd)+'&name='+encodeURIComponent(f.name),{method:'PUT',body:f});}
+ st.textContent='uploaded ✓';ls(cwd);}
+const drop=document.getElementById('drop');
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');up(e.dataTransfer.files);};
+document.getElementById('pick').onchange=e=>up(e.target.files);
+</script></body></html>

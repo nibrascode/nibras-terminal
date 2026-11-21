@@ -1,0 +1,43 @@
+title.linux	Linux əsasları
+title.shell	Shell
+title.git	Git
+title.python	Python
+title.web	Veb
+title.android	Android və APK
+linux.1	pwd olduğun qovluğu göstərir. Tapşırıq: hazırkı qovluğunu göstər.
+linux.2	mkdir qovluq yaradır. Tapşırıq: notes adlı qovluq yarat.
+linux.3	echo mətn yazır, > isə onu fayla yazır. Tapşırıq: notes/a.txt faylına istənilən mətn yaz.
+linux.4	cat faylın içini göstərir. Tapşırıq: notes/a.txt faylını göstər.
+linux.5	cp faylı kopyalayır. Tapşırıq: notes/a.txt faylını notes/b.txt kimi kopyala.
+linux.6	ls faylları siyahılayır; ls -l təfərrüat əlavə edir. Tapşırıq: notes qovluğunu siyahıla.
+shell.1	wc -l sətirləri sayır. Tapşırıq: notes/a.txt faylının sətirlərini say.
+shell.2	Boru | bir əmrin çıxışını digərinə ötürür. Tapşırıq: ls və wc -l ilə notes-dakı faylları say.
+shell.3	>> faylı əvəz etmir, sonuna əlavə edir. Tapşırıq: notes/a.txt faylına ikinci sətir əlavə et.
+shell.4	Dəyişənlər dəyər saxlayır: NAME=Ali; sonra $NAME onu işlədir. Tapşırıq: bir sətirdə dəyişən təyin et və echo ilə göstər (; işlət).
+shell.5	grep sözü olan sətirləri tapır. Tapşırıq: notes/a.txt içində bir söz axtar.
+shell.6	Skript əmrlərdən ibarət fayldır; chmod +x onu işlədilə bilən edir. Tapşırıq: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git layihənin tarixçəsini izləyir. Tapşırıq: depo yarat: git init proj
+git.2	Hər layihəyə README lazımdır. Tapşırıq: proj/README.md faylına bir sətir yaz (echo … > proj/README.md).
+git.3	git add dəyişikliyi səhnəyə qoyur. Tapşırıq: git -C proj add README.md
+git.4	git commit səhnədəki dəyişikliyi tarixçədə saxlayır. Tapşırıq: git -C proj commit -m "ilk commit"
+git.5	git log tarixçəni göstərir. Tapşırıq: proj-un tarixçəsini göstər (git -C proj log --oneline).
+python.1	python3 -c bir sətir Python işlədir. Tapşırıq: python3 -c ilə 2+3-ün nəticəsini çap et.
+python.2	Python proqramları .py fayllarında olur. Tapşırıq: salam çap edən hello.py yarat (echo 'print("Salam")' > hello.py).
+python.3	Proqramı python3 fayl.py ilə işlət. Tapşırıq: hello.py-ni işlət.
+python.4	for … in range(n) təkrarlayır. Tapşırıq: python3 -c-də for dövrü ilə 0, 1, 2 çap et.
+web.1	curl veb serverlərlə danışır; -I yalnız başlıqları göstərir. Tapşırıq: curl -I https://example.com
+web.2	-o səhifəni fayla saxlayır. Tapşırıq: curl ilə https://example.com-u page.html kimi saxla.
+web.3	Hər səhifənin <title>-ı var. Tapşırıq: onu grep title page.html ilə tap.
+web.4	Sayt sadəcə HTML fayllarıdır. Tapşırıq: mkdir -p site && echo '<h1>Salam</h1>' > site/index.html (sonra yoxla: web site)
+android.1	nibras-apk Android tətbiqlərini birbaşa telefonda qurur və açır. Tapşırıq: köməyini göstər.
+android.2	nibras-* əmrləri telefonla danışır. Tapşırıq: batareya vəziyyətini göstər.
+android.3	Tapşırıq: nibras-toast ilə ekranda qısa mesaj göstər.
+android.4	nibras-apk new burada qura biləcəyin tətbiq layihəsi yaradır (nibras-apk build). Tapşırıq: MyApp adlı layihə yaradan əmri yaz.
+ui.intro	İnteraktiv dərslər: hər tapşırıq üçün real əmri yaz. q = çıxış, s = keç, h = ipucu.
+ui.choose	Kurs seç (nömrə), r = irəliləyişi sıfırla, q = çıxış:
+ui.done	Kurs bitdi!
+ui.again	Tam deyil — yenidən yoxla (h = ipucu, s = keç, q = çıxış)
+ui.ok	Düzdür!
+ui.hint	İpucu: əmr belə başlayır
+ui.progress	İrəliləyiş
+ui.lab	Məşq qovluğun:

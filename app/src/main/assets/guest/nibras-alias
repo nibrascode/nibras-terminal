@@ -6,7 +6,7 @@ target() {
   case "$1" in
     help) echo nibras-help ;; install) echo "nibras-kit install" ;; remove) echo "pkg remove" ;; update) echo "pkg upgrade" ;;
     run) echo "nibras-kit run" ;; lang) echo "nibras-kit lang" ;; theme|color|banner|prompt|customize) echo "nibras-look $1" ;;
-    scripts) echo nibras-scripts ;; remote) echo nibras-remote ;; backup) echo nibras-backup ;; restore) echo "nibras-backup restore" ;;
+    scripts) echo nibras-scripts ;; remote) echo nibras-remote ;; backup) echo "nibras-kit backup" ;; restore) echo "nibras-kit restore" ;;
     learn) echo nibras-learn ;; fix|ask|explain|prayer|video|audio|download|media|quran) echo "nibras-kit $1" ;;
     files) echo nibras-files ;; edit) echo nibras-edit ;; menu) echo nibras ;; *) return 1 ;;
   esac

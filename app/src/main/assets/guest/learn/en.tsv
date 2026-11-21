@@ -1,0 +1,43 @@
+title.linux	Linux basics
+title.shell	The shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android & APK
+linux.1	pwd prints the folder you are in. Task: show your current folder.
+linux.2	mkdir creates a folder. Task: create a folder called notes.
+linux.3	echo prints text and > writes it into a file. Task: write any text into notes/a.txt.
+linux.4	cat shows what is inside a file. Task: show notes/a.txt.
+linux.5	cp copies a file. Task: copy notes/a.txt to notes/b.txt.
+linux.6	ls lists files; ls -l adds details. Task: list the notes folder.
+shell.1	wc -l counts lines. Task: count the lines of notes/a.txt.
+shell.2	A pipe | sends one command's output into another. Task: count the files in notes with ls and wc -l.
+shell.3	>> adds to the end of a file instead of replacing it. Task: add a second line to notes/a.txt.
+shell.4	Variables keep values: NAME=Ali; then $NAME uses it. Task: set a variable and echo it on one line (use ;).
+shell.5	grep finds lines that contain a word. Task: search for a word inside notes/a.txt.
+shell.6	A script is a file of commands; chmod +x makes it runnable. Task: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git tracks the history of a project. Task: create a repository: git init proj
+git.2	Every project needs a README. Task: write a line into proj/README.md (echo … > proj/README.md).
+git.3	git add puts a change on the stage. Task: git -C proj add README.md
+git.4	git commit saves the staged change in history. Task: git -C proj commit -m "first commit"
+git.5	git log shows the history. Task: show the log of proj (git -C proj log --oneline).
+python.1	python3 -c runs a line of Python. Task: print the result of 2+3 with python3 -c.
+python.2	Python programs live in .py files. Task: create hello.py that prints a greeting (echo 'print("Hi")' > hello.py).
+python.3	Run a program with python3 file.py. Task: run hello.py.
+python.4	for … in range(n) repeats. Task: print 0, 1, 2 with a for loop in python3 -c.
+web.1	curl talks to web servers; -I shows only the headers. Task: curl -I https://example.com
+web.2	-o saves the page to a file. Task: save https://example.com as page.html with curl.
+web.3	Every page has a <title>. Task: find it with grep title page.html
+web.4	A website is just HTML files. Task: mkdir -p site && echo '<h1>Hello</h1>' > site/index.html (then try: web site)
+android.1	nibras-apk builds and opens Android apps right on the phone. Task: show its help.
+android.2	nibras-* commands talk to the phone. Task: show the battery state.
+android.3	Task: show a toast message on the screen with nibras-toast.
+android.4	nibras-apk new creates an app project you can build here (nibras-apk build). Task: type the command to create a project called MyApp.
+ui.intro	Interactive lessons: type the real command for each task. q = quit, s = skip, h = hint.
+ui.choose	Choose a course (number), r = reset progress, q = quit:
+ui.done	Course finished!
+ui.again	Not quite — try again (h = hint, s = skip, q = quit)
+ui.ok	Correct!
+ui.hint	Hint: the command starts with
+ui.progress	Progress
+ui.lab	Your practice folder:

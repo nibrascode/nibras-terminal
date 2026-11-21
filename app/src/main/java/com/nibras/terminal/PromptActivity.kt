@@ -28,6 +28,7 @@ class PromptActivity : Activity() {
         private const val REQ_CAM = 32
         private const val REQ_STT = 33
         private const val REQ_TREE = 34
+        private const val REQ_PUT = 35
 
         /** Blocks the API worker thread until the user answers (max 10 min). */
         fun ask(context: Context, kind: String, args: List<String>, target: File? = null): String {
@@ -60,6 +61,12 @@ class PromptActivity : Activity() {
         fun opt(name: String) = args.indexOf(name).takeIf { it >= 0 }?.let { args.getOrNull(it + 1) }
         when (intent.getStringExtra("kind")) {
             "storage-get" -> { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_DOC); return }
+            "storage-put" -> {
+                val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/octet-stream")
+                    .putExtra(Intent.EXTRA_TITLE, args.firstOrNull() ?: "nibras-backup")
+                runCatching { startActivityForResult(i, REQ_PUT) }.onFailure { answer(1, it.message ?: "no picker") }
+                return
+            }
             "camera-photo" -> {
                 val target = File(intent.getStringExtra("target") ?: run { answer(1, "no target"); return })
                 target.parentFile?.mkdirs()
@@ -157,6 +164,15 @@ class PromptActivity : Activity() {
             if (resultCode != RESULT_OK || uri == null) { answer(-2, ""); return }
             runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
             answer(-1, uri.toString()); return
+        }
+        if (requestCode == REQ_PUT) {
+            val uri = data?.data; val src = intent.getStringExtra("target")?.let { File(it) }
+            if (resultCode != RESULT_OK || uri == null || src == null) { answer(-2, ""); return }
+            Thread {
+                val ok = runCatching { contentResolver.openOutputStream(uri, "wt")!!.use { out -> src.inputStream().use { it.copyTo(out) } } }.isSuccess
+                runOnUiThread { answer(if (ok) -1 else 1, if (ok) uri.toString() else "copy failed") }
+            }.start()
+            return
         }
         if (requestCode == REQ_CAM) {
             val tmp = camTmp; val target = intent.getStringExtra("target")?.let { File(it) }

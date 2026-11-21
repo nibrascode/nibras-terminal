@@ -1,0 +1,66 @@
+#!/bin/sh
+# learn: interactive lessons — Linux basics, shell, git, Python, web, Android/APK.
+# You type the real command; it runs in ~/learn-lab and is checked automatically. Progress: ~/.config/nibras/learn-progress
+#   learn · learn <course> · learn reset · learn quiz (the short quiz)
+. /usr/local/share/nibras/msg.sh
+D=/usr/local/share/nibras/learn
+LANGF=$D/${NIBRAS_LANG:-en}.tsv; [ -r "$LANGF" ] || LANGF=$D/en.tsv
+PROG=$HOME/.config/nibras/learn-progress; LAB=$HOME/learn-lab
+mkdir -p "${PROG%/*}" "$LAB"; touch "$PROG"
+COURSES="linux shell git python web android"
+tx() { v=$(awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$LANGF"); [ -n "$v" ] || v=$(awk -F'\t' -v k="$1" '$1 == k { print $2; exit }' "$D/en.tsv"); printf '%s' "$v"; }
+field() { awk -F'\t' -v k="$1" -v n="$2" '$1 == k { print $n; exit }' "$D/course.tsv"; }
+steps() { awk -F'\t' -v c="$1." 'index($1, c) == 1 { print $1 }' "$D/course.tsv"; }
+done_n() { n=0; for s in $(steps "$1"); do grep -qx "$s" "$PROG" && n=$((n + 1)); done; echo $n; }
+total() { steps "$1" | wc -l | tr -d ' '; }
+export GIT_AUTHOR_NAME=learner GIT_AUTHOR_EMAIL=learner@nibras.local GIT_COMMITTER_NAME=learner GIT_COMMITTER_EMAIL=learner@nibras.local
+
+step() { # id
+  id=$1; re=$(field "$id" 2); chk=$(field "$id" 3); out=$(field "$id" 4); flags=$(field "$id" 5); ex=$(field "$id" 6); tries=0
+  printf '\n\033[1;33m[%s]\033[0m %s\n' "$id" "$(tx "$id")"
+  while :; do
+    printf '\033[1;36m%s $\033[0m ' "${LAB##*/}"; IFS= read -r c || exit 0
+    case "$c" in
+      q) exit 0 ;; s) return 0 ;;
+      h) printf '\033[2m%s %s\033[0m\n' "$(tx ui.hint)" "$( if [ $tries -ge 2 ]; then printf '%s' "$ex"; else printf '%s …' "${ex%% *}"; fi )"; tries=$((tries + 1)); continue ;;
+      "") continue ;;
+    esac
+    ok=1
+    [ -n "$re" ] && ! printf '%s' "$c" | grep -Eq -- "$re" && ok=
+    if [ -n "$ok" ]; then
+      case "$flags" in *norun*) res= ;; *) res=$(cd "$LAB" && sh -c "$c" 2>&1); printf '%s\n' "$res" | head -20 ;; esac
+      [ -n "$chk" ] && ! (cd "$LAB" && sh -c "$chk") >/dev/null 2>&1 && ok=
+      [ -n "$out" ] && ! printf '%s\n' "$res" | grep -Eq -- "$out" && ok=
+    fi
+    if [ -n "$ok" ]; then grep -qx "$id" "$PROG" || echo "$id" >> "$PROG"; printf '\033[32m✓ %s\033[0m\n' "$(tx ui.ok)"; return 0; fi
+    tries=$((tries + 1)); printf '\033[31m%s\033[0m\n' "$(tx ui.again)"
+  done
+}
+
+course() { # name
+  case " $COURSES " in *" $1 "*) ;; *) echo "learn: $COURSES"; exit 1 ;; esac
+  need=$(field "$1.1" 5 | sed -n 's/.*need:\([a-z0-9]*\).*/\1/p')
+  [ -n "$need" ] && { command -v "$need" >/dev/null 2>&1 || nibras-need "$need" || exit 1; }
+  printf '\n\033[1;35m━━ %s ━━\033[0m  %s %s\n' "$(tx "title.$1")" "$(tx ui.lab)" "$LAB"
+  for s in $(steps "$1"); do grep -qx "$s" "$PROG" && continue; step "$s"; done
+  printf '\n\033[1;32m★ %s\033[0m %s %s/%s\n' "$(tx ui.done)" "$(tx ui.progress):" "$(done_n "$1")" "$(total "$1")"
+}
+
+menu() {
+  printf '\033[1;33m%s\033[0m\n\n' "$(tx ui.intro)"
+  i=1; for c in $COURSES; do
+    d=$(done_n "$c"); t=$(total "$c"); bar=$(awk -v d="$d" -v t="$t" 'BEGIN { for (i = 0; i < t; i++) printf (i < d ? "■" : "□") }')
+    printf '  %s. %-22s %s %s/%s\n' "$i" "$(tx "title.$c")" "$bar" "$d" "$t"; i=$((i + 1))
+  done
+  printf '\n%s ' "$(tx ui.choose)"; read -r n || exit 0
+  case "$n" in q|"") exit 0 ;; r) : > "$PROG"; rm -rf "$LAB"; mkdir -p "$LAB"; menu; return ;; esac
+  c=$(echo $COURSES | cut -d' ' -f"$n" 2>/dev/null); [ -n "$c" ] && course "$c"
+}
+
+case "${1:-}" in
+  "") menu ;;
+  reset) : > "$PROG"; rm -rf "$LAB"; echo "✓" ;;
+  quiz) exec nibras-kit learn ;;
+  help|-h) sed -n '2,4s/^# //p' "$0" ;;
+  *) course "$1" ;;
+esac

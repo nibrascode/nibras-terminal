@@ -102,4 +102,21 @@
     <string name="hosts_title">SSH ホスト</string>
     <string name="hosts_connect">接続</string>
     <string name="hosts_add">追加</string>
+    <string name="scripts_title">スクリプト</string>
+    <string name="scripts_hint">すぐ使える小さなスクリプト。ソースを読んでからインストール — それぞれチェックサムで検証されます。</string>
+    <string name="scripts_search">スクリプトを検索</string>
+    <string name="scripts_all">すべて</string>
+    <string name="scripts_install">インストール</string>
+    <string name="scripts_source">ソース</string>
+    <string name="scripts_run">インストールして実行</string>
+    <string name="tool_learn">学ぶ</string>
+    <string name="tool_remote">リモート</string>
+    <string name="widget_status_label">サーバー状態</string>
+    <string name="widget_status_empty">ターミナルでサーバーを追加：servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">礼拝時刻</string>
+    <string name="widget_prayer_empty">ターミナルで都市を設定：prayer city Tokyo</string>
+    <string name="remote_title">リモートターミナル</string>
+    <string name="remote_note">パソコンで開いてください（同じ Wi-Fi、1回限りのリンク）：\n%1$s</string>
+    <string name="remote_stop">停止</string>
+    <string name="remote_used">このリンクは使用済みか期限切れです。Nibras Terminal で「remote」を実行して新しいリンクを取得してください。</string>
 </resources>

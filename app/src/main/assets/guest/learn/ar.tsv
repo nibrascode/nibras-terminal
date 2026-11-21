@@ -1,0 +1,43 @@
+title.linux	أساسيات لينكس
+title.shell	سطر الأوامر
+title.git	Git
+title.python	بايثون
+title.web	الويب
+title.android	أندرويد و APK
+linux.1	الأمر pwd يعرض المجلد الذي أنت فيه. المهمة: اعرض مجلدك الحالي.
+linux.2	الأمر mkdir ينشئ مجلدًا. المهمة: أنشئ مجلدًا باسم notes.
+linux.3	الأمر echo يطبع نصًا و > يكتبه في ملف. المهمة: اكتب أي نص في notes/a.txt.
+linux.4	الأمر cat يعرض محتوى الملف. المهمة: اعرض notes/a.txt.
+linux.5	الأمر cp ينسخ ملفًا. المهمة: انسخ notes/a.txt إلى notes/b.txt.
+linux.6	الأمر ls يعرض الملفات و ls -l يضيف التفاصيل. المهمة: اعرض محتوى المجلد notes.
+shell.1	الأمر wc -l يعدّ الأسطر. المهمة: عدّ أسطر notes/a.txt.
+shell.2	الأنبوب | يمرّر مخرجات أمر إلى أمر آخر. المهمة: عدّ الملفات في notes باستخدام ls و wc -l.
+shell.3	الرمز >> يضيف إلى نهاية الملف بدل استبداله. المهمة: أضف سطرًا ثانيًا إلى notes/a.txt.
+shell.4	المتغيرات تحفظ القيم: NAME=Ali; ثم $NAME يستخدمها. المهمة: عيّن متغيرًا واطبعه بـ echo في سطر واحد (استخدم ;).
+shell.5	الأمر grep يجد الأسطر التي تحتوي كلمة. المهمة: ابحث عن كلمة داخل notes/a.txt.
+shell.6	السكربت ملف أوامر، و chmod +x يجعله قابلًا للتشغيل. المهمة: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git يتتبع تاريخ المشروع. المهمة: أنشئ مستودعًا: git init proj
+git.2	كل مشروع يحتاج ملف README. المهمة: اكتب سطرًا في proj/README.md (echo … > proj/README.md).
+git.3	الأمر git add يضع التغيير في منطقة التجهيز. المهمة: git -C proj add README.md
+git.4	الأمر git commit يحفظ التغيير في التاريخ. المهمة: git -C proj commit -m "first commit"
+git.5	الأمر git log يعرض التاريخ. المهمة: اعرض سجل proj (git -C proj log --oneline).
+python.1	الأمر python3 -c ينفّذ سطرًا من بايثون. المهمة: اطبع ناتج 2+3 باستخدام python3 -c.
+python.2	برامج بايثون تُحفظ في ملفات .py. المهمة: أنشئ hello.py يطبع تحية (echo 'print("Salam")' > hello.py).
+python.3	شغّل البرنامج بـ python3 file.py. المهمة: شغّل hello.py.
+python.4	الحلقة for … in range(n) تكرّر. المهمة: اطبع 0 و 1 و 2 بحلقة for في python3 -c.
+web.1	curl يتواصل مع خوادم الويب و -I يعرض الترويسات فقط. المهمة: curl -I https://example.com
+web.2	الخيار -o يحفظ الصفحة في ملف. المهمة: احفظ https://example.com باسم page.html باستخدام curl.
+web.3	لكل صفحة وسم <title>. المهمة: جده بـ grep title page.html
+web.4	الموقع مجرد ملفات HTML. المهمة: mkdir -p site && echo '<h1>Salam</h1>' > site/index.html (ثم جرّب: web site)
+android.1	nibras-apk يبني تطبيقات أندرويد ويفتحها على الهاتف مباشرة. المهمة: اعرض مساعدته.
+android.2	أوامر nibras-* تتواصل مع الهاتف. المهمة: اعرض حالة البطارية.
+android.3	المهمة: اعرض رسالة قصيرة على الشاشة باستخدام nibras-toast.
+android.4	الأمر nibras-apk new ينشئ مشروع تطبيق يمكنك بناؤه هنا (nibras-apk build). المهمة: اكتب الأمر الذي ينشئ مشروعًا باسم MyApp.
+ui.intro	دروس تفاعلية: اكتب الأمر الحقيقي لكل مهمة. q = خروج، s = تخطٍّ، h = تلميح.
+ui.choose	اختر دورة (رقم)، r = إعادة التقدم، q = خروج:
+ui.done	انتهت الدورة!
+ui.again	ليس تمامًا — حاول مجددًا (h = تلميح، s = تخطٍّ، q = خروج)
+ui.ok	صحيح!
+ui.hint	تلميح: يبدأ الأمر بـ
+ui.progress	التقدم
+ui.lab	مجلد التدريب:

@@ -34,3 +34,10 @@ nmsg() {
   esac
   printf "$_f\n" "$@"
 }
+# nsay "en" "az" "tr" "ru": text in the user's language; other languages come from i18n/<lang>.tsv (English key), English fallback.
+nsay() {
+  case "${NIBRAS_LANG:-en}" in
+    az) printf '%s\n' "${2:-$1}" ;; tr) printf '%s\n' "${3:-$1}" ;; ru) printf '%s\n' "${4:-$1}" ;; en) printf '%s\n' "$1" ;;
+    *) _s=$(nibras_i18n "$1"); printf '%s\n' "${_s:-$1}" ;;
+  esac
+}

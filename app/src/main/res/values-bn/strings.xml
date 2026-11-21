@@ -102,4 +102,21 @@
     <string name="hosts_title">SSH হোস্ট</string>
     <string name="hosts_connect">সংযোগ</string>
     <string name="hosts_add">যোগ করুন</string>
+    <string name="scripts_title">স্ক্রিপ্ট</string>
+    <string name="scripts_hint">ছোট তৈরি স্ক্রিপ্ট। সোর্স পড়ুন, তারপর ইনস্টল করুন — প্রতিটি চেকসাম দিয়ে যাচাই হয়।</string>
+    <string name="scripts_search">স্ক্রিপ্ট খুঁজুন</string>
+    <string name="scripts_all">সব</string>
+    <string name="scripts_install">ইনস্টল</string>
+    <string name="scripts_source">সোর্স</string>
+    <string name="scripts_run">ইনস্টল ও চালান</string>
+    <string name="tool_learn">শিখুন</string>
+    <string name="tool_remote">রিমোট</string>
+    <string name="widget_status_label">সার্ভারের অবস্থা</string>
+    <string name="widget_status_empty">টার্মিনালে সার্ভার যোগ করুন: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">নামাজের সময়</string>
+    <string name="widget_prayer_empty">টার্মিনালে আপনার শহর দিন: prayer city Dhaka</string>
+    <string name="remote_title">রিমোট টার্মিনাল</string>
+    <string name="remote_note">কম্পিউটারে খুলুন (একই Wi-Fi, একবারের লিংক):\n%1$s</string>
+    <string name="remote_stop">থামান</string>
+    <string name="remote_used">এই লিংক আগেই ব্যবহার হয়েছে বা মেয়াদ শেষ। নতুন লিংকের জন্য Nibras Terminal-এ “remote” চালান।</string>
 </resources>

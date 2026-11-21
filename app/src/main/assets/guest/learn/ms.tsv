@@ -1,0 +1,43 @@
+title.linux	Asas Linux
+title.shell	Shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android & APK
+linux.1	pwd memaparkan folder tempat anda berada. Tugasan: paparkan folder semasa anda.
+linux.2	mkdir mencipta folder. Tugasan: cipta folder bernama notes.
+linux.3	echo mencetak teks dan > menulisnya ke dalam fail. Tugasan: tulis apa-apa teks ke notes/a.txt.
+linux.4	cat memaparkan kandungan fail. Tugasan: paparkan notes/a.txt.
+linux.5	cp menyalin fail. Tugasan: salin notes/a.txt ke notes/b.txt.
+linux.6	ls menyenaraikan fail; ls -l menambah butiran. Tugasan: senaraikan folder notes.
+shell.1	wc -l mengira baris. Tugasan: kira baris notes/a.txt.
+shell.2	Paip | menghantar output satu arahan ke arahan lain. Tugasan: kira fail dalam notes dengan ls dan wc -l.
+shell.3	>> menambah di hujung fail, bukan menggantikannya. Tugasan: tambah baris kedua ke notes/a.txt.
+shell.4	Pemboleh ubah menyimpan nilai: NAME=Ali; kemudian $NAME menggunakannya. Tugasan: tetapkan pemboleh ubah dan paparkan dengan echo dalam satu baris (guna ;).
+shell.5	grep mencari baris yang mengandungi perkataan. Tugasan: cari satu perkataan dalam notes/a.txt.
+shell.6	Skrip ialah fail berisi arahan; chmod +x menjadikannya boleh dijalankan. Tugasan: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git merekod sejarah projek. Tugasan: cipta repositori: git init proj
+git.2	Setiap projek perlukan README. Tugasan: tulis satu baris ke proj/README.md (echo … > proj/README.md).
+git.3	git add menyediakan perubahan. Tugasan: git -C proj add README.md
+git.4	git commit menyimpan perubahan ke dalam sejarah. Tugasan: git -C proj commit -m "commit pertama"
+git.5	git log memaparkan sejarah. Tugasan: paparkan log proj (git -C proj log --oneline).
+python.1	python3 -c menjalankan satu baris Python. Tugasan: cetak hasil 2+3 dengan python3 -c.
+python.2	Program Python disimpan dalam fail .py. Tugasan: cipta hello.py yang mencetak ucapan (echo 'print("Helo")' > hello.py).
+python.3	Jalankan program dengan python3 fail.py. Tugasan: jalankan hello.py.
+python.4	for … in range(n) mengulang. Tugasan: cetak 0, 1, 2 dengan gelung for dalam python3 -c.
+web.1	curl berhubung dengan pelayan web; -I hanya memaparkan pengepala. Tugasan: curl -I https://example.com
+web.2	-o menyimpan halaman ke fail. Tugasan: simpan https://example.com sebagai page.html dengan curl.
+web.3	Setiap halaman ada <title>. Tugasan: cari dengan grep title page.html
+web.4	Laman web hanyalah fail HTML. Tugasan: mkdir -p site && echo '<h1>Helo</h1>' > site/index.html (kemudian cuba: web site)
+android.1	nibras-apk membina dan membuka aplikasi Android terus di telefon. Tugasan: paparkan bantuannya.
+android.2	Arahan nibras-* berhubung dengan telefon. Tugasan: paparkan status bateri.
+android.3	Tugasan: paparkan mesej ringkas di skrin dengan nibras-toast.
+android.4	nibras-apk new mencipta projek aplikasi yang boleh dibina di sini (nibras-apk build). Tugasan: taip arahan untuk mencipta projek bernama MyApp.
+ui.intro	Pelajaran interaktif: taip arahan sebenar untuk setiap tugasan. q = keluar, s = langkau, h = petunjuk.
+ui.choose	Pilih kursus (nombor), r = set semula kemajuan, q = keluar:
+ui.done	Kursus selesai!
+ui.again	Belum tepat — cuba lagi (h = petunjuk, s = langkau, q = keluar)
+ui.ok	Betul!
+ui.hint	Petunjuk: arahan bermula dengan
+ui.progress	Kemajuan
+ui.lab	Folder latihan anda:

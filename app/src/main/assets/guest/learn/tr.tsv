@@ -1,0 +1,43 @@
+title.linux	Linux temelleri
+title.shell	Kabuk (shell)
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android ve APK
+linux.1	pwd bulunduğun klasörü gösterir. Görev: şu anki klasörünü göster.
+linux.2	mkdir klasör oluşturur. Görev: notes adında bir klasör oluştur.
+linux.3	echo metin yazar, > ise onu dosyaya yazar. Görev: notes/a.txt dosyasına herhangi bir metin yaz.
+linux.4	cat dosyanın içini gösterir. Görev: notes/a.txt dosyasını göster.
+linux.5	cp dosya kopyalar. Görev: notes/a.txt dosyasını notes/b.txt olarak kopyala.
+linux.6	ls dosyaları listeler; ls -l ayrıntı ekler. Görev: notes klasörünü listele.
+shell.1	wc -l satırları sayar. Görev: notes/a.txt dosyasının satırlarını say.
+shell.2	Boru | bir komutun çıktısını diğerine aktarır. Görev: ls ve wc -l ile notes içindeki dosyaları say.
+shell.3	>> dosyayı değiştirmez, sonuna ekler. Görev: notes/a.txt dosyasına ikinci bir satır ekle.
+shell.4	Değişkenler değer tutar: NAME=Ali; sonra $NAME onu kullanır. Görev: tek satırda bir değişken ata ve echo ile yaz (; kullan).
+shell.5	grep bir kelime içeren satırları bulur. Görev: notes/a.txt içinde bir kelime ara.
+shell.6	Betik, komutlardan oluşan bir dosyadır; chmod +x onu çalıştırılabilir yapar. Görev: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git bir projenin geçmişini izler. Görev: depo oluştur: git init proj
+git.2	Her projenin bir README'si olmalı. Görev: proj/README.md dosyasına bir satır yaz (echo … > proj/README.md).
+git.3	git add değişikliği sahneye koyar. Görev: git -C proj add README.md
+git.4	git commit sahnedeki değişikliği geçmişe kaydeder. Görev: git -C proj commit -m "ilk commit"
+git.5	git log geçmişi gösterir. Görev: proj geçmişini göster (git -C proj log --oneline).
+python.1	python3 -c tek satır Python çalıştırır. Görev: python3 -c ile 2+3 sonucunu yazdır.
+python.2	Python programları .py dosyalarında durur. Görev: selam yazdıran hello.py oluştur (echo 'print("Merhaba")' > hello.py).
+python.3	Programı python3 dosya.py ile çalıştır. Görev: hello.py dosyasını çalıştır.
+python.4	for … in range(n) tekrarlar. Görev: python3 -c içinde for döngüsüyle 0, 1, 2 yazdır.
+web.1	curl web sunucularıyla konuşur; -I yalnızca başlıkları gösterir. Görev: curl -I https://example.com
+web.2	-o sayfayı dosyaya kaydeder. Görev: curl ile https://example.com adresini page.html olarak kaydet.
+web.3	Her sayfanın bir <title>'ı vardır. Görev: grep title page.html ile bul.
+web.4	Bir web sitesi sadece HTML dosyalarıdır. Görev: mkdir -p site && echo '<h1>Merhaba</h1>' > site/index.html (sonra dene: web site)
+android.1	nibras-apk Android uygulamalarını doğrudan telefonda derler ve açar. Görev: yardımını göster.
+android.2	nibras-* komutları telefonla konuşur. Görev: pil durumunu göster.
+android.3	Görev: nibras-toast ile ekranda kısa bir mesaj göster.
+android.4	nibras-apk new burada derleyebileceğin bir uygulama projesi oluşturur (nibras-apk build). Görev: MyApp adlı proje oluşturan komutu yaz.
+ui.intro	Etkileşimli dersler: her görev için gerçek komutu yaz. q = çık, s = atla, h = ipucu.
+ui.choose	Bir kurs seç (numara), r = ilerlemeyi sıfırla, q = çık:
+ui.done	Kurs tamamlandı!
+ui.again	Tam değil — tekrar dene (h = ipucu, s = atla, q = çık)
+ui.ok	Doğru!
+ui.hint	İpucu: komut şöyle başlıyor
+ui.progress	İlerleme
+ui.lab	Alıştırma klasörün:

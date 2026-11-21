@@ -1,0 +1,43 @@
+title.linux	Basi di Linux
+title.shell	La shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android e APK
+linux.1	pwd mostra la cartella in cui ti trovi. Compito: mostra la cartella attuale.
+linux.2	mkdir crea una cartella. Compito: crea una cartella chiamata notes.
+linux.3	echo stampa testo e > lo scrive in un file. Compito: scrivi un testo qualsiasi in notes/a.txt.
+linux.4	cat mostra il contenuto di un file. Compito: mostra notes/a.txt.
+linux.5	cp copia un file. Compito: copia notes/a.txt in notes/b.txt.
+linux.6	ls elenca i file; ls -l aggiunge i dettagli. Compito: elenca la cartella notes.
+shell.1	wc -l conta le righe. Compito: conta le righe di notes/a.txt.
+shell.2	Una pipe | passa l'output di un comando a un altro. Compito: conta i file in notes con ls e wc -l.
+shell.3	>> aggiunge in fondo al file invece di sostituirlo. Compito: aggiungi una seconda riga a notes/a.txt.
+shell.4	Le variabili conservano valori: NAME=Ali; poi $NAME lo usa. Compito: imposta una variabile e stampala con echo su una riga (usa ;).
+shell.5	grep trova le righe che contengono una parola. Compito: cerca una parola in notes/a.txt.
+shell.6	Uno script è un file di comandi; chmod +x lo rende eseguibile. Compito: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git tiene la storia di un progetto. Compito: crea un repository: git init proj
+git.2	Ogni progetto ha bisogno di un README. Compito: scrivi una riga in proj/README.md (echo … > proj/README.md).
+git.3	git add prepara una modifica. Compito: git -C proj add README.md
+git.4	git commit salva la modifica preparata nella storia. Compito: git -C proj commit -m "primo commit"
+git.5	git log mostra la storia. Compito: mostra il log di proj (git -C proj log --oneline).
+python.1	python3 -c esegue una riga di Python. Compito: stampa il risultato di 2+3 con python3 -c.
+python.2	I programmi Python stanno nei file .py. Compito: crea hello.py che stampa un saluto (echo 'print("Ciao")' > hello.py).
+python.3	Esegui un programma con python3 file.py. Compito: esegui hello.py.
+python.4	for … in range(n) ripete. Compito: stampa 0, 1, 2 con un ciclo for in python3 -c.
+web.1	curl parla con i server web; -I mostra solo le intestazioni. Compito: curl -I https://example.com
+web.2	-o salva la pagina in un file. Compito: salva https://example.com come page.html con curl.
+web.3	Ogni pagina ha un <title>. Compito: trovalo con grep title page.html
+web.4	Un sito web è fatto di file HTML. Compito: mkdir -p site && echo '<h1>Ciao</h1>' > site/index.html (poi prova: web site)
+android.1	nibras-apk compila e apre app Android direttamente sul telefono. Compito: mostra il suo aiuto.
+android.2	I comandi nibras-* parlano con il telefono. Compito: mostra lo stato della batteria.
+android.3	Compito: mostra un breve messaggio sullo schermo con nibras-toast.
+android.4	nibras-apk new crea un progetto di app da compilare qui (nibras-apk build). Compito: scrivi il comando che crea un progetto chiamato MyApp.
+ui.intro	Lezioni interattive: scrivi il comando vero per ogni compito. q = esci, s = salta, h = suggerimento.
+ui.choose	Scegli un corso (numero), r = azzera progressi, q = esci:
+ui.done	Corso completato!
+ui.again	Non proprio — riprova (h = suggerimento, s = salta, q = esci)
+ui.ok	Giusto!
+ui.hint	Suggerimento: il comando inizia con
+ui.progress	Progressi
+ui.lab	La tua cartella di esercizio:

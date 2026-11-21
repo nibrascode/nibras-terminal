@@ -269,4 +269,21 @@
     <string name="editor_lint">بررسی کد (lint)</string>
     <string name="tools_media">رسانه</string>
     <string name="editor_layout_preview">پیش‌نمایش چیدمان</string>
+    <string name="scripts_title">اسکریپت‌ها</string>
+    <string name="scripts_hint">اسکریپت‌های کوچک آماده. کد را بخوانید، سپس نصب کنید — هر کدام با چک‌سام بررسی می‌شود.</string>
+    <string name="scripts_search">جستجوی اسکریپت</string>
+    <string name="scripts_all">همه</string>
+    <string name="scripts_install">نصب</string>
+    <string name="scripts_source">کد منبع</string>
+    <string name="scripts_run">نصب و اجرا</string>
+    <string name="tool_learn">آموزش</string>
+    <string name="tool_remote">از راه دور</string>
+    <string name="widget_status_label">وضعیت سرورها</string>
+    <string name="widget_status_empty">سرورها را در ترمینال اضافه کنید: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">اوقات نماز</string>
+    <string name="widget_prayer_empty">شهر خود را در ترمینال تعیین کنید: prayer city Tehran</string>
+    <string name="remote_title">ترمینال از راه دور</string>
+    <string name="remote_note">روی رایانه باز کنید (همان Wi-Fi، پیوند یک‌بارمصرف):\n%1$s</string>
+    <string name="remote_stop">توقف</string>
+    <string name="remote_used">این پیوند قبلاً استفاده شده یا منقضی شده است. برای پیوند جدید «remote» را در Nibras Terminal اجرا کنید.</string>
 </resources>

@@ -269,4 +269,21 @@
     <string name="editor_lint">Vérifier le code (lint)</string>
     <string name="tools_media">Médias</string>
     <string name="editor_layout_preview">Aperçu de la mise en page</string>
+    <string name="scripts_title">Scripts</string>
+    <string name="scripts_hint">Petits scripts prêts à l\'emploi. Lisez le code, puis installez — chacun est vérifié par sa somme de contrôle.</string>
+    <string name="scripts_search">Rechercher des scripts</string>
+    <string name="scripts_all">Tous</string>
+    <string name="scripts_install">Installer</string>
+    <string name="scripts_source">Code source</string>
+    <string name="scripts_run">Installer et lancer</string>
+    <string name="tool_learn">Apprendre</string>
+    <string name="tool_remote">À distance</string>
+    <string name="widget_status_label">État des serveurs</string>
+    <string name="widget_status_empty">Ajoutez des serveurs dans le terminal : servers add monsite https://example.com</string>
+    <string name="widget_prayer_label">Heures de prière</string>
+    <string name="widget_prayer_empty">Indiquez votre ville dans le terminal : prayer city Paris</string>
+    <string name="remote_title">Terminal à distance</string>
+    <string name="remote_note">Ouvrez sur votre ordinateur (même Wi-Fi, lien à usage unique) :\n%1$s</string>
+    <string name="remote_stop">Arrêter</string>
+    <string name="remote_used">Ce lien a déjà été utilisé ou a expiré. Lancez « remote » dans Nibras Terminal pour en obtenir un nouveau.</string>
 </resources>
