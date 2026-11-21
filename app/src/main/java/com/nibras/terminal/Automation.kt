@@ -83,10 +83,19 @@ class RunCommandService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val command = intent?.getStringExtra("command")
+        // Termux-compatible extras too: RUN_COMMAND_PATH + RUN_COMMAND_ARGUMENTS, _WORKDIR, _BACKGROUND, _STDIN, _PENDING_INTENT.
+        fun termux(key: String) = listOf("com.nibras.terminal.RUN_COMMAND_$key", "com.termux.RUN_COMMAND_$key")
+        val path = intent?.let { i -> termux("PATH").firstNotNullOfOrNull { i.getStringExtra(it) } }
+        val argv = intent?.let { i -> termux("ARGUMENTS").firstNotNullOfOrNull { i.getStringArrayExtra(it) } }.orEmpty()
+        val command = intent?.getStringExtra("command") ?: path?.let { (listOf(it) + argv).joinToString(" ") { a -> Rootfs.quote(a) } }
         if (intent == null || command.isNullOrBlank() || !Automation.allowed(this)) { stopSelf(startId); return START_NOT_STICKY }
+        termux("WORKDIR").firstNotNullOfOrNull { intent.getStringExtra(it) }?.let { intent.putExtra("workdir", it) }
+        termux("STDIN").firstNotNullOfOrNull { intent.getStringExtra(it) }?.let { intent.putExtra("stdin", it) }
+        termux("BACKGROUND").firstOrNull { intent.hasExtra(it) }?.let { intent.putExtra("background", intent.getBooleanExtra(it, false)) }
+        @Suppress("DEPRECATION")
+        termux("PENDING_INTENT").firstNotNullOfOrNull { intent.getParcelableExtra<PendingIntent>(it) }?.let { intent.putExtra("pending_intent", it) }
         val env = envId(intent.getStringExtra("env"))
-        val background = intent.getBooleanExtra("background", true)
+        val background = intent.getBooleanExtra("background", path == null)
         if (!background) {
             startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra(MainActivity.EXTRA_COMMAND, Launcher.command(this, env, command, keepShell = false).toTypedArray())
@@ -181,32 +190,51 @@ class ScriptJobService : JobService() {
     override fun onStopJob(params: JobParameters) = true
 
     companion object {
-        /** args: "--script <cmd> [--period-ms N] [--network any|unmetered] [--charging] [--id N]" | "--cancel N" | "--list" */
-        fun handle(context: Context, args: List<String>, env: String?): String {
+        /**
+         * Termux termux-job-scheduler flags: -s/--script, --job-id, -p/--pending, --cancel, --cancel-all,
+         * --period-ms (0 = run once), --network any|unmetered|cellular|not_roaming|none, --battery-not-low,
+         * --storage-not-low, --charging, --idle, --persisted (true/false values accepted).
+         */
+        fun handle(context: Context, args: List<String>, env: String?, cwd: String = "/root"): String {
             val js = context.getSystemService(JobScheduler::class.java)
-            fun opt(name: String) = args.indexOf(name).takeIf { it >= 0 }?.let { args.getOrNull(it + 1) }
-            if ("--list" in args || args.isEmpty()) {
-                return js.allPendingJobs.filter { it.service.className == ScriptJobService::class.java.name }
-                    .joinToString("\n") { "${it.id}: ${it.extras.getString("command")} (every ${it.intervalMillis / 60000} min)" }.ifBlank { "-" }
+            fun opt(vararg names: String) = names.firstNotNullOfOrNull { n -> args.indexOf(n).takeIf { it >= 0 }?.let { args.getOrNull(it + 1) } }
+            fun bool(name: String, def: Boolean): Boolean {
+                val i = args.indexOf(name); if (i < 0) return def
+                return when (args.getOrNull(i + 1)?.lowercase()) { "false", "0", "no" -> false; else -> true }
             }
-            opt("--cancel")?.toIntOrNull()?.let { js.cancel(it); return "cancelled $it" }
-            if ("--cancel-all" in args) {
-                js.allPendingJobs.filter { it.service.className == ScriptJobService::class.java.name }.forEach { js.cancel(it.id) }
-                return "cancelled all"
+            val ours = js.allPendingJobs.filter { it.service.className == ScriptJobService::class.java.name }
+            fun describe(j: JobInfo) = "Pending Job ${j.id}: ${j.extras.getString("script") ?: j.extras.getString("command")}" +
+                (if (j.isPeriodic) " (every ${j.intervalMillis / 60000} min)" else " (once)") +
+                (if (j.isRequireCharging) " charging" else "") + (if (j.networkType != JobInfo.NETWORK_TYPE_NONE) " network" else "")
+            if ("-p" in args || "--pending" in args || "--list" in args || args.isEmpty()) {
+                val id = opt("--job-id")?.toIntOrNull()
+                return ours.filter { id == null || it.id == id }.joinToString("\n") { describe(it) }.ifBlank { "No pending jobs" }
             }
-            val script = opt("--script") ?: return "usage: nibras-job-scheduler --script <command> [--period-ms 900000] [--network any|unmetered] [--charging] [--id N] | --list | --cancel N"
-            val id = opt("--id")?.toIntOrNull() ?: (1000 + (script.hashCode() and 0xffff))
-            val period = (opt("--period-ms")?.toLongOrNull() ?: 15 * 60_000L).coerceAtLeast(15 * 60_000L)
-            val extras = PersistableBundle().apply { putString("command", script); putString("env", env) }
-            val b = JobInfo.Builder(id, ComponentName(context, ScriptJobService::class.java))
-                .setExtras(extras).setPeriodic(period).setPersisted(true)
+            if ("--cancel-all" in args) { ours.forEach { js.cancel(it.id) }; return "Cancelled ${ours.size} job(s)" }
+            if ("--cancel" in args) {
+                val id = opt("--job-id", "--cancel")?.toIntOrNull() ?: return "usage: nibras-job-scheduler --cancel --job-id N"
+                js.cancel(id); return "Cancelled job $id"
+            }
+            val script = opt("-s", "--script") ?: return "usage: nibras-job-scheduler -s <script|command> [--job-id N] [--period-ms 900000|0] [--network any|unmetered|cellular|not_roaming] [--battery-not-low true] [--storage-not-low] [--charging] [--idle] [--persisted true] | -p | --cancel --job-id N | --cancel-all"
+            val id = opt("--job-id", "--id")?.toIntOrNull() ?: (1000 + (script.hashCode() and 0xffff))
+            val period = opt("--period-ms")?.toLongOrNull() ?: 0L
+            val command = "cd ${Rootfs.quote(cwd)} 2>/dev/null; $script"
+            val extras = PersistableBundle().apply { putString("command", command); putString("script", script); putString("env", env) }
+            val b = JobInfo.Builder(id, ComponentName(context, ScriptJobService::class.java)).setExtras(extras)
+            if (period > 0) b.setPeriodic(period.coerceAtLeast(15 * 60_000L)) else b.setOverrideDeadline(opt("--deadline-ms")?.toLongOrNull() ?: 0L)
+            b.setPersisted(bool("--persisted", period > 0))
             when (opt("--network")) {
                 "any" -> b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                 "unmetered" -> b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                "cellular" -> if (android.os.Build.VERSION.SDK_INT >= 28) b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_CELLULAR)
+                "not_roaming" -> b.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NOT_ROAMING)
             }
-            if ("--charging" in args) b.setRequiresCharging(true)
+            b.setRequiresCharging(bool("--charging", false))
+            b.setRequiresBatteryNotLow(bool("--battery-not-low", true))
+            b.setRequiresStorageNotLow(bool("--storage-not-low", false))
+            b.setRequiresDeviceIdle(bool("--idle", false))
             val ok = js.schedule(b.build()) == JobScheduler.RESULT_SUCCESS
-            return if (ok) "scheduled job $id every ${period / 60000} min (log: files/jobs/$id.log)" else "failed"
+            return if (ok) "Scheduled job $id${if (period > 0) " every ${maxOf(period, 15 * 60_000L) / 60000} min" else " (once)"} (log: nibras-job-scheduler -p; files/jobs/$id.log)" else "Failed to schedule job"
         }
     }
 }

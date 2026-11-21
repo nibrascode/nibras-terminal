@@ -215,6 +215,20 @@ object Rootfs {
         runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
     }
 
+    /** Phone commands (nibras-* / termux-*) in the plain Android shell too, using toybox nc + base64. */
+    fun refreshAndroidApi(context: Context, apiPort: Int, apiToken: String) {
+        val home = File(context.filesDir, "home")
+        val bin = File(home, "bin").apply { mkdirs() }
+        exe(File(bin, "nibras-api"), guest(context, "nibras-api"))
+        val conf = File(home, ".nibras/api").apply { parentFile?.mkdirs() }
+        writeReplacing(conf, "NIBRAS_API_PORT=$apiPort\nNIBRAS_API_TOKEN=$apiToken\n")
+        chmod(conf, "600".toInt(8))
+        for (cmd in API_COMMANDS) for (prefix in listOf("termux-", "nibras-")) {
+            val link = File(bin, "$prefix$cmd").toPath()
+            runCatching { Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("nibras-api")) }
+        }
+    }
+
     fun launch(context: Context, id: String, command: List<String>? = null, extraEnv: List<String> = emptyList()): Launch {
         val home = File(context.filesDir, "home").apply { mkdirs() }
         val tmp = File(context.cacheDir, "proot-tmp").apply { mkdirs() }
@@ -228,7 +242,7 @@ object Rootfs {
             return Launch(
                 "/system/bin/sh", args,
                 (listOf("HOME=${home.absolutePath}", "TMPDIR=${tmp.absolutePath}", term, lang, "COLORTERM=truecolor",
-                    "PATH=${home.absolutePath}/bin:/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data") + extraEnv).toTypedArray(),
+                    "PATH=${home.absolutePath}/bin:/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data", "NIBRAS_ENV=android") + extraEnv).toTypedArray(),
                 start ?: home.absolutePath,
             )
         }
@@ -351,6 +365,8 @@ object Rootfs {
         "reload-settings", "new-session", "edit", "files", "hosts", "dialog", "storage-get", "job-scheduler",
         "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
         "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo", "keystore", "nfc", "prayer-alarm", "media-builder", "env-install",
+        "infrared-frequencies", "notification-channel", "sms-inbox", "tts-engines", "wifi-enable", "api-start", "api-stop",
+        "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
     )
 
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */

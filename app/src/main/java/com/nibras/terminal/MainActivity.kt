@@ -634,6 +634,16 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }.show()
     }
 
+    /** terminal-onclick-url-open: opens the URL under the finger. */
+    private fun openUrlAt(e: MotionEvent): Boolean = runCatching {
+        val emulator = terminal.mEmulator ?: return false
+        val cr = terminal.getColumnAndRow(e, false)
+        val line = emulator.screen.getSelectedText(0, cr[1], emulator.mColumns, cr[1])
+        val m = Regex("""(https?|ftp|file)://[^\s'"<>()]+""").findAll(line).firstOrNull { cr[0] >= it.range.first && cr[0] <= it.range.last } ?: return false
+        startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(m.value)))
+        true
+    }.getOrDefault(false)
+
     private fun toggleKeyboard() {
         val imm = getSystemService(InputMethodManager::class.java)
         terminal.requestFocus()
@@ -667,7 +677,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             unlocked = false; lockOverlay.visibility = View.VISIBLE; askUnlock()
         }
         if (prefs.cursorBlink) {
-            terminal.setTerminalCursorBlinkerRate(500)
+            terminal.setTerminalCursorBlinkerRate(com.nibras.terminal.ui.TermProps.blinkRate.coerceAtLeast(100))
             terminal.setTerminalCursorBlinkerState(true, true)
         }
         sessionAdapter.notifyDataSetChanged()
@@ -694,6 +704,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     private fun applySettingsUnsafe() {
         val home = runCatching { Rootfs.homeOf(this) }.getOrNull()
+        runCatching { com.nibras.terminal.ui.TermProps.load(this, home) }
         background = Themes.apply(prefs.theme, home)
         service?.sessions?.forEach { it.emulator?.mColors?.reset() }
         content.setBackgroundColor(background)
@@ -708,7 +719,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         keys.keyColor = if (light) Color.BLACK else Color.WHITE
-        keys.setRows(Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT.let { rows ->
+        keys.setRows(com.nibras.terminal.ui.TermProps.extraKeys ?: Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT.let { rows ->
             listOf(rows[0], rows[1])
         })
         keys.visibility = if (prefs.extraKeys) View.VISIBLE else View.GONE
@@ -719,6 +730,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             pane.setTextSize(fontSize)
             runCatching { pane.setTypeface(Themes.typeface(home)) }
             pane.keepScreenOn = prefs.keepScreenOn
+            pane.setPadding(dp(com.nibras.terminal.ui.TermProps.marginH), dp(com.nibras.terminal.ui.TermProps.marginV), dp(com.nibras.terminal.ui.TermProps.marginH), dp(com.nibras.terminal.ui.TermProps.marginV))
             pane.invalidate()
         }
         applyCursor()
@@ -743,6 +755,24 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     // ---------------------------------------------------------------- extra keys
 
     private fun onExtraKey(key: String) {
+        if (key.startsWith("MACRO:")) {
+            var ctrl = false; var alt = false; var shift = false
+            for (t in key.removePrefix("MACRO:").substringBeforeLast('|').split(' ').filter { it.isNotEmpty() }) {
+                when (t.uppercase()) {
+                    "CTRL" -> ctrl = true; "ALT" -> alt = true; "SHIFT" -> shift = true
+                    else -> {
+                        val code = keys.keyCode(t.uppercase())
+                        if (code != null) {
+                            var mod = 0
+                            if (ctrl) mod = mod or KeyHandler.KEYMOD_CTRL; if (alt) mod = mod or KeyHandler.KEYMOD_ALT; if (shift) mod = mod or KeyHandler.KEYMOD_SHIFT
+                            if (!terminal.handleKeyCode(code, mod)) terminal.onKeyDown(code, KeyEvent(0, 0, KeyEvent.ACTION_DOWN, code, 0, metaState(ctrl, alt, shift)))
+                        } else t.codePoints().forEach { cp -> terminal.inputCodePoint(cp, ctrl, alt) }
+                        ctrl = false; alt = false; shift = false
+                    }
+                }
+            }
+            return
+        }
         when (key) {
             "KBD" -> { toggleKeyboard(); return }
             "DRAWER" -> { drawer.openDrawer(Gravity.START); return }
@@ -1048,7 +1078,12 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         override fun onCopyTextToClipboard(session: TerminalSession, text: String?) { if (text != null) copy(text) }
         override fun onPasteTextFromClipboard(session: TerminalSession?) { paste(session) }
         override fun onBell(session: TerminalSession) {
-            if (prefs.bellVibrate) getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
+            when (com.nibras.terminal.ui.TermProps.bell) {
+                "beep" -> runCatching { android.media.ToneGenerator(android.media.AudioManager.STREAM_NOTIFICATION, 60).startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 120) }
+                "ignore" -> Unit
+                else -> if (prefs.bellVibrate || com.nibras.terminal.ui.TermProps.bell == "vibrate" && com.nibras.terminal.ui.TermProps.props.containsKey("bell-character"))
+                    getSystemService(Vibrator::class.java)?.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE))
+            }
         }
         override fun onColorsChanged(session: TerminalSession) {
             if (primary.currentSession == session) primary.invalidate()
@@ -1081,6 +1116,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         override fun onSingleTapUp(e: MotionEvent?) {
             val emulator = terminal.mEmulator
             if (emulator != null && emulator.isMouseTrackingActive) return
+            if (com.nibras.terminal.ui.TermProps.urlOnClick && e != null && emulator != null && openUrlAt(e)) return
             showKeyboard()
         }
 
@@ -1101,7 +1137,17 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) { volumeDown = true; return true }
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) { volumeUp = true; return true }
             }
-            if (e.isCtrlPressed && e.isAltPressed) {
+            val P = com.nibras.terminal.ui.TermProps
+            val ch = e.getUnicodeChar(0).toChar()
+            if (P.shortcutKeys.isNotEmpty() && (e.isCtrlPressed || e.isAltPressed)) {
+                when {
+                    P.matches(P.shortcutKeys["create-session"], e.isCtrlPressed, e.isAltPressed, e.isShiftPressed, ch) -> { newSession(null); return true }
+                    P.matches(P.shortcutKeys["next-session"], e.isCtrlPressed, e.isAltPressed, e.isShiftPressed, ch) -> { switchSession(true); return true }
+                    P.matches(P.shortcutKeys["previous-session"], e.isCtrlPressed, e.isAltPressed, e.isShiftPressed, ch) -> { switchSession(false); return true }
+                    P.matches(P.shortcutKeys["rename-session"], e.isCtrlPressed, e.isAltPressed, e.isShiftPressed, ch) -> { session?.let { renameSession(it) }; return true }
+                }
+            }
+            if (e.isCtrlPressed && e.isAltPressed && !P.disableHwShortcuts) {
                 val uc = e.getUnicodeChar(0)
                 when {
                     keyCode == KeyEvent.KEYCODE_C -> newSession(null)
@@ -1176,7 +1222,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         override fun onEmulatorSet() {
             applyCursor()
             if (prefs.cursorBlink) {
-                terminal.setTerminalCursorBlinkerRate(500)
+                terminal.setTerminalCursorBlinkerRate(com.nibras.terminal.ui.TermProps.blinkRate.coerceAtLeast(100))
                 terminal.setTerminalCursorBlinkerState(true, true)
             }
         }

@@ -27,6 +27,7 @@ class PromptActivity : Activity() {
         private const val REQ_DOC = 31
         private const val REQ_CAM = 32
         private const val REQ_STT = 33
+        private const val REQ_TREE = 34
 
         /** Blocks the API worker thread until the user answers (max 10 min). */
         fun ask(context: Context, kind: String, args: List<String>, target: File? = null): String {
@@ -72,6 +73,8 @@ class PromptActivity : Activity() {
                 return
             }
             "nfc" -> { startNfc(args); return }
+            "saf-tree" -> { runCatching { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT_TREE), REQ_TREE) }.onFailure { answer(1, it.message ?: "no picker") }; return }
+            "fingerprint" -> { fingerprint(args); return }
             "speech-to-text" -> {
                 val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -83,6 +86,32 @@ class PromptActivity : Activity() {
         val title = opt("-t") ?: "Nibras"
         val hint = opt("-i") ?: ""
         val values = opt("-v")?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }.orEmpty()
+        if (widget == "speech") {
+            val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, hint.ifBlank { title })
+            runCatching { startActivityForResult(i, REQ_STT) }.onFailure { answer(1, it.message ?: "no speech app") }
+            return
+        }
+        if (widget == "date") {
+            val cal = java.util.Calendar.getInstance()
+            android.app.DatePickerDialog(this, { _, y, m, d ->
+                cal.set(y, m, d, 0, 0, 0)
+                val fmt = opt("-d")
+                answer(-1, if (fmt != null) runCatching { java.text.SimpleDateFormat(fmt, java.util.Locale.US).format(cal.time) }.getOrDefault(cal.time.toString()) else cal.time.toString())
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).apply {
+                setTitle(title); setOnCancelListener { answer(-2, "") }; show()
+            }
+            return
+        }
+        if (widget == "time") {
+            val cal = java.util.Calendar.getInstance()
+            android.app.TimePickerDialog(this, { _, h, m -> answer(-1, "%02d:%02d".format(h, m)) },
+                cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE), true).apply {
+                setTitle(title); setOnCancelListener { answer(-2, "") }; show()
+            }
+            return
+        }
         val b = AlertDialog.Builder(this).setTitle(title).setOnCancelListener { answer(-2, "") }
         when (widget) {
             "confirm" -> b.setMessage(hint.ifBlank { "?" })
@@ -93,7 +122,7 @@ class PromptActivity : Activity() {
                 b.setMultiChoiceItems(values.toTypedArray(), checked) { _, w, on -> checked[w] = on }
                     .setPositiveButton(R.string.ok) { _, _ ->
                         val picked = values.indices.filter { checked[it] }
-                        answer(-1, picked.joinToString(", ") { values[it] }) { put("values", org.json.JSONArray(picked.map { values[it] })) }
+                        answer(-1, "[" + picked.joinToString(", ") { values[it] } + "]") { put("values", org.json.JSONArray(picked.map { JSONObject().put("index", it).put("text", values[it]) })) }
                     }
             }
             "counter" -> {
@@ -123,6 +152,12 @@ class PromptActivity : Activity() {
             val text = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             answer(if (text != null) -1 else -2, text.orEmpty()); return
         }
+        if (requestCode == REQ_TREE) {
+            val uri = data?.data
+            if (resultCode != RESULT_OK || uri == null) { answer(-2, ""); return }
+            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION) }
+            answer(-1, uri.toString()); return
+        }
         if (requestCode == REQ_CAM) {
             val tmp = camTmp; val target = intent.getStringExtra("target")?.let { File(it) }
             if (resultCode != RESULT_OK || tmp == null || target == null || tmp.length() == 0L) { tmp?.delete(); answer(-2, ""); return }
@@ -139,6 +174,28 @@ class PromptActivity : Activity() {
             }.isSuccess
             runOnUiThread { answer(if (ok) -1 else 1, if (ok) target.name else "copy failed") }
         }.start()
+    }
+
+    // ---------------------------------------------------------------- fingerprint (termux-fingerprint)
+    private fun fingerprint(args: List<String>) {
+        var failed = 0
+        val errors = org.json.JSONArray()
+        fun finish(result: String) = answer(-1, result) { put("auth_result", result).put("failed_attempts", failed).put("errors", errors) }
+        if (android.os.Build.VERSION.SDK_INT < 28) { errors.put("ERROR_UNSUPPORTED_ANDROID_VERSION"); finish("AUTH_RESULT_UNKNOWN"); return }
+        val b = android.hardware.biometrics.BiometricPrompt.Builder(this).setTitle(args.getOrNull(0) ?: "Nibras Terminal")
+        args.getOrNull(1)?.takeIf { it.isNotBlank() }?.let { b.setDescription(it) }
+        args.getOrNull(2)?.takeIf { it.isNotBlank() }?.let { b.setSubtitle(it) }
+        b.setNegativeButton(args.getOrNull(3) ?: getString(R.string.cancel), mainExecutor) { _, _ -> errors.put("ERROR_CANCELED"); finish("AUTH_RESULT_FAILURE") }
+        runCatching {
+            b.build().authenticate(android.os.CancellationSignal(), mainExecutor, object : android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: android.hardware.biometrics.BiometricPrompt.AuthenticationResult?) = finish("AUTH_RESULT_SUCCESS")
+                override fun onAuthenticationFailed() { failed++ }
+                override fun onAuthenticationError(code: Int, msg: CharSequence?) {
+                    errors.put(when (code) { 7 -> "ERROR_LOCKOUT"; 9 -> "ERROR_LOCKOUT_PERMANENT"; 11 -> "ERROR_NO_BIOMETRICS"; 12 -> "ERROR_HW_NOT_PRESENT"; 10, 5 -> "ERROR_CANCELED"; 3 -> "ERROR_TIMEOUT"; else -> "ERROR_$code" })
+                    finish("AUTH_RESULT_FAILURE")
+                }
+            })
+        }.onFailure { errors.put(it.message ?: "ERROR"); finish("AUTH_RESULT_UNKNOWN") }
     }
 
     // ---------------------------------------------------------------- NFC (termux-nfc)

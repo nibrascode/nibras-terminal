@@ -56,7 +56,7 @@ class ExtraKeysView(context: Context, private val onKey: (String) -> Unit, priva
             val line = LinearLayout(context).apply { orientation = HORIZONTAL }
             for (key in row) {
                 val view = TextView(context).apply {
-                    text = LABELS[key] ?: key
+                    text = if (key.startsWith("MACRO:")) key.substringAfterLast('|') else LABELS[key] ?: key
                     gravity = Gravity.CENTER
                     typeface = Typeface.MONOSPACE
                     textSize = 13f
