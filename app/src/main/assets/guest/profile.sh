@@ -21,7 +21,7 @@ fi
 # Session restore: remember the working directory of this session.
 if [ -n "${NIBRAS_SESSION:-}" ]; then
   _nibras_cwd() { printf '%s\n' "$PWD" > "/tmp/.nibras-cwd-$NIBRAS_SESSION" 2>/dev/null; }
-  cd() { command cd "$@" && _nibras_cwd; }
+  cd() { command cd "$@" || return; _nibras_cwd; nibras-work jump-add "$PWD" >/dev/null 2>&1 || true; }
   pushd() { command pushd "$@" && _nibras_cwd; }
   popd() { command popd "$@" && _nibras_cwd; }
   _nibras_cwd
@@ -67,3 +67,73 @@ fi
 # Your look: prompt preset and aliases written by the prompt / aliases commands.
 [ -r "$HOME/.nibras/prompt.sh" ] && . "$HOME/.nibras/prompt.sh"
 [ -r "$HOME/.nibras/aliases.sh" ] && . "$HOME/.nibras/aliases.sh"
+
+# Short names that have to change this shell. The rest are commands (use, here, hist, …).
+jump() {
+  if [ $# -eq 0 ]; then nibras-work jump; return; fi
+  d=$(nibras-work jump-path "$1") || return 1
+  cd "$d"
+}
+goto() {
+  d=$(nibras-work goto-path "${1:?name}") || return 1
+  cd "$d"
+}
+dotenv() {
+  if [ "${1:-}" = lock ] || [ "${1:-}" = unlock ]; then nibras-work dotenv "$1"; return; fi
+  [ -f "${1:-.env}" ] || { echo "no ${1:-.env}"; return 1; }
+  while IFS= read -r line; do
+    case "$line" in
+      [A-Za-z_]*=*) export "$line" ;;
+    esac
+  done <<EOF
+$(nibras-work dotenv-print "${1:-.env}")
+EOF
+  echo "✓"
+}
+again() {
+  line=$(nibras-work again-line) || return 1
+  printf '%s\n' "$line"
+  nibras-api work confirm "Run again?" >/dev/null || return 1
+  eval "$line"
+}
+clone() {
+  git clone "$@" || return
+  last=
+  for a in "$@"; do last=$a; done
+  [ -d "$last" ] && cd "$last" && return
+  base=$(basename "$last" .git)
+  [ -d "$base" ] && cd "$base"
+}
+palette() {
+  c=$(nibras-work palette-pick) || return 1
+  "$c"
+}
+incognito() {
+  export NIBRAS_INCOGNITO=1 HISTFILE=/dev/null
+  if [ -n "${NIBRAS_SESSION:-}" ]; then
+    if [ "${NIBRAS_ENV:-}" = android ]; then : > "$HOME/.nibras-incognito-$NIBRAS_SESSION"
+    else : > "/tmp/.nibras-incognito-$NIBRAS_SESSION"; fi
+  fi
+  echo "this session is not saved and not written to history"
+}
+_nibras_note() {
+  [ -n "${NIBRAS_INCOGNITO:-}" ] && return 0
+  [ -n "${NIBRAS_SESSION:-}" ] && [ -f "/tmp/.nibras-incognito-$NIBRAS_SESSION" ] && return 0
+  line=
+  if [ -n "${BASH_VERSION:-}" ]; then line=$(history 1 2>/dev/null | sed 's/^ *[0-9][0-9]* *//'); fi
+  if [ -f "$HOME/.nibras/title-auto" ]; then printf '\033]0;%s\007' "$(basename "$PWD")"; fi
+  [ -n "$line" ] || return 0
+  mkdir -p "$HOME/.nibras"
+  case "$line" in
+    *password*|*passwd*|*secret*|*token=*|*ghp_*|*BEGIN\ OPENSSH*|*BEGIN\ RSA*)
+      printf '%s\n' "[hidden]" > "$HOME/.nibras/last-cmd"; return 0 ;;
+  esac
+  printf '%s\n' "$line" >> "$HOME/.nibras/history"
+  printf '%s\n' "$line" > "$HOME/.nibras/last-cmd"
+  tail -400 "$HOME/.nibras/history" > "$HOME/.nibras/history.tmp" 2>/dev/null && mv "$HOME/.nibras/history.tmp" "$HOME/.nibras/history"
+  return 0
+}
+if [ -n "${BASH_VERSION:-}" ]; then
+  case "${PROMPT_COMMAND:-}" in *__nibras_note*) ;; *) PROMPT_COMMAND="_nibras_note${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;; esac
+fi
+

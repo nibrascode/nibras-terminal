@@ -247,3 +247,7 @@ Nibras Terminal icazəni yalnız əmrə lazım olanda istəyir. Kamera, mikrofon
 ## 18. 1.0.4 əlavələri
 
 `nibras-man` hər birini öz dilində izah edir. Qısa siyahı: `nibras-update` (release imzasını yoxlayır), `nibras-apk diff`, `nibras-allow`, `nibras-guest`, `nibras-secret`, `record`, layihədə `.nibras/keys`, `nibras-job`, `nibras-peer`, `nibras-qr-run`, `nibras-mirror`, `nibras-setup`, `nibras-import-termux`, `nibras-phrase`, `nibras-ports`. Git parolu telefondan soruşur və terminala yazmır. Saytın ilk ekranı dəyişməyib.
+
+## 19. 1.0.5 qısa əmrlər
+
+`use`, `here`, `jump`, `hist`, `check`, `health` yazın. Tam siyahı: `nibras-work help`. `test`, `env`, `sync`, `zip` və `fmt` sistem əmri qalır. `font` görünüşü dəyişir; ttf faylı üçün `nibras-work font fayl.ttf`. `jump`, `goto`, `clone`, `dotenv`, `again` və `palette` cari qabığı dəyişdiyi üçün funksiyadır. `incognito` o sessiyanı bərpa etmir və tarixçəyə yazmır. `snip` yalnız icazə siyahısındakı sətri, təsdiqdən sonra işlədir. `sayit` və `scan` yalnız tanınan cümləni işlədir. Layihə düyməsi və içində `; | &` və ya `$` olan çoxsətirli yapışdırma əvvəl soruşur. Saytın ilk ekranı dəyişməyib.

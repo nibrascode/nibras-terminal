@@ -992,8 +992,13 @@ fix_suggest() {
 cmd_fix() { # suggest a fix for a missing / mistyped command, or for the error of a command
   case "${1:-}" in
     "")
-      h=${HISTFILE:-$HOME/.ash_history}; [ -f "$h" ] || h=$HOME/.bash_history
-      last=$(grep -v '^fix$\|^nibras-kit fix' "$h" 2>/dev/null | tail -1)
+      if [ -f "$HOME/.nibras/last-cmd" ]; then
+        last=$(cat "$HOME/.nibras/last-cmd")
+        [ "$last" = "[hidden]" ] && { echo "the last command was hidden"; return 1; }
+      else
+        h=${HISTFILE:-$HOME/.ash_history}; [ -f "$h" ] || h=$HOME/.bash_history
+        last=$(grep -v '^fix$\|^nibras-kit fix' "$h" 2>/dev/null | tail -1)
+      fi
       [ -n "$last" ] || { echo "fix <command> · fix -- <command line> · <command> 2>&1 | fix -"; return; }
       say "Re-running to read the error: $last" "Xətanı oxumaq üçün yenidən işlədirəm: $last" "Hatayı okumak için tekrar: $last" "Повтор для анализа ошибки: $last"
       set -- -- "$last" ;;

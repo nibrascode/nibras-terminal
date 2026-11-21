@@ -112,6 +112,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     override fun attachBaseContext(base: Context) = super.attachBaseContext(Lang.wrap(base))
 
     private var startupKeyboardChecked = false
+    private var projectCommands = emptySet<String>()
+    private var sendingProject = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -425,6 +427,10 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             runOnUiThread {
                 bootOverlay.visibility = View.GONE
                 if (problem != null) Toast.makeText(this, getString(R.string.boot_failed, problem), Toast.LENGTH_LONG).show()
+                runCatching {
+                    val free = android.os.StatFs(filesDir.absolutePath).availableBytes
+                    if (free < 50L * 1024 * 1024) Toast.makeText(this, R.string.disk_low, Toast.LENGTH_LONG).show()
+                }
                 WhatsNew.maybe(this)
                 val svc = service ?: return@runOnUiThread
                 if (!handleIntent(pendingIntent) && svc.sessions.isEmpty()) restoreOrNew(svc)
@@ -456,6 +462,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
                 "clipboard" -> clipboardHistory()
                 "monitor" -> { prefs.sp.edit().putBoolean("monitor", true).apply(); startMonitor() }
             }
+            if (what == "files" || what == "hosts") intent.action = null
         }
         val command = intent.getStringArrayExtra(EXTRA_COMMAND)
         if (command != null) {
@@ -500,6 +507,10 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         terminal.onScreenUpdated()
         terminal.requestFocus()
         sessionAdapter.notifyDataSetChanged()
+    }
+
+    override fun setSplit(on: Boolean) {
+        runOnUiThread { if ((secondary != null) != on) toggleSplit() }
     }
 
     private fun currentSession(): TerminalSession? = terminal.currentSession
@@ -630,7 +641,12 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private fun paste(session: TerminalSession?) {
         val clip = getSystemService(ClipboardManager::class.java).primaryClip ?: return
         val text = clip.getItemAt(0)?.coerceToText(this)?.toString() ?: return
-        session?.emulator?.paste(text)
+        val risky = '\n' in text && text.indexOfAny(charArrayOf(';', '|', '&', '`', '$')) >= 0
+        if (!risky) { session?.emulator?.paste(text); return }
+        AlertDialog.Builder(this).setTitle(R.string.app_name).setMessage(text.take(240))
+            .setPositiveButton(R.string.yes) { _, _ -> session?.emulator?.paste(text) }
+            .setNegativeButton(R.string.no, null)
+            .show()
     }
 
     private fun share(text: String) {
@@ -753,7 +769,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             if (com.nibras.terminal.ui.TermProps.hideKeyboardOnStart)
                 window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         }
-        background = Themes.apply(prefs.theme, home)
+        background = Themes.apply(projectTheme() ?: prefs.theme, home)
         service?.sessions?.forEach { it.emulator?.mColors?.reset() }
         val wall = Themes.backgroundImage(home)?.let { f ->
             runCatching {
@@ -781,11 +797,12 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }
         keys.keyColor = if (light) Color.BLACK else Color.WHITE
         val sessionNow = currentSession()
-        val projectKeys = sessionNow?.let { s ->
+        val projectRows = sessionNow?.let { s ->
             val env = service?.envOf?.get(s) ?: return@let null
             ProjectKeys.read(this, env, service?.cwdOf(s).orEmpty())
         }
-        keys.setRows(projectKeys ?: com.nibras.terminal.ui.TermProps.extraKeys ?: Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT)
+        projectCommands = projectRows?.flatten()?.filter { commandButton(it) }?.toSet().orEmpty()
+        keys.setRows(projectRows ?: com.nibras.terminal.ui.TermProps.extraKeys ?: Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT)
         keys.visibility = if (prefs.extraKeys) View.VISIBLE else View.GONE
         // setTextSize must run before setTypeface: TerminalView has no renderer until a text size is set,
         // and setTypeface() dereferences it (this NPE closed 0.2.113 right after launch).
@@ -799,6 +816,22 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }
         applyCursor()
         drawer.requestApplyInsets()
+    }
+
+    private fun projectTheme(): String? {
+        val s = currentSession() ?: return null
+        val env = service?.envOf?.get(s) ?: return null
+        val dir = com.nibras.terminal.ui.HostPaths.toHost(this, env, service?.cwdOf(s).orEmpty()) ?: return null
+        val line = java.io.File(dir, ".nibras/theme").takeIf { it.isFile }?.readLines()?.firstOrNull()?.trim().orEmpty()
+        val name = Themes.canonical(line)
+        return name.takeIf { it in Themes.names }
+    }
+
+    /** A project button that types a command, not ESC / arrows / a single symbol. */
+    private fun commandButton(key: String): Boolean {
+        if (key.startsWith("MACRO:") || key in ExtraKeysView.MODIFIERS) return false
+        if (key in setOf("KBD", "DRAWER", "PASTE", "ESC", "TAB", "HOME", "END", "UP", "DOWN", "LEFT", "RIGHT", "PGUP", "PGDN", "BKSP", "DEL", "ENTER")) return false
+        return key.any { it.isWhitespace() } || key.length > 1
     }
 
     private fun applyCursor() {
@@ -819,6 +852,13 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     // ---------------------------------------------------------------- extra keys
 
     private fun onExtraKey(key: String) {
+        if (!sendingProject && key in projectCommands) {
+            AlertDialog.Builder(this).setTitle(R.string.app_name).setMessage(key)
+                .setPositiveButton(R.string.yes) { _, _ -> sendingProject = true; try { onExtraKey(key) } finally { sendingProject = false } }
+                .setNegativeButton(R.string.no, null)
+                .show()
+            return
+        }
         if (key.startsWith("MACRO:")) {
             var ctrl = false; var alt = false; var shift = false
             for (t in key.removePrefix("MACRO:").substringBeforeLast('|').split(' ').filter { it.isNotEmpty() }) {

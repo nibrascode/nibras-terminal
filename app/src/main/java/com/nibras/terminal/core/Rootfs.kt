@@ -202,6 +202,7 @@ object Rootfs {
             val long = f("usr/local/bin/nibras-$cmd").toPath(); Files.deleteIfExists(long); Files.createSymbolicLink(long, Paths.get("nibras-look"))
             val short = File(shortDir, cmd).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-look"))
         }
+        installWork(context, f("usr/local/bin"), shortDir)
         // Language words as commands ("az dili yukle", "türkçe yükle", "تحميل العربية"): last on PATH, never shadow programs.
         for (w in LANG_WORDS) runCatching {
             val short = File(shortDir, w).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
@@ -302,7 +303,8 @@ object Rootfs {
      */
     fun writeAndroidRc(context: Context) {
         val home = File(context.filesDir, "home")
-        val bin = File(home, "bin")
+        val bin = File(home, "bin").apply { mkdirs() }
+        installWork(context, bin, bin)
         val names = (API_COMMANDS.flatMap { listOf("termux-$it", "nibras-$it") } + (bin.list()?.toList() ?: emptyList())).distinct()
             .filter { n -> n.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' } }
         val rc = buildString {
@@ -312,8 +314,11 @@ object Rootfs {
                 val target = if (n.startsWith("termux-") || (n.startsWith("nibras-") && n.removePrefix("nibras-") in API_COMMANDS)) "nibras-api" else n
                 // nibras-api reads its command name from $0, so pass it explicitly when run through sh
                 if (target == "nibras-api" && n != "nibras-api") append("$n() { sh \"\$NB/nibras-api\" ${n.removePrefix("termux-").removePrefix("nibras-")} \"\$@\"; }\n")
+                else if (n == "nibras-work") append("nibras-work() { sh \"\$NB/nibras-work\" \"\$@\"; }\n")
+                else if (n in WORK_SHORT) append("$n() { sh \"\$NB/nibras-work\" $n \"\$@\"; }\n")
                 else append("$n() { sh \"\$NB/$n\" \"\$@\"; }\n")
             }
+            append(runCatching { guest(context, "android-fns.sh") }.getOrDefault(""))
         }
         val langFn = "lang() { sh \"\$NB/nibras-api\" lang \"\$@\"; }\ndil() { lang \"\$@\"; }\n"
         val user = "[ -r \"\$HOME/.nibras/android-rc.local\" ] && . \"\$HOME/.nibras/android-rc.local\"\n"
@@ -434,6 +439,20 @@ object Rootfs {
         file.writeText(text)
     }
 
+    /** nibras-work plus short names. An existing short name (font, edit, …) is left alone. */
+    private fun installWork(context: Context, bin: File, shortDir: File) {
+        shortDir.mkdirs()
+        runCatching { exe(File(bin, "nibras-work"), guest(context, "nibras-work")) }
+        val same = bin.absolutePath == shortDir.absolutePath
+        val target = if (same) "nibras-work" else "/usr/local/bin/nibras-work"
+        for (cmd in WORK_SHORT) runCatching {
+            if (cmd == "test" || cmd == "env" || cmd == "sync" || cmd == "zip" || cmd == "fmt") return@runCatching
+            val link = File(shortDir, cmd).toPath()
+            if (!Files.exists(link, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                Files.createSymbolicLink(link, Paths.get(target))
+        }
+    }
+
     private fun exe(file: File, text: String) {
         writeReplacing(file, text)
         chmod(file, "755".toInt(8))
@@ -477,6 +496,15 @@ object Rootfs {
     val LOOK_COMMANDS = listOf(
         "color", "colors", "ccat", "theme", "font", "cursor", "wallpaper", "background", "bell", "margin", "fullscreen",
         "prompt", "banner", "keys", "motd", "aliases", "reset-look", "customize", "look",
+    )
+    /** Short names of nibras-work. Last on PATH. Never shadow test, env, sync, zip, fmt, or an existing short name such as font. */
+    val WORK_SHORT = listOf(
+        "use", "here", "jump", "mark", "goto", "title", "layout", "palette", "hist", "again", "snip", "todo",
+        "dotenv", "pretty", "check", "alert", "disk", "large", "clean", "pack", "alike", "open", "pick", "saf",
+        "opacity", "quiet", "health", "crash", "hostfp", "sayit", "clone", "gdiff", "cmsg", "gpush", "apkbuild",
+        "signapk", "installapk", "logmine", "pyfile", "runweb", "panes", "lesson", "moveto", "homebak",
+        "homerestore", "daily", "pingdown", "sendtext", "scan", "shrinkpic", "trimaudio", "voicenote",
+        "themehere", "links", "abbr", "hold", "qs", "incognito", "jobtest",
     )
     val LANG_WORDS = listOf(
         "az", "AZ", "en", "EN", "tr", "TR", "ru", "RU", "ar", "AR", "fa", "ur", "ms", "fr", "de", "es", "pt", "it", "zh", "ja", "ko", "hi", "bn",

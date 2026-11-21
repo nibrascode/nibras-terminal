@@ -29,6 +29,7 @@ class PromptActivity : Activity() {
         private const val REQ_STT = 33
         private const val REQ_TREE = 34
         private const val REQ_PUT = 35
+        private const val REQ_QR = 36
 
         /** Blocks the API worker thread until the user answers. Sensitive confirms pass 30 seconds. */
         fun ask(context: Context, kind: String, args: List<String>, target: File? = null, timeoutSec: Long = 600): String {
@@ -87,6 +88,11 @@ class PromptActivity : Activity() {
                 val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 runCatching { startActivityForResult(i, REQ_STT) }.onFailure { answer(1, it.message ?: "no speech app") }
+                return
+            }
+            "qr" -> {
+                val i = Intent("com.google.zxing.client.android.SCAN")
+                runCatching { startActivityForResult(i, REQ_QR) }.onFailure { answer(1, "no scanner app") }
                 return
             }
             "sensitive" -> { confirmSensitive(args); return }
@@ -196,6 +202,11 @@ class PromptActivity : Activity() {
         if (requestCode == REQ_STT) {
             val text = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
             answer(if (text != null) -1 else -2, text.orEmpty()); return
+        }
+        if (requestCode == REQ_QR) {
+            val text = data?.getStringExtra("SCAN_RESULT")
+            answer(if (resultCode == RESULT_OK && !text.isNullOrBlank()) -1 else 1, text ?: "no scanner")
+            return
         }
         if (requestCode == REQ_TREE) {
             val uri = data?.data

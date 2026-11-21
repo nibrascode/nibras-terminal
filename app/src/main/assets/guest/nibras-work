@@ -1,0 +1,435 @@
+#!/bin/sh
+# Short commands. Names that already exist as real programs (test, env, sync, zip, fmt) are not used.
+#   use here jump mark title layout palette hist snip todo dotenv pretty check alert
+#   disk large clean pack alike open pick saf font opacity quiet health crash hostfp sayit
+#   clone gdiff cmsg gpush apkbuild signapk installapk logmine pyfile runweb panes lesson
+#   moveto homebak homerestore daily pingdown sendtext scan shrinkpic trimaudio voicenote
+#   themehere links abbr hold qs
+me=${0##*/}
+me=${me#nibras-}
+if [ "$me" = work ]; then me=${1:-help}; shift; fi
+ok() { nibras-api work "$@" || return 1; }
+confirm() { nibras-api work confirm "$*" >/dev/null; }
+prop() {
+  f=$HOME/.nibras/nibras.properties
+  mkdir -p "$HOME/.nibras"
+  touch "$f"
+  grep -v "^$1=" "$f" > "$f.tmp" 2>/dev/null || :
+  printf '%s=%s\n' "$1" "$2" >> "$f.tmp"
+  mv "$f.tmp" "$f"
+  nibras-api reload-settings >/dev/null 2>&1 || true
+}
+safe_name() { case "$1" in *[!A-Za-z0-9_-]*|"") return 1 ;; *) return 0 ;; esac; }
+secret_rel() {
+  case "$1" in
+    id_*|*.p12|*.jks|*.age|*known_hosts*|*/.ssh/*|.ssh/*|*/vault/*|vault/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+case "$me" in
+  help|-h|--help)
+    echo "use here jump mark title layout palette hist snip todo dotenv pretty check alert"
+    echo "disk large clean pack alike open pick saf font opacity quiet health crash hostfp sayit"
+    echo "clone gdiff cmsg gpush apkbuild signapk installapk logmine pyfile runweb panes lesson"
+    echo "moveto homebak homerestore daily pingdown sendtext scan shrinkpic trimaudio voicenote"
+    echo "themehere links abbr hold qs incognito again goto jobtest"
+    echo "test, env, sync, zip and fmt stay the system commands."
+    ;;
+  use) ok use "$@" ;;
+  here) ok here ;;
+  jump-add)
+    p=${1:-}
+    case "$p" in /*) ;; *) exit 0 ;; esac
+    mkdir -p "$HOME/.nibras"
+    f=$HOME/.nibras/jump
+    touch "$f"
+    awk -F '\t' -v p="$p" 'BEGIN { c=1 } $2==p { c=$1+1; next } $2!="" { print } END { print c "\t" p }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+    ;;
+  jump-path)
+    q=${1:?}
+    f=$HOME/.nibras/jump
+    [ -f "$f" ] || { echo "no marks yet"; exit 1; }
+    awk -F '\t' -v q="$q" '
+      function base(s) { sub(/.*\//, "", s); return s }
+      base($2)==q { if ($1+0 >= b) { b=$1+0; p=$2 } }
+      END { if (p=="") exit 1; print p }
+    ' "$f" || awk -F '\t' -v q="$q" '
+      index($2, q) { n++; p=$2 }
+      END { if (n!=1) exit 1; print p }
+    ' "$f" || { echo "not found: $q"; exit 1; }
+    ;;
+  jump)
+    f=$HOME/.nibras/jump
+    [ -f "$f" ] && sort -nr "$f" | head -20 || echo "cd somewhere first"
+    ;;
+  mark)
+    name=${1:?name}
+    safe_name "$name" || { echo "bad name"; exit 1; }
+    mkdir -p "$HOME/.nibras"
+    f=$HOME/.nibras/marks
+    touch "$f"
+    awk -F '\t' -v n="$name" -v p="$PWD" '$1!=n && $1!="" { print } END { print n "\t" p }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+    echo "✓ $name → $PWD"
+    ;;
+  goto-path)
+    name=${1:?}
+    awk -F '\t' -v n="$name" '$1==n { print $2; found=1 } END { if (!found) exit 1 }' "$HOME/.nibras/marks"
+    ;;
+  title)
+    if [ "${1:-}" = auto ]; then mkdir -p "$HOME/.nibras"; : > "$HOME/.nibras/title-auto"; echo "✓"; exit; fi
+    if [ "${1:-}" = off ]; then rm -f "$HOME/.nibras/title-auto"; echo "✓"; exit; fi
+    [ -n "${1:-}" ] || { echo "title <name> · title auto · title off"; exit 1; }
+    ok title "${NIBRAS_SESSION:-x}" "$*"
+    ;;
+  layout)
+    case "${1:-on}" in
+      save) mkdir -p "$HOME/.nibras"; echo on > "$HOME/.nibras/layout"; ok split on ;;
+      restore) [ "$(cat "$HOME/.nibras/layout" 2>/dev/null)" = on ] && ok split on || ok split off ;;
+      off) ok split off ;;
+      *) ok split on ;;
+    esac
+    ;;
+  palette-pick)
+    echo "use here jump hist snip todo pretty check disk large clean pack health open pick font quiet" >&2
+    printf '%s ' ">" >&2
+    read -r c || exit 1
+    case "$c" in
+      use|here|jump|hist|snip|todo|pretty|check|disk|large|clean|pack|health|open|pick|font|quiet) printf '%s\n' "$c" ;;
+      *) echo "not in the list"; exit 1 ;;
+    esac
+    ;;
+  hist)
+    f=$HOME/.nibras/history
+    [ -f "$f" ] || { echo "no history yet"; exit 0; }
+    if [ -n "${1:-}" ]; then grep -F "$1" "$f" | tail -40; else tail -40 "$f"; fi
+    ;;
+  again-line)
+    f=$HOME/.nibras/last-cmd
+    [ -f "$f" ] || { echo "nothing yet"; exit 1; }
+    line=$(cat "$f")
+    [ "$line" = "[hidden]" ] && { echo "hidden"; exit 1; }
+    case "$line" in
+      *nibras-sms*|*nibras-camera*|*clipboard-get*|*microphone*|*telephony-call*|*nibras-location*) echo "refused"; exit 1 ;;
+    esac
+    printf '%s\n' "$line"
+    ;;
+  snip)
+    d=$HOME/.nibras/snips
+    mkdir -p "$d"
+    case "${1:-list}" in
+      list|"") ls "$d" 2>/dev/null ;;
+      save)
+        name=${2:?name}; safe_name "$name" || exit 1
+        [ -f "$HOME/.nibras/last-cmd" ] || { echo "no last command"; exit 1; }
+        cp "$HOME/.nibras/last-cmd" "$d/$name"; echo "✓ $name" ;;
+      *)
+        name=$1; safe_name "$name" || exit 1
+        [ -f "$d/$name" ] || { echo "no $name"; exit 1; }
+        line=$(cat "$d/$name")
+        nibras-api work listed "$line" >/dev/null || { echo "not on the allow list"; exit 1; }
+        confirm "Run $line?" || exit 1
+        sh -c "$line"
+        ;;
+    esac
+    ;;
+  snip-line)
+    cat "$HOME/.nibras/snips/${1:?}"
+    ;;
+  todo)
+    d=$PWD/.nibras
+    mkdir -p "$d"
+    f=$d/todo
+    touch "$f"
+    case "${1:-list}" in
+      list|"") nl -ba "$f" ;;
+      add) shift; [ -n "${1:-}" ] || exit 1; printf '%s\n' "$*" >> "$f"; echo "✓" ;;
+      done) n=${2:?n}; sed -i "${n}d" "$f" 2>/dev/null || { sed "${n}d" "$f" > "$f.tmp" && mv "$f.tmp" "$f"; }; nl -ba "$f" ;;
+      *) echo "todo · todo add <text> · todo done <n>" ;;
+    esac
+    ;;
+  dotenv-print)
+    f=${1:-.env}
+    [ -f "$f" ] || { echo "no $f" >&2; exit 1; }
+    awk '
+      /^[A-Za-z_][A-Za-z0-9_]*=/ {
+        if ($0 ~ /\n/) next
+        print
+      }
+    ' "$f"
+    ;;
+  dotenv)
+    case "${1:-}" in
+      lock) nibras-api secret-box env ;;
+      unlock) nibras-api secret-box env-unlock ;;
+      *) echo "dotenv · dotenv lock · dotenv unlock" ;;
+    esac
+    ;;
+  pretty)
+    f=${1:?file}
+    case "$f" in
+      *.py) command -v black >/dev/null || { echo "black is not installed"; exit 1; }; black "$f" ;;
+      *.js|*.ts|*.jsx|*.tsx) command -v prettier >/dev/null || { echo "prettier is not installed"; exit 1; }; prettier --write "$f" ;;
+      *.sh) command -v shfmt >/dev/null || { echo "shfmt is not installed"; exit 1; }; shfmt -w "$f" ;;
+      *) echo "pretty file.py|file.js|file.sh"; exit 1 ;;
+    esac
+    ;;
+  check-cmd)
+    if [ -f pytest.ini ] || [ -f pyproject.toml ] || [ -d tests ]; then echo pytest; exit; fi
+    if [ -f package.json ]; then echo "npm test"; exit; fi
+    if [ -f gradlew ]; then echo "./gradlew test"; exit; fi
+    echo "no pytest, npm test, or gradlew" >&2; exit 1
+    ;;
+  check)
+    cmd=$(nibras-work check-cmd) || exit 1
+    echo "$cmd"
+    confirm "Run $cmd?" || exit 1
+    case "$cmd" in
+      pytest) pytest ;;
+      "npm test") npm test ;;
+      "./gradlew test") ./gradlew test ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  alert)
+    [ -n "${1:-}" ] || { echo "alert <command>"; exit 1; }
+    "$@"
+    s=$?
+    nibras-api work alert "$s" "$*" >/dev/null 2>&1 || true
+    exit $s
+    ;;
+  disk) ok disk; df -h "$HOME" 2>/dev/null | head -2 ;;
+  large)
+    find "$HOME" -type f -size +256k 2>/dev/null | while IFS= read -r f; do
+      secret_rel "${f#"$HOME"/}" && continue
+      n=$(wc -c < "$f" 2>/dev/null) || continue
+      printf '%s\t%s\n' "$n" "$f"
+    done | sort -n | tail -20
+    ;;
+  clean)
+    echo "$HOME/.cache"
+    echo "/tmp"
+    confirm "Delete cache and tmp? Your home files stay." || exit 1
+    rm -rf "$HOME/.cache"/* /tmp/* 2>/dev/null || true
+    echo "✓"
+    ;;
+  pack)
+    src=${1:?folder}
+    [ -e "$src" ] || { echo "no $src"; exit 1; }
+    kb=$(du -sk "$src" 2>/dev/null | awk '{print $1}')
+    if [ "${kb:-0}" -gt 204800 ]; then confirm "$src is over 200 MB. Pack it?" || exit 1; fi
+    mkdir -p "$HOME/downloads"
+    out=$HOME/downloads/$(basename "$src").tar.gz
+    tar -C "$(dirname "$src")" -czf "$out" "$(basename "$src")" && echo "→ $out"
+    ;;
+  alike)
+    a=${1:?dir}; b=${2:?dir}
+    [ -d "$a" ] && [ -d "$b" ] || { echo "two folders"; exit 1; }
+    tmp=$(mktemp)
+    find "$a" -type f 2>/dev/null | while IFS= read -r f; do
+      rel=${f#"$a"/}
+      secret_rel "$rel" && continue
+      t=$b/$rel
+      if [ ! -f "$t" ]; then echo "new $rel" >> "$tmp"; continue; fi
+      if ! cmp -s "$f" "$t"; then echo "changed $rel" >> "$tmp"; fi
+    done
+    [ -s "$tmp" ] || { echo "same"; rm -f "$tmp"; exit 0; }
+    cat "$tmp"
+    confirm "Copy these onto $b? Nothing is deleted." || { rm -f "$tmp"; exit 1; }
+    while IFS= read -r line; do
+      rel=${line#* }
+      mkdir -p "$(dirname "$b/$rel")"
+      cp "$a/$rel" "$b/$rel"
+    done < "$tmp"
+    rm -f "$tmp"
+    echo "✓"
+    ;;
+  open) nibras-open "$@" ;;
+  pick) ok pick ;;
+  saf) nibras-saf-managedir "$@" ;;
+  font)
+    f=${1:?ttf}
+    [ -f "$f" ] || { echo "no file"; exit 1; }
+    n=$(wc -c < "$f")
+    [ "$n" -lt 2000000 ] || { echo "over 2 MB"; exit 1; }
+    case "$f" in *.ttf|*.otf) ;; *) echo "ttf or otf"; exit 1 ;; esac
+    mkdir -p "$HOME/.nibras"
+    cp "$f" "$HOME/.nibras/font.ttf"
+    nibras-api reload-settings >/dev/null 2>&1 || true
+    echo "✓"
+    ;;
+  opacity)
+    n=${1:?0-100}
+    case "$n" in *[!0-9]*|"") echo "0-100"; exit 1 ;; esac
+    [ "$n" -le 100 ] || { echo "0-100"; exit 1; }
+    prop background-opacity "$n"
+    echo "✓ $n"
+    ;;
+  quiet)
+    mkdir -p "$HOME/.nibras"
+    case "${1:-}" in
+      off) echo off > "$HOME/.nibras/quiet"; echo "✓" ;;
+      prayer) echo prayer > "$HOME/.nibras/quiet"; echo "✓ 15 min around prayer" ;;
+      "") cat "$HOME/.nibras/quiet" 2>/dev/null || echo off ;;
+      *) [ -n "${2:-}" ] || { echo "quiet 22 7 · quiet prayer · quiet off"; exit 1; }
+         echo "$1 $2" > "$HOME/.nibras/quiet"; echo "✓" ;;
+    esac
+    ;;
+  health) ok health ;;
+  crash) ok crash ;;
+  hostfp)
+    host=${1:?host}
+    tmp=$(mktemp)
+    ssh-keyscan -T 8 "$host" > "$tmp" 2>/dev/null || { echo "no key"; rm -f "$tmp"; exit 1; }
+    ssh-keygen -lf "$tmp" || { rm -f "$tmp"; exit 1; }
+    confirm "Save this host key for $host?" || { rm -f "$tmp"; exit 1; }
+    mkdir -p "$HOME/.ssh"
+    cat "$tmp" >> "$HOME/.ssh/known_hosts"
+    rm -f "$tmp"
+    echo "✓"
+    ;;
+  sayit) ok sayit ;;
+  scan) ok scan ;;
+  clone)
+    echo "clone is a shell function"
+    ;;
+  gdiff) git diff --color=auto "$@" ;;
+  cmsg)
+    msg=$(nibras-api work ask "Commit message") || exit 1
+    git commit -m "$msg"
+    ;;
+  gpush) git push "$@" ;;
+  apkbuild)
+    nibras-apk build "$@"
+    s=$?
+    nibras-api work alert "$s" "apk build" >/dev/null 2>&1 || true
+    exit $s
+    ;;
+  signapk) nibras-apk sign --release "$@" ;;
+  installapk) nibras-api install-apk "$@" ;;
+  logmine) nibras-apk logcat ;;
+  pyfile) nibras-kit run "$@" ;;
+  runweb)
+    port=${1:-8765}
+    case "$port" in *[!0-9]*|"") echo "port"; exit 1 ;; esac
+    command -v python3 >/dev/null || { echo "python3 is not installed"; exit 1; }
+    python3 -m http.server "$port" >/tmp/nibras-web.log 2>&1 &
+    echo $! > "$HOME/.nibras/web.pid"
+    echo "http://127.0.0.1:$port/"
+    nibras-ports open "$port"
+    ;;
+  panes)
+    ok split on
+    [ -n "${1:-}" ] && nibras-edit "$1"
+    ;;
+  lesson)
+    case "${1:-start}" in
+      start) record start ;;
+      share)
+        f=$(ls -t "$HOME"/downloads/recordings/*.txt "$HOME"/*/recordings/*.txt 2>/dev/null | head -1)
+        [ -n "$f" ] || { echo "no text recording"; exit 1; }
+        nibras-share "$f" ;;
+      *) echo "lesson · lesson share" ;;
+    esac
+    ;;
+  moveto)
+    src=${1:?folder}
+    [ -d "$src" ] || { echo "not a folder"; exit 1; }
+    base=$(basename "$src")
+    dest=/sdcard/nibras-move/$base
+    confirm "Copy $src to $dest and check the sums?" || exit 1
+    mkdir -p "$dest"
+    cp -a "$src"/. "$dest"/ || exit 1
+    ta=$(mktemp); tb=$(mktemp)
+    (cd "$src" && find . -type f -exec sha256sum {} + 2>/dev/null | sort) > "$ta"
+    (cd "$dest" && find . -type f -exec sha256sum {} + 2>/dev/null | sort) > "$tb"
+    if cmp -s "$ta" "$tb"; then echo "checksums match"; else echo "checksums differ"; rm -f "$ta" "$tb"; exit 1; fi
+    rm -f "$ta" "$tb"
+    confirm "Delete the original $src?" && rm -rf "$src"
+    echo "→ $dest"
+    ;;
+  homebak)
+    mkdir -p "$HOME/downloads"
+    out=$HOME/downloads/home-$(date +%Y%m%d-%H%M).tar
+    tar -C "$HOME" -cf "$out" \
+      --exclude='.ssh' --exclude='id_*' --exclude='*.p12' --exclude='*.jks' --exclude='*.age' \
+      --exclude='known_hosts' --exclude='vault' --exclude='.nibras/secrets' .
+    echo "→ $out"
+    ;;
+  homerestore)
+    in=${1:?file}
+    tar -tf "$in" | grep -E '(^|/)(\.ssh/|id_|.*\.p12|.*\.jks|.*\.age|known_hosts|vault/)' && { echo "refused: archive contains a secret"; exit 1; }
+    confirm "Restore this into your home? Existing files are overwritten." || exit 1
+    tar -xf "$in" -C "$HOME"
+    echo "✓"
+    ;;
+  daily)
+    nibras-api allow-check "nibras-work homebak" >/dev/null || { echo "not allowed. Add it with: allow add nibras-work homebak"; exit 1; }
+    (crontab -l 2>/dev/null | grep -v 'nibras-work homebak'; echo "15 3 * * * nibras-work homebak") | crontab -
+    echo "✓ 03:15"
+    ;;
+  pingdown) ok servers ;;
+  sendtext)
+    if [ -n "${1:-}" ]; then text=$1; else text=$(cat); fi
+    n=$(printf '%s' "$text" | wc -c)
+    [ "$n" -le 32768 ] || { echo "over 32 KB"; exit 1; }
+    ok send "$text"
+    ;;
+  shrinkpic)
+    f=${1:?image}
+    if command -v magick >/dev/null; then magick "$f" -resize '1600x1600>' "$f.small.jpg"
+    elif command -v convert >/dev/null; then convert "$f" -resize '1600x1600>' "$f.small.jpg"
+    else echo "install image"; exit 1; fi
+    echo "→ $f.small.jpg"
+    ;;
+  trimaudio)
+    command -v ffmpeg >/dev/null || { echo "install audio"; exit 1; }
+    in=${1:?file}; start=${2:-0}; dur=${3:?seconds}
+    case "$start$dur" in *[!0-9.]*) echo "numbers"; exit 1 ;; esac
+    ffmpeg -y -ss "$start" -t "$dur" -i "$in" "$in.cut.m4a" && echo "→ $in.cut.m4a"
+    ;;
+  voicenote)
+    g=$(nibras-api guest-mode 2>/dev/null || true)
+    [ "$g" = on ] && { echo "guest mode"; exit 1; }
+    nibras-microphone-record "${1:-5}" || exit 1
+    ok voicenote
+    ;;
+  themehere)
+    name=${1:?theme}
+    mkdir -p .nibras
+    printf '%s\n' "$name" > .nibras/theme
+    nibras-api reload-settings >/dev/null 2>&1 || true
+    echo "✓ $name"
+    ;;
+  links)
+    case "${1:-}" in
+      on) prop terminal-onclick-url-open true; echo "✓" ;;
+      off) prop terminal-onclick-url-open false; echo "✓" ;;
+      *) echo "links on · links off" ;;
+    esac
+    ;;
+  abbr)
+    name=${1:?name}; shift
+    [ -n "${1:-}" ] || { echo "abbr name 'command'"; exit 1; }
+    safe_name "$name" || exit 1
+    mkdir -p "$HOME/.nibras"
+    printf "alias %s=%s\n" "$name" "'$(printf '%s' "$*" | sed "s/'/'\\\\''/g")'" >> "$HOME/.nibras/aliases.sh"
+    echo "✓ open a new session"
+    ;;
+  hold)
+    [ -n "${1:-}" ] || { echo "hold <command>"; exit 1; }
+    nibras-wake-lock >/dev/null 2>&1 || true
+    "$@"
+    s=$?
+    nibras-wake-unlock >/dev/null 2>&1 || true
+    exit $s
+    ;;
+  qs) echo "Pull the notification shade, edit quick settings, and add Nibras." ;;
+  jobtest)
+    cmd=$(nibras-work check-cmd) || exit 1
+    echo "$cmd"
+    confirm "Run $cmd in the background?" || exit 1
+    nibras-job "$cmd"
+    ;;
+  *) echo "nibras-work help"; exit 1 ;;
+esac

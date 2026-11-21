@@ -216,3 +216,7 @@ Nibras Terminal asks for a permission only when a command needs it. Camera, micr
 ## 18. Additions in 1.0.4
 
 `nibras-man` explains each one in your language. Short list: `nibras-update` (checks the release signature), `nibras-apk diff`, `nibras-allow`, `nibras-guest`, `nibras-secret`, `record`, a `.nibras/keys` file in a project, `nibras-job`, `nibras-peer`, `nibras-qr-run`, `nibras-mirror`, `nibras-setup`, `nibras-import-termux`, `nibras-phrase`, `nibras-ports`. Git asks the phone for a password and does not print it. The first screen of the website is unchanged.
+
+## 19. Short commands in 1.0.5
+
+Type `use`, `here`, `jump`, `hist`, `check` or `health` instead of a long name. `nibras-work help` prints the full list. `test`, `env`, `sync`, `zip` and `fmt` stay the real system commands. `font` still changes the look; `nibras-work font file.ttf` copies a font file. `jump`, `goto`, `clone`, `dotenv`, `again` and `palette` change the current shell, so they are functions. `incognito` does not restore that session and does not write its history. `snip` runs a saved line only when it is on your allow list and you say yes. `sayit` and `scan` run only a sentence the app already understands. A project button and a risky multiline paste ask before they are sent. The first screen of the website is unchanged.

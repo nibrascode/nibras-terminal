@@ -52,6 +52,7 @@ class TerminalService : Service(), ApiBridge.Host {
         fun requestStorage()
         fun finishUi()
         fun showSession(session: TerminalSession)
+        fun setSplit(on: Boolean) {}
     }
 
     inner class LocalBinder : Binder() {
@@ -304,7 +305,7 @@ class TerminalService : Service(), ApiBridge.Host {
 
     /** Saves interactive sessions so they come back after Android kills the app (Termux loses them). */
     fun saveSessions() {
-        val list = sessions.filter { it in restorable }.map { s ->
+        val list = sessions.filter { it in restorable && !incognito(it) }.map { s ->
             com.nibras.terminal.core.SavedSession(envOf[s] ?: "", s.mSessionName ?: "", cwdOf(s), keyOf[s] ?: "")
         }
         runCatching { java.io.File(filesDir, "sessions.txt").writeText(com.nibras.terminal.core.SessionRecords.encode(list)) }
@@ -332,6 +333,20 @@ class TerminalService : Service(), ApiBridge.Host {
     override fun newSession(env: String?, command: List<String>?) {
         val s = createSession(env, command)
         ui?.showSession(s)
+    }
+    override fun renameSession(key: String, title: String) {
+        val session = keyOf.entries.firstOrNull { it.value == key }?.key ?: return
+        session.mSessionName = title
+        updateNotification()
+        ui?.onSessionsChanged()
+    }
+    override fun setSplit(on: Boolean) { ui?.setSplit(on) }
+    private fun incognito(session: TerminalSession): Boolean {
+        val key = keyOf[session] ?: return false
+        val id = envOf[session] ?: return false
+        val f = if (id == Rootfs.ANDROID) java.io.File(Rootfs.homeOf(this, id), ".nibras-incognito-$key")
+        else java.io.File(Rootfs.dir(this, id), "tmp/.nibras-incognito-$key")
+        return f.isFile
     }
     override fun requestPermission(permission: String) { ui?.requestPermission(permission) }
     override fun requestStorage() { ui?.requestStorage() }

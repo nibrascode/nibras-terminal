@@ -310,6 +310,24 @@ object Secrets {
                 SecretBox.delete(context, "git-pass")
                 "OK\nforgotten"
             }
+            "env" -> {
+                val f = host(".env") ?: return "ERR\npath"
+                if (!f.isFile) return "ERR\nno .env"
+                if (!yes(context, "Move .env into the phone keystore and delete the file?")) return "ERR\nrefused"
+                SecretBox.write(context, "env-file", f.readBytes())
+                if (f.length() in 1..1_048_576) f.writeBytes(ByteArray(f.length().toInt()))
+                f.delete()
+                "OK\nlocked. dotenv unlock writes it back."
+            }
+            "env-unlock" -> {
+                val bytes = SecretBox.read(context, "env-file") ?: return "ERR\nnothing locked"
+                if (!yes(context, "Write .env back into this folder?")) return "ERR\nrefused"
+                val dir = host(if (pwd.startsWith("/")) pwd else "/") ?: return "ERR\npath"
+                val out = File(dir, ".env")
+                out.writeBytes(bytes)
+                Rootfs.chmod(out, "600".toInt(8))
+                "OK\n" + HostPaths.toGuest(context, env, out)
+            }
             else -> "ERR\nsecret lock-ssh|unlock-ssh|import-release|release|forget-git"
         }
     }
@@ -419,26 +437,26 @@ object WhatsNew {
         Prefs(this).sp.edit().putString("seenVersion", ver).apply()
     }
 
-    private fun text(lang: String) = when (lang) {
-        "az" -> "1.0.4: imzası yoxlanan yeniləmə, iki APK-nın icazə və imza müqayisəsi, vidjet və cron üçün icazə siyahısı, qonaq rejimi, SSH və release açarı telefonun seyfində, ekran yazısı, layihə düymələri, ölməyən iş, eyni Wi-Fi-da ikinci telefon, QR əmri (əvvəl soruşur), SD kartda paket anbarı, sirr olmayan qurulum faylı, Termux evinin köçürülməsi, yalnız tanınan cümlə, man səhifələri, bu qeyd, lokal portlar və Git parolu terminala düşmür."
-        "tr" -> "1.0.4: imzası doğrulanan güncelleme, iki APK karşılaştırması, widget ve cron izin listesi, misafir modu, SSH ve release anahtarı telefon kasasında, ekran kaydı, proje düğmeleri, süren iş, aynı Wi-Fi'da ikinci telefon, önce soran QR komutu, SD kart paket aynası, sır içermeyen kurulum, Termux evi, yalnız bilinen cümle, man sayfaları, yerel portlar ve Git parolası terminale yazılmaz."
-        "ru" -> "1.0.4: обновление только с верной подписью, сравнение двух APK, список команд для виджета и cron, гостевой режим, SSH и release-ключ в хранилище телефона, запись экрана, кнопки проекта, долгая задача, второй телефон в той же Wi-Fi, QR-команда со спросом, зеркало пакетов на SD, файл настроек без секретов, импорт дома Termux, только известные фразы, страницы man, локальные порты и пароль Git не попадает в терминал."
-        "ar" -> "1.0.4: تحديث يُفحص توقيعه، مقارنة تطبيقين، قائمة للأوامر التلقائية، وضع الضيف، مفاتيح في خزنة الهاتف، تسجيل الشاشة، أزرار المشروع، عمل طويل، هاتف ثان على الشبكة، أمر QR بعد الموافقة، مرآة حزم، ملف إعداد بلا أسرار، استيراد Termux، جمل معروفة فقط، صفحات الدليل، المنافذ المحلية، وكلمة Git لا تظهر في الطرفية."
-        "fa" -> "1.0.4: به‌روزرسانی با بررسی امضا، مقایسه دو APK، فهرست فرمان خودکار، حالت مهمان، کلید در گاوصندوق گوشی، ضبط صفحه، دکمه‌های پروژه، کار طولانی، گوشی دوم در همان وای‌فای، فرمان QR با پرسش، آینه بسته، فایل تنظیم بدون راز، ورود خانه Termux، فقط جمله شناخته‌شده، صفحه راهنما، درگاه محلی، و رمز Git در ترمینال دیده نمی‌شود."
-        "ur" -> "1.0.4: دستخط جانچ کے ساتھ تازہ کاری، دو APK کا موازنہ، خودکار حکموں کی فہرست، مہمان موڈ، کلید فون کے خزانے میں، سکرین ریکارڈ، منصوبے کے بٹن، لمبا کام، اسی وائی فائی پر دوسرا فون، QR حکم پوچھ کر، پیکج آئینہ، راز کے بغیر سیٹ اپ، Termux گھر، صرف جانی پہچانی جملہ، مین صفحات، مقامی پورٹس، اور Git پاس ورڈ ٹرمینل میں نہیں آتا۔"
-        "fr" -> "1.0.4 : mise à jour dont la signature est vérifiée, comparaison de deux APK, liste pour le widget et cron, mode invité, clés dans le coffre du téléphone, enregistrement, boutons de projet, tâche longue, second téléphone sur le même Wi-Fi, commande QR après accord, miroir de paquets, réglages sans secret, import Termux, phrases connues seulement, pages man, ports locaux, mot de passe Git hors du terminal."
-        "de" -> "1.0.4: Update nur mit passender Signatur, Vergleich zweier APKs, Liste für Widget und Cron, Gastmodus, Schlüssel im Telefonsafe, Aufzeichnung, Projekttasten, langer Auftrag, zweites Telefon im selben WLAN, QR-Befehl mit Frage, Paketspiegel, Setup ohne Geheimnisse, Termux-Heim, nur bekannte Sätze, man-Seiten, lokale Ports, Git-Passwort nicht im Terminal."
-        "es" -> "1.0.4: actualización con firma comprobada, comparación de dos APK, lista para el widget y cron, modo invitado, claves en el cofre del teléfono, grabación, botones del proyecto, tarea larga, segundo teléfono en la misma Wi-Fi, comando QR con pregunta, espejo de paquetes, ajustes sin secretos, importar Termux, solo frases conocidas, páginas man, puertos locales y la clave de Git no entra en la terminal."
-        "pt" -> "1.0.4: atualização com assinatura conferida, comparação de dois APK, lista para o widget e o cron, modo convidado, chaves no cofre do telefone, gravação, botões do projeto, tarefa longa, segundo telefone no mesmo Wi-Fi, comando QR com pergunta, espelho de pacotes, ajustes sem segredos, importar o Termux, só frases conhecidas, páginas man, portas locais e a senha do Git não aparece no terminal."
-        "it" -> "1.0.4: aggiornamento con firma controllata, confronto di due APK, elenco per widget e cron, modalità ospite, chiavi nella cassaforte del telefono, registrazione, tasti del progetto, lavoro lungo, secondo telefono sulla stessa Wi-Fi, comando QR con domanda, specchio dei pacchetti, impostazioni senza segreti, import di Termux, solo frasi note, pagine man, porte locali e la password Git non entra nel terminale."
-        "id" -> "1.0.4: pembaruan yang tanda tangannya dicek, banding dua APK, daftar untuk widget dan cron, mode tamu, kunci di brankas ponsel, rekaman layar, tombol proyek, kerja panjang, ponsel kedua di Wi-Fi yang sama, perintah QR yang bertanya dulu, cermin paket, berkas pengaturan tanpa rahasia, impor rumah Termux, hanya kalimat yang dikenal, halaman man, porta lokal, dan sandi Git tidak masuk ke terminal."
-        "ms" -> "1.0.4: kemas kini yang tandatangannya disemak, banding dua APK, senarai untuk widget dan cron, mod tetamu, kunci dalam peti telefon, rakaman, butang projek, kerja panjang, telefon kedua pada Wi-Fi yang sama, arahan QR yang bertanya dahulu, cermin pakej, fail tetapan tanpa rahsia, import rumah Termux, hanya ayat yang dikenali, halaman man, port tempatan, dan kata laluan Git tidak masuk ke terminal."
-        "zh" -> "1.0.4：只安装签名相符的更新，比较两个 APK，小组件和定时任务的命令名单，访客模式，密钥放在手机保险库，屏幕记录，项目按键，长时间任务，同一 Wi-Fi 上的第二部手机，二维码命令先询问，软件包镜像，不含秘密的设置文件，导入 Termux 主目录，只运行认识的句子，手册页，本地端口，Git 密码不进入终端。"
-        "ja" -> "1.0.4：署名を確かめた更新、二つの APK の比較、ウィジェットと cron の許可一覧、ゲストモード、鍵は端末の保管庫、画面の記録、プロジェクトのボタン、長い仕事、同じ Wi-Fi のもう一台、確認してから動く QR コマンド、パッケージの複製、秘密を含まない設定、Termux のホーム、知っている文だけ、マニュアル、手元のポート、Git のパスワードは端末に出ません。"
-        "ko" -> "1.0.4: 서명이 맞는 업데이트만, APK 둘 비교, 위젯과 cron 허용 목록, 손님 모드, 키는 휴대전화 보관함, 화면 기록, 프로젝트 단추, 긴 작업, 같은 Wi-Fi의 다른 휴대전화, 묻고 실행하는 QR 명령, 패키지 거울, 비밀 없는 설정 파일, Termux 홈 가져오기, 아는 문장만, 설명서, 로컬 포트, Git 암호는 터미널에 나오지 않습니다."
-        "hi" -> "1.0.4: हस्ताक्षर जाँच के साथ अद्यतन, दो APK की तुलना, विजेट और क्रॉन की सूची, अतिथि मोड, कुंजी फ़ोन की तिजोरी में, स्क्रीन रिकॉर्ड, परियोजना बटन, लंबा काम, उसी वाई-फाई पर दूसरा फ़ोन, पूछकर QR आदेश, पैकेज दर्पण, रहस्य रहित सेटअप, Termux घर, केवल पहचाना वाक्य, मैनुअल, स्थानीय पोर्ट, और Git पासवर्ड टर्मिनल में नहीं आता।"
-        "bn" -> "1.0.4: স্বাক্ষর মিলিয়ে হালনাগাদ, দুটি APK তুলনা, উইজেট ও ক্রনের তালিকা, অতিথি অবস্থা, চাবি ফোনের সিন্দুকে, পর্দা রেকর্ড, প্রকল্পের বোতাম, দীর্ঘ কাজ, একই ওয়াই-ফাইতে দ্বিতীয় ফোন, জিজ্ঞেস করে QR আদেশ, প্যাকেজ আয়না, গোপন তথ্য ছাড়া সেটআপ, Termux ঘর, শুধু চেনা বাক্য, ম্যানুয়াল, স্থানীয় পোর্ট, এবং Git পাসওয়ার্ড টার্মিনালে আসে না।"
-        else -> "1.0.4 adds a signed in-app update, an APK permission and signature comparison, an allow list for widgets and cron, guest mode, SSH and release keys kept in the phone keystore, screen recording, project buttons, jobs that keep running, a second phone on the same Wi-Fi, QR commands that ask first, an SD card package mirror, a setup file without secrets, a Termux home import, sentences that only run known commands, manual pages, this note, a local port list, and Git passwords that stay out of the terminal."
+    private fun text(lang: String): String = when (lang) {
+        "az" -> "1.0.5: qısa əmrlər — use, here, jump, mark, hist, check, health və qalanları. test, env, sync, zip və fmt sistem əmri qalır. Gizli sessiya bərpa olunmur. Layihə düyməsi və riskli yapışdırma əvvəl soruşur. Az disk xəbər verir. Saytın ilk ekranı dəyişməyib."
+        "tr" -> "1.0.5: kısa komutlar — use, here, jump, mark, hist, check, health ve diğerleri. test, env, sync, zip ve fmt sistem komutu kalır. Gizli oturum geri gelmez. Proje düğmesi ve riskli yapıştırma önce sorar. Az disk haber verir. Sitenin ilk ekranı değişmedi."
+        "ru" -> "1.0.5: короткие команды — use, here, jump, mark, hist, check, health и остальные. test, env, sync, zip и fmt остаются системными. Скрытый сеанс не восстанавливается. Кнопка проекта и опасная вставка сначала спрашивают. Мало места — предупреждение. Первый экран сайта не менялся."
+        "ar" -> "1.0.5: أوامر قصيرة مثل use وhere وjump. تبقى test وenv وsync وzip وfmt أوامر النظام. الجلسة المخفية لا تُستعاد. زر المشروع واللصق الخطر يسألان أولاً. مساحة أقل من 50 ميغا تظهر تنبيهاً. الشاشة الأولى للموقع لم تتغير."
+        "fa" -> "1.0.5: فرمان‌های کوتاه مثل use و here و jump. test و env و sync و zip و fmt فرمان سیستم می‌مانند. نشست پنهان برنمی‌گردد. دکمه پروژه و چسباندن خطرناک اول می‌پرسند. فضای کم هشدار می‌دهد. صفحه اول سایت عوض نشده."
+        "ur" -> "1.0.5: مختصر حکم — use، here، jump اور باقی. test، env، sync، zip، fmt سسٹم حکم رہتے ہیں۔ پوشیدہ سیشن واپس نہیں آتا۔ منصوبے کا بٹن اور خطرناک پیسٹ پہلے پوچھتے ہیں۔ کم ڈسک بتاتی ہے۔ سائٹ کی پہلی اسکرین نہیں بدلی۔"
+        "fr" -> "1.0.5 : commandes courtes (use, here, jump, hist, check, health…). test, env, sync, zip et fmt restent les commandes du système. Une session incognito n'est pas restaurée. Un bouton de projet et un collage risqué demandent d'abord. Peu d'espace prévient. Le premier écran du site est inchangé."
+        "de" -> "1.0.5: kurze Befehle (use, here, jump, hist, check, health …). test, env, sync, zip und fmt bleiben Systembefehle. Eine inkognito Sitzung wird nicht wiederhergestellt. Eine Projekttaste und riskantes Einfügen fragen zuerst. Wenig Speicher warnt. Der erste Bildschirm der Website ist unverändert."
+        "es" -> "1.0.5: comandos cortos (use, here, jump, hist, check, health…). test, env, sync, zip y fmt siguen siendo del sistema. Una sesión de incógnito no vuelve. Un botón del proyecto y un pegado arriesgado preguntan antes. Poco espacio avisa. La primera pantalla del sitio no cambia."
+        "pt" -> "1.0.5: comandos curtos (use, here, jump, hist, check, health…). test, env, sync, zip e fmt continuam do sistema. Uma sessão anónima não volta. Um botão do projeto e uma colagem arriscada perguntam antes. Pouco espaço avisa. O primeiro ecrã do site não muda."
+        "it" -> "1.0.5: comandi corti (use, here, jump, hist, check, health…). test, env, sync, zip e fmt restano di sistema. Una sessione in incognito non torna. Un tasto del progetto e un incolla rischioso chiedono prima. Poco spazio avvisa. La prima schermata del sito non cambia."
+        "id" -> "1.0.5: perintah pendek (use, here, jump, hist, check, health…). test, env, sync, zip, dan fmt tetap perintah sistem. Sesi penyamaran tidak dipulihkan. Tombol proyek dan tempel berisiko bertanya dulu. Disk kecil memberi tahu. Layar pertama situs tidak berubah."
+        "ms" -> "1.0.5: arahan pendek (use, here, jump, hist, check, health…). test, env, sync, zip dan fmt kekal arahan sistem. Sesi senyap tidak dipulihkan. Butang projek dan tampal berisiko bertanya dahulu. Cakera kecil memberitahu. Skrin pertama tapak tidak berubah."
+        "zh" -> "1.0.5：短命令 use、here、jump、hist、check、health 等。test、env、sync、zip、fmt 仍是系统命令。隐身会话不会恢复。项目按钮和有风险的多行粘贴会先询问。剩余空间不足 50 MB 会提示。网站首页未改。"
+        "ja" -> "1.0.5：短いコマンド use、here、jump、hist、check、health など。test、env、sync、zip、fmt はシステムのまま。シークレットのセッションは戻りません。プロジェクトのボタンと危ない貼り付けは先に尋ねます。空きが 50 MB 未満なら知らせます。サイトの最初の画面は変えていません。"
+        "ko" -> "1.0.5: 짧은 명령 use, here, jump, hist, check, health 등. test, env, sync, zip, fmt 는 시스템 명령으로 남습니다. 시크릿 세션은 복원되지 않습니다. 프로젝트 단추와 위험한 붙여넣기는 먼저 묻습니다. 공간이 50 MB 미만이면 알립니다. 사이트 첫 화면은 그대로입니다."
+        "hi" -> "1.0.5: छोटे आदेश use, here, jump, hist, check, health और बाकी। test, env, sync, zip, fmt सिस्टम आदेश रहते हैं। छिपा सत्र वापस नहीं आता। परियोजना बटन और जोखिम भरा पेस्ट पहले पूछते हैं। कम डिस्क बताती है। साइट की पहली स्क्रीन नहीं बदली।"
+        "bn" -> "1.0.5: ছোট আদেশ use, here, jump, hist, check, health এবং বাকি। test, env, sync, zip, fmt সিস্টেম আদেশ থাকে। গোপন সেশন ফেরে না। প্রকল্পের বোতাম ও ঝুঁকিপূর্ণ পেস্ট আগে জিজ্ঞেস করে। কম ডিস্ক জানায়। সাইটের প্রথম পর্দা বদলায়নি।"
+        else -> "1.0.5 adds short commands: use, here, jump, mark, hist, check, health and the rest. test, env, sync, zip and fmt stay system commands. An incognito session is not restored. A project button and a risky multiline paste ask first. Low disk shows a note. The website's first screen is unchanged."
     }
 }
 
@@ -505,7 +523,7 @@ class JobRunService : Service() {
                 val dir = File(Rootfs.homeOf(this, id), "downloads/jobs").apply { mkdirs() }
                 val guest = HostPaths.toGuest(this, id, File(dir, logName))
                 Headless.run(this, id, "(${cmd}) > ${Rootfs.quote(guest)} 2>&1", timeoutSec = 86_400)
-                nm?.notify(8812, Notification.Builder(this, "jobs")
+                if (!Quiet.on(this)) nm?.notify(8812, Notification.Builder(this, "jobs")
                     .setSmallIcon(R.drawable.ic_stat_terminal)
                     .setContentTitle(getString(R.string.app_name))
                     .setContentText(guest)

@@ -5,4 +5,18 @@
         <intent android:action="com.nibras.terminal.NEW_SESSION"
             android:targetPackage="com.nibras.terminal" android:targetClass="com.nibras.terminal.MainActivity"/>
     </shortcut>
+    <shortcut android:shortcutId="files" android:enabled="true"
+        android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/tool_files">
+        <intent android:action="android.intent.action.MAIN"
+            android:targetPackage="com.nibras.terminal" android:targetClass="com.nibras.terminal.MainActivity">
+            <extra android:name="open" android:value="files" />
+        </intent>
+    </shortcut>
+    <shortcut android:shortcutId="hosts" android:enabled="true"
+        android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/tool_hosts">
+        <intent android:action="android.intent.action.MAIN"
+            android:targetPackage="com.nibras.terminal" android:targetClass="com.nibras.terminal.MainActivity">
+            <extra android:name="open" android:value="hosts" />
+        </intent>
+    </shortcut>
 </shortcuts>

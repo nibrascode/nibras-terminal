@@ -125,6 +125,17 @@ case "$me" in
       fi
     fi
     echo "✓"
+    for rc in .bashrc .profile .zshrc; do
+      [ -f "$HOME/$rc" ] || continue
+      keep=
+      if [ -d "$src" ]; then [ -f "$src/$rc" ] && keep=1
+      else tar -tzf "$src" 2>/dev/null | grep -qx "$rc" && keep=1
+      fi
+      [ -n "$keep" ] || continue
+      tmp=$(mktemp)
+      awk '/curl/ && /\|/ { next } /wget/ && /\|/ { next } /^[[:space:]]*(alias[[:space:]]|#|$)/ { print }' "$HOME/$rc" > "$tmp"
+      mv "$tmp" "$HOME/$rc"
+    done
     ;;
   phrase)
     try=

@@ -34,6 +34,8 @@ class ApiBridge(private val context: Context, private val host: Host) {
         fun reloadSettings()
         fun applyLanguage() {}
         fun newSession(env: String?, command: List<String>?)
+        fun renameSession(key: String, title: String) {}
+        fun setSplit(on: Boolean) {}
         fun setWakeLock(on: Boolean): Boolean
         /** Shows a runtime permission prompt if an activity is visible. */
         fun requestPermission(permission: String)
@@ -278,6 +280,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 val steps = com.nibras.terminal.PlusRules.parsePhrase(args) ?: return "ERR\nnot a known sentence"
                 "OK\n" + steps.joinToString("\n")
             }
+            "work" -> com.nibras.terminal.Work.run(context, host, envId(env), pwd, words(raw))
             "git-cred" -> com.nibras.terminal.Secrets.gitCred(context, args)
             "qr-run" -> {
                 val text = args.trim()
