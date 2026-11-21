@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
 class ApiBridge(private val context: Context, private val host: Host) {
     interface Host {
         fun reloadSettings()
+        fun applyLanguage() {}
         fun newSession(env: String?, command: List<String>?)
         fun setWakeLock(on: Boolean): Boolean
         /** Shows a runtime permission prompt if an activity is visible. */
@@ -99,6 +100,19 @@ class ApiBridge(private val context: Context, private val host: Host) {
             return null
         }
         return when (name) {
+            "lang" -> {
+                val code = args.trim().substringBefore(' ').lowercase()
+                when {
+                    code.isEmpty() || code == "list" -> "OK\n" + com.nibras.terminal.core.Lang.names.entries.joinToString("\n") { (k, v) ->
+                        (if (k == com.nibras.terminal.core.Lang.current(context)) "* " else "  ") + "$k  $v" }
+                    code == "auto" || code == "system" || code in com.nibras.terminal.core.Lang.names -> {
+                        com.nibras.terminal.core.Lang.set(context, if (code == "auto" || code == "system") "" else code)
+                        main.post { host.reloadSettings(); host.applyLanguage() }
+                        "OK\n" + com.nibras.terminal.core.Lang.current(context)
+                    }
+                    else -> "ERR\nunknown language: $code (lang list)"
+                }
+            }
             "reload-settings" -> { main.post { host.reloadSettings() }; "OK\nsettings reloaded" }
             "new-session" -> {
                 main.post { host.newSession(null, if (args.isBlank()) null else listOf("/bin/sh", "-c", args)) }

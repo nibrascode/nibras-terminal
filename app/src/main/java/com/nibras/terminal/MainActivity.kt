@@ -119,6 +119,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
         buildLayout()
+        firstRunLanguage(intent)
         pendingIntent = intent
         showPreviousCrash()
         startTerminalService()
@@ -694,6 +695,29 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     override fun reloadSettings() {
         runOnUiThread { applySettings() }
+    }
+
+    override fun applyLanguage() { runOnUiThread { recreate() } }
+
+    /** First launch: pick the language (device language preselected, English otherwise). */
+    private fun firstRunLanguage(intent: Intent?) {
+        if (Lang.chosen(this)) return
+        intent?.getStringExtra("nibras.lang")?.let { code ->
+            Lang.set(this, if (code in Lang.names) code else ""); if (code != "en" && code in Lang.names) recreate(); return
+        }
+        val codes = Lang.names.keys.toList()
+        val dev = Lang.device(this)
+        var pick = codes.indexOf(dev).coerceAtLeast(0)
+        AlertDialog.Builder(this)
+            .setTitle("🌐 Language · Dil · اللغة · Язык")
+            .setSingleChoiceItems(codes.map { Lang.names[it] }.toTypedArray(), pick) { _, i -> pick = i }
+            .setCancelable(false)
+            .setPositiveButton("OK") { _, _ ->
+                val code = codes[pick]
+                Lang.set(this, if (code == dev) "" else code)
+                if (code != dev) recreate()
+            }
+            .show()
     }
 
     private fun applySettings() {

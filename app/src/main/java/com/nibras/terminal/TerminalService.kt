@@ -47,6 +47,7 @@ class TerminalService : Service(), ApiBridge.Host {
         val sessionClient: TerminalSessionClient
         fun onSessionsChanged()
         fun reloadSettings()
+        fun applyLanguage() {}
         fun requestPermission(permission: String)
         fun requestStorage()
         fun finishUi()
@@ -301,6 +302,7 @@ class TerminalService : Service(), ApiBridge.Host {
 
     // ApiBridge.Host
     override fun reloadSettings() { ui?.reloadSettings() }
+    override fun applyLanguage() { ui?.applyLanguage() }
     override fun newSession(env: String?, command: List<String>?) {
         val s = createSession(env, command)
         ui?.showSession(s)

@@ -7,7 +7,7 @@ adb shell getprop ro.build.version.release | tee "$OUT/android.txt"
 adb shell getprop ro.product.cpu.abilist | tee -a "$OUT/android.txt"
 adb install -r -g "$APK" || exit 1
 adb logcat -c
-adb shell am start -W -n com.nibras.terminal/.MainActivity | tee "$OUT/am-start.txt"
+adb shell am start -W -n com.nibras.terminal/.MainActivity --es nibras.lang en | tee "$OUT/am-start.txt"
 ok=1
 for t in 5 15 30 45; do
   sleep $((t == 5 ? 5 : 15))

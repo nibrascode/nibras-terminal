@@ -225,7 +225,7 @@ object Rootfs {
 
     /** Builds the PTY command for a session in [id]; [command] runs a script instead of a login shell. */
     fun guestLang(context: Context): String =
-        context.resources.configuration.locales[0].language.takeIf { it in setOf("az", "tr", "ru") } ?: "en"
+        Lang.current(context)
 
     /** Android-side helpers (Android shell sessions): banner + Shizuku shell. */
     fun prepareAndroidHome(context: Context) {
