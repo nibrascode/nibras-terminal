@@ -20,6 +20,21 @@
 #   nibras-apk logcat [package]       app logs (full logcat through nibras-adb when paired)
 #   nibras-apk clean|tasks|deps [dir] gradle clean / task list / dependency tree
 #   nibras-apk jdk [17|21] · gradle · templates
+#   nibras-apk wizard                 guided new app (button, list, form, website, Kotlin, Compose) → build → install
+#   nibras-apk res <app.apk|dir>      visual resource editor: strings per language, colors, icons, name/package/version
+#   nibras-apk rebuild <dir> [ks]     apktool b → zipalign → sign (debug key or yours) → install
+#   nibras-apk translate <dir> <lang> add values-<lang>/strings.xml and edit it in the table
+#   nibras-apk baksmali <dex|apk> [out] · smali <dir> [out.dex]   dex ↔ smali (MT/NP Manager dex editing)
+#   nibras-apk merge <apks|xapk|apkm|dir> [out.apk]   split APKs → one APK (antisplit, APKEditor)
+#   nibras-apk install-split <files…|.apks|.xapk|.apkm>  install split APKs in one session (SAI / APKTool M)
+#   nibras-apk arsc d|b|refactor|info …   resources.arsc ↔ XML/JSON, readable names (APKEditor)
+#   nibras-apk optimize <apk|project>  aapt2 optimize (short paths, collapsed names) · R8 + shrinkResources
+#   nibras-apk protect <apk>          resource obfuscation (APKEditor p)
+#   nibras-apk rename <apk> <new.pkg> [label]   clone with a new package name (App Cloner style)
+#   nibras-apk sigcheck <apk> · diff <a.apk> <b.apk>   signature summary · what changed between two APKs
+#   nibras-apk apps [list|-s|-a] · appinfo <pkg> · exported <pkg> · extract <pkg> [dir]   App Manager / APK Extractor
+#   nibras-apk mitm <apk>             remove certificate pinning for testing your own apps (apk-mitm)
+#   nibras-apk signdebug <apk> · debugkey   sign with a throw-away debug key
 set -e
 TOOLS=/opt/nibras-apk
 SDK=/opt/android-sdk
@@ -114,7 +129,10 @@ case "$cmd" in
     echo "views    Java + XML layout (activity_main.xml) + button"
     echo "kotlin   Kotlin + XML layout + AndroidX AppCompat/Material"
     echo "compose  Kotlin + Jetpack Compose (Material 3)"
-    echo "library  Android library module (AAR)" ;;
+    echo "library  Android library module (AAR)"
+    echo "webview  Website / HTML app (assets/index.html or a URL), Java, no libraries"
+    echo "list     List screen with items and tap action, Java, no libraries"
+    echo "form     Form screen (fields + save to preferences), Java, no libraries" ;;
   jdk) jdk "${1:-17}" ;;
   gradle) gradle_dist ;;
   new)
@@ -126,7 +144,7 @@ case "$cmd" in
     kotlin=; compose=; deps=
     case "$tpl" in kotlin) kotlin=1; deps="implementation 'androidx.appcompat:appcompat:1.7.0'
   implementation 'com.google.android.material:material:1.12.0'" ;;
-      compose) kotlin=1; compose=1 ;; basic|views|library) ;; *) echo "unknown template: $tpl (nibras-apk templates)"; exit 1 ;; esac
+      compose) kotlin=1; compose=1 ;; basic|views|library|webview|list|form) ;; *) echo "unknown template: $tpl (nibras-apk templates)"; exit 1 ;; esac
     cat > "$dir/settings.gradle" <<G
 pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
 dependencyResolutionManagement { repositories { google(); mavenCentral() } }
@@ -172,8 +190,10 @@ D
       printf 'package %s;\n\npublic final class Library {\n    public static String hello() { return "Hello from %s"; }\n}\n' "$pkg" "$name" > "$dir/app/src/main/java/$p/Library.java"
     else
       theme=; [ "$tpl" = kotlin ] && theme=' android:theme="@style/Theme.Material3.DayNight"'
+      perm=; [ "$tpl" = webview ] && perm='
+    <uses-permission android:name="android.permission.INTERNET" />'
       cat > "$dir/app/src/main/AndroidManifest.xml" <<G
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">$perm
     <application android:label="@string/app_name"$theme>
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
@@ -242,6 +262,99 @@ public class MainActivity extends Activity {
         TextView title = findViewById(R.id.title);
         Button button = findViewById(R.id.button);
         button.setOnClickListener(v -> title.setText("Taps: " + (++taps)));
+    }
+}
+G
+          ;;
+        webview) mkdir -p "$dir/app/src/main/assets"
+          url="${NIBRAS_URL:-file:///android_asset/index.html}"
+          cat > "$dir/app/src/main/assets/index.html" <<G
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><meta charset="utf-8">
+<style>body{font-family:sans-serif;padding:24px;text-align:center}button{font-size:18px;padding:10px 24px}</style></head>
+<body><h2>$name</h2><p>Built with Nibras Terminal</p><button onclick="n.textContent=++c">Tap</button> <b id="n">0</b>
+<script>var c=0</script></body></html>
+G
+          cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+package $pkg;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends Activity {
+    private WebView web;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        web = new WebView(this);
+        WebSettings s = web.getSettings();
+        s.setJavaScriptEnabled(true);
+        s.setDomStorageEnabled(true);
+        web.setWebViewClient(new WebViewClient());
+        web.loadUrl("$url");
+        setContentView(web);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (web.canGoBack()) web.goBack(); else super.onBackPressed();
+    }
+}
+G
+          ;;
+        list) cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+package $pkg;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+
+public class MainActivity extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        String[] items = { "First item", "Second item", "Third item", "Fourth item" };
+        ListView list = new ListView(this);
+        list.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, items));
+        list.setOnItemClickListener((parent, view, position, id) -> Toast.makeText(this, items[position], Toast.LENGTH_SHORT).show());
+        setContentView(list);
+    }
+}
+G
+          ;;
+        form) cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+package $pkg;
+
+import android.app.Activity;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
+public class MainActivity extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        SharedPreferences prefs = getSharedPreferences("form", MODE_PRIVATE);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(48, 48, 48, 48);
+        EditText name = new EditText(this); name.setHint("Name"); name.setText(prefs.getString("name", ""));
+        EditText email = new EditText(this); email.setHint("E-mail"); email.setText(prefs.getString("email", ""));
+        Button save = new Button(this); save.setText("Save");
+        save.setOnClickListener(v -> {
+            prefs.edit().putString("name", name.getText().toString()).putString("email", email.getText().toString()).apply();
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+        });
+        root.addView(name); root.addView(email); root.addView(save);
+        setContentView(root);
     }
 }
 G
@@ -345,5 +458,74 @@ G
   verify) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; apksigner_ verify -v --print-certs "${1:?apk}" ;;
   dex|d8) [ -f "$SDK/build-tools/$BT/lib/d8.jar" ] || setup; in="${1:?jar}"; out="${2:-.}"; mkdir -p "$out"
     java -cp "$SDK/build-tools/$BT/lib/d8.jar" com.android.tools.r8.D8 --min-api 21 --output "$out" "$in" && echo "✓ $out/classes.dex" ;;
-  help|-h|--help|*) sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//' ;;
+  wizard) # Sketchware-style guided project: answer a few questions, get a building app
+    printf 'App name [MyApp]: '; read -r an; an=${an:-MyApp}
+    dn=$(echo "$an" | tr -cd 'A-Za-z0-9'); [ -n "$dn" ] || dn=MyApp
+    printf 'Package [com.example.%s]: ' "$(echo "$dn" | tr A-Z a-z)"; read -r pk; pk=${pk:-com.example.$(echo "$dn" | tr A-Z a-z)}
+    echo "Screen type: 1) button (views)  2) list  3) form  4) website/HTML (webview)  5) Kotlin  6) Compose  7) empty (basic)"
+    printf 'Choose [1]: '; read -r ch
+    case "${ch:-1}" in 2) t=list ;; 3) t=form ;; 4) t=webview; printf 'URL (empty = built-in HTML page): '; read -r u; [ -n "$u" ] && export NIBRAS_URL="$u" ;; 5) t=kotlin ;; 6) t=compose ;; 7) t=basic ;; *) t=views ;; esac
+    "$0" new "$HOME/$dn" "$pk" --template "$t"
+    sed -i "s#<string name=\"app_name\">[^<]*#<string name=\"app_name\">$an#" "$HOME/$dn/app/src/main/res/values/strings.xml"
+    printf 'Build and install now? [Y/n] '; read -r go; case "$go" in n|N) echo "Later: nibras-apk run ~/$dn" ;; *) "$0" run "$HOME/$dn" ;; esac ;;
+  debugkey) # throw-away debug signing key (public "android" password, like Android Studio's debug.keystore)
+    jdk >/dev/null; ks="$HOME/.nibras/debug.keystore"; mkdir -p "$HOME/.nibras"
+    [ -f "$ks" ] || keytool -genkeypair -keystore "$ks" -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" >/dev/null 2>&1
+    echo "$ks" ;;
+  signdebug) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; in="${1:?apk}"; ks=$("$0" debugkey)
+    zipalign -c -p 4 "$in" >/dev/null 2>&1 || "$0" align "$in" >/dev/null
+    apksigner_ sign --ks "$ks" --ks-pass pass:android --key-pass pass:android --ks-key-alias androiddebugkey "$in" && echo "✓ signed (debug key) $in" ;;
+  rebuild) # one tap from the resource editor: apktool b → zipalign → sign (debug key unless a keystore is given) → install
+    need apktool; dir="${1:?dir}"; out="${dir%/}-mod.apk"; apktool b "$dir" -o "$out.unsigned.apk" && "$0" align "$out.unsigned.apk" >/dev/null && mv "$out.unsigned.apk" "$out"
+    if [ -n "${2:-}" ]; then "$0" sign "$out" "$2" "${3:-nibras}"; else "$0" signdebug "$out"; fi
+    echo "✓ $out"; printf 'Install now? [Y/n] '; read -r a; case "$a" in n|N) ;; *) nibras-api install-apk "$(readlink -f "$out")" ;; esac ;;
+  res|resources|edit-res) # visual resource editor (strings per language, colors, icons/drawables, app name/package/version)
+    t="${1:-.}"
+    if [ -f "$t" ]; then need apktool; out="${2:-${t%.apk}}"; apktool d -f -s "$t" -o "$out" >/dev/null && t="$out"; fi
+    nibras-api res-edit "$(readlink -f "$t")" ;;
+  baksmali|dex2smali) [ -f "$TOOLS/baksmali.jar" ] || fetch https://github.com/baksmali/smali/releases/download/3.0.10/baksmali-3.0.10-fat-release.jar "" "$TOOLS/baksmali.jar"
+    jdk >/dev/null; in="${1:?classes.dex|app.apk}"; out="${2:-${in%.*}-smali}"; java -jar "$TOOLS/baksmali.jar" d "$in" -o "$out" && echo "✓ $out (edit .smali, then: nibras-apk smali $out)" ;;
+  smali|smali2dex) [ -f "$TOOLS/smali.jar" ] || fetch https://github.com/baksmali/smali/releases/download/3.0.10/smali-3.0.10-fat-release.jar "" "$TOOLS/smali.jar"
+    jdk >/dev/null; in="${1:?smali dir}"; out="${2:-classes.dex}"; java -jar "$TOOLS/smali.jar" a "$in" -o "$out" && echo "✓ $out" ;;
+  apkeditor) [ -f "$TOOLS/APKEditor.jar" ] || fetch https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar "" "$TOOLS/APKEditor.jar"
+    jdk >/dev/null; java -jar "$TOOLS/APKEditor.jar" "$@" ;;
+  merge|antisplit) # split APKs / .apks / .xapk / .apkm (unencrypted) / folder → one installable APK (APKTool M, MT Manager)
+    in="${1:?app.apks|app.xapk|app.apkm|dir}"; out="${2:-${in%.*}-merged.apk}"
+    "$0" apkeditor m -i "$in" -o "$out" -f && "$0" signdebug "$out" && echo "✓ $out" ;;
+  install-split|isplit|install-apks) nibras-api install-apks "$@" ;;
+  arsc|refactor) "$0" apkeditor "$@" ;; # APKEditor: d/b (resources.arsc ↔ JSON/XML), refactor (readable resource names), info
+  protect|obfuscate-res) in="${1:?apk}"; out="${2:-${in%.apk}-protected.apk}"; "$0" apkeditor p -i "$in" -o "$out" -f && "$0" signdebug "$out" ;;
+  optimize|shrink) # APK: aapt2 optimize (short paths + collapsed resource names); project: R8 minify + shrinkResources
+    t="${1:?app.apk|project dir}"
+    if [ -d "$t" ]; then f=$(ls "$t"/app/build.gradle* 2>/dev/null | head -1); [ -n "$f" ] || { echo "no app/build.gradle"; exit 1; }
+      grep -q minifyEnabled "$f" || sed -i "0,/android {/s//android {\n  buildTypes { release { minifyEnabled true; shrinkResources true; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt') } }/" "$f"
+      echo "✓ R8 (code shrink + obfuscation) and resource shrinking on for release → nibras-apk build $t assembleRelease"
+    else need aapt2; out="${2:-${t%.apk}-opt.apk}"
+      aapt2 optimize --shorten-resource-paths --collapse-resource-names -o "$out" "$t" && "$0" signdebug "$out" && ls -l "$t" "$out" | awk '{print $5, $NF}'
+    fi ;;
+  rename|clone) # App Cloner style: new package name (installs next to the original) + optional new label
+    need apktool; in="${1:?app.apk}"; np="${2:?new.package.name}"; label="${3:-}"
+    w="${in%.apk}-clone"; apktool d -f -s "$in" -o "$w" >/dev/null
+    old=$(grep -o 'package="[^"]*"' "$w/AndroidManifest.xml" | head -1 | cut -d'"' -f2)
+    sed -i "s/^\(  renameManifestPackage:\).*/\1 $np/" "$w/apktool.yml"; grep -q renameManifestPackage: "$w/apktool.yml" || printf 'packageInfo:\n  renameManifestPackage: %s\n' "$np" >> "$w/apktool.yml"
+    sed -i "s/android:authorities=\"$old/android:authorities=\"$np/g; s/\"$old\.permission\./\"$np.permission./g" "$w/AndroidManifest.xml"
+    if [ -n "$label" ]; then sed -i "s#\(<application[^>]*android:label=\"\)[^\"]*#\1$label#" "$w/AndroidManifest.xml"; fi
+    out="${in%.apk}-$np.apk"; apktool b "$w" -o "$out" >/dev/null && "$0" signdebug "$out" && echo "✓ $out ($old → $np). Apps that check their own signature or package may refuse to run." ;;
+  translate) # add a language to an app/project: copies values/strings.xml → values-<lang>/strings.xml, then the table editor
+    d="${1:?res dir or project}"; l="${2:?language code, e.g. az}"
+    r=$( [ -d "$d/res" ] && echo "$d/res" || { [ -d "$d/app/src/main/res" ] && echo "$d/app/src/main/res"; } || echo "$d")
+    [ -f "$r/values/strings.xml" ] || { echo "no $r/values/strings.xml"; exit 1; }
+    mkdir -p "$r/values-$l"; [ -f "$r/values-$l/strings.xml" ] || cp "$r/values/strings.xml" "$r/values-$l/strings.xml"
+    echo "✓ $r/values-$l/strings.xml — translate in the table: nibras-apk res $d"; nibras-api res-edit "$(readlink -f "$d")" >/dev/null 2>&1 || true ;;
+  mitm|unpin) # certificate-pinning removal for testing YOUR OWN app or one you are authorised to test (apk-mitm)
+    echo "Only for apps you own or are authorised to test."; command -v npx >/dev/null 2>&1 || nibras-need nodejs npm || nibras-need node
+    jdk >/dev/null; npx --yes apk-mitm "$@" ;;
+  apps) [ $# -gt 0 ] || set -- list; nibras-api apps "$@" ;;                  # installed apps (App Manager)
+  appinfo) nibras-api apps info "${1:?package}" ;;       # manifest data, permissions, components, signer
+  extract|backup) nibras-api apps extract "${1:?package}" "${2:-.}" ;;  # APK Extractor (base + splits → .apks)
+  exported) nibras-api apps exported "${1:?package}" ;;  # exported components (security review)
+  sigcheck|signature) "$0" verify "${1:?apk}" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|WARNING|DOES NOT VERIFY" ;;
+  diff) need apktool; a="${1:?old.apk}"; b="${2:?new.apk}"; apktool d -f -s "$a" -o /tmp/nd-a >/dev/null; apktool d -f -s "$b" -o /tmp/nd-b >/dev/null
+    diff -ru /tmp/nd-a /tmp/nd-b | head -400 ;;
+  help|-h|--help|*) sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

@@ -276,4 +276,18 @@
     <string name="editor_lsp_off">Языковой сервер не запущен</string>
     <string name="editor_lsp_none">Для .%1$s пока нет языкового сервера</string>
     <string name="editor_lsp_install">Для умного автодополнения, ошибок, справки и перехода к определению нужен языковой сервер. Установить: install %1$s</string>
+    <string name="res_title">Редактор ресурсов</string>
+    <string name="res_strings">Строки</string>
+    <string name="res_colors">Цвета</string>
+    <string name="res_images">Изображения</string>
+    <string name="res_app">Приложение</string>
+    <string name="res_rebuild">Собрать · подписать · установить</string>
+    <string name="res_none">В %1$s нет папки res/values. Сначала распакуйте APK: apk res app.apk</string>
+    <string name="res_strings_hint">%1$d строк · нажмите, чтобы изменить · ⚠ = ещё не переведено</string>
+    <string name="res_add_lang">Добавить язык</string>
+    <string name="res_images_hint">Нажмите на изображение, чтобы заменить его из галереи (с тем же размером)</string>
+    <string name="res_app_icon">Значок приложения</string>
+    <string name="res_app_name">Название приложения</string>
+    <string name="res_package">Имя пакета</string>
+    <string name="res_app_note">Новое имя пакета ставится отдельным приложением рядом с оригиналом. Приложения, проверяющие свою подпись, могут не работать после переподписи.</string>
 </resources>

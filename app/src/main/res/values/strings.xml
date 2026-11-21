@@ -277,4 +277,18 @@
     <string name="editor_lsp_off">Language server is not running</string>
     <string name="editor_lsp_none">No language server for .%1$s yet</string>
     <string name="editor_lsp_install">Smart completion, errors, info and go-to-definition need a language server. Install it now with: install %1$s</string>
+    <string name="res_title">Resource editor</string>
+    <string name="res_strings">Strings</string>
+    <string name="res_colors">Colors</string>
+    <string name="res_images">Images</string>
+    <string name="res_app">App</string>
+    <string name="res_rebuild">Rebuild · sign · install</string>
+    <string name="res_none">No res/values folder in %1$s. Decode an APK first: apk res app.apk</string>
+    <string name="res_strings_hint">%1$d strings · tap one to edit · ⚠ = not translated yet</string>
+    <string name="res_add_lang">Add language</string>
+    <string name="res_images_hint">Tap an image to replace it from the gallery (resized to the same size)</string>
+    <string name="res_app_icon">App icon</string>
+    <string name="res_app_name">App name</string>
+    <string name="res_package">Package name</string>
+    <string name="res_app_note">A new package name installs as a separate app next to the original. Apps that check their own signature may refuse to run after re-signing.</string>
 </resources>

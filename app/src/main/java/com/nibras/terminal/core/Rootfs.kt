@@ -423,7 +423,7 @@ object Rootfs {
         "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
         "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo", "keystore", "nfc", "prayer-alarm", "media-builder", "env-install",
         "infrared-frequencies", "notification-channel", "sms-inbox", "tts-engines", "wifi-enable", "api-start", "api-stop",
-        "install-apk", "env-list", "env-open", "environments", "lang",
+        "install-apk", "env-list", "env-open", "environments", "lang", "apps", "install-apks", "res-edit",
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
     )
 

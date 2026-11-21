@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -26,6 +27,8 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- App manager / APK extractor (apps list|info|extract): see every installed app, like App Manager. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.TRANSMIT_IR" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
@@ -86,6 +89,8 @@
         <activity android:name=".StoreActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
         <service android:name=".FloatService" android:exported="false" />
         <activity android:name=".FilesActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
+        <activity android:name=".ResEditorActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
+            android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
         <activity android:name=".EditorActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
             android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
         <activity android:name=".DesktopActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
@@ -144,6 +149,7 @@
         </service>
 
         <receiver android:name=".PrayerReceiver" android:exported="false" />
+        <receiver android:name=".InstallResultReceiver" android:exported="false" />
         <receiver android:name=".NotificationActionReceiver" android:exported="false" />
         <service
             android:name=".NotesListener"

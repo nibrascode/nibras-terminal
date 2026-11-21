@@ -757,6 +757,7 @@ class EditorActivity : Activity() {
         acts += getString(R.string.editor_select_all) to { editor.selectAll() }
         formatter()?.let { cmd -> acts += "✨ " + getString(R.string.editor_format) + " (${cmd.substringBefore(' ').substringAfterLast('/')})" to { formatWith(cmd) } }
         if (isLayout()) acts += "📱 " + getString(R.string.editor_layout_preview) to { layoutPreview() }
+        Regex("^(.*?)/(res|app/src/main/res)/").find(guest)?.let { m -> acts += "🎨 " + getString(R.string.res_title) to { ResEditorActivity.open(this, envId, m.groupValues[1]) } }
         if (ext == "json") acts += "{ } " + getString(R.string.editor_format) to {
             runCatching { val t = editor.text.toString().trim(); snapshot(); editor.setText(if (t.startsWith("[")) org.json.JSONArray(t).toString(2) else org.json.JSONObject(t).toString(2)) }
                 .onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }

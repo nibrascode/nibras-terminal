@@ -125,6 +125,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
             }
             "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
+            "res-edit" -> ui { com.nibras.terminal.ResEditorActivity.open(context, envId(env), args.ifBlank { pwd }.let { if (it.startsWith("/")) it else "$pwd/$it" }) }
             "files" -> ui { com.nibras.terminal.FilesActivity.open(context, envId(env), args.ifBlank { null }) }
             "desktop-view" -> ui { com.nibras.terminal.DesktopActivity.open(context, env.ifBlank { null }) }
             "hosts" -> ui { context.startActivity(Intent(context, com.nibras.terminal.HostsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
@@ -185,6 +186,11 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 ui { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 "OK\nAndroid installer opened for ${f.name}"
+            }
+            "apps" -> com.nibras.terminal.AppTools.apps(context, words(raw)) { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") }
+            "install-apks" -> {
+                val fs = words(raw).map { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") ?: return "ERR\nbad path: $p" }
+                if (fs.isEmpty()) "ERR\nusage: apk install-split <base.apk split*.apk | app.apks | app.xapk | app.apkm>" else com.nibras.terminal.AppTools.installSplits(context, fs)
             }
             "environments" -> ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "nfc" -> {

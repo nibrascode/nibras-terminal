@@ -276,4 +276,18 @@
     <string name="editor_lsp_off">Dil sunucusu çalışmıyor</string>
     <string name="editor_lsp_none">.%1$s için henüz dil sunucusu yok</string>
     <string name="editor_lsp_install">Akıllı tamamlama, hatalar, bilgi ve tanıma gitme için dil sunucusu gerekir. Şimdi kurulsun: install %1$s</string>
+    <string name="res_title">Kaynak düzenleyici</string>
+    <string name="res_strings">Metinler</string>
+    <string name="res_colors">Renkler</string>
+    <string name="res_images">Görseller</string>
+    <string name="res_app">Uygulama</string>
+    <string name="res_rebuild">Derle · imzala · kur</string>
+    <string name="res_none">%1$s içinde res/values klasörü yok. Önce APK açın: apk res app.apk</string>
+    <string name="res_strings_hint">%1$d metin · düzenlemek için dokunun · ⚠ = henüz çevrilmedi</string>
+    <string name="res_add_lang">Dil ekle</string>
+    <string name="res_images_hint">Görsele dokunup galeriden değiştirin (aynı boyuta getirilir)</string>
+    <string name="res_app_icon">Uygulama simgesi</string>
+    <string name="res_app_name">Uygulama adı</string>
+    <string name="res_package">Paket adı</string>
+    <string name="res_app_note">Yeni paket adı orijinalin yanında ayrı uygulama olarak kurulur. Kendi imzasını denetleyen uygulamalar yeniden imzadan sonra çalışmayabilir.</string>
 </resources>
