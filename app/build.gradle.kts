@@ -5,8 +5,9 @@ plugins {
 }
 
 val androidSdk = (findProperty("sdk") as String?)?.toIntOrNull() ?: 35
-val androidVersion = (findProperty("versionCode") as String?)?.toIntOrNull()
-    ?: ((System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0) + 100)
+// Fixed release version. Never bump automatically: Mahir decides when the version changes.
+val nibrasVersionName = "1.0.0"
+val androidVersion = 10000 // 1.0.0 → 10000 (major*10000 + minor*100 + patch)
 
 android {
     namespace = "com.nibras.terminal"
@@ -17,7 +18,7 @@ android {
         minSdk = 26
         targetSdk = androidSdk
         versionCode = androidVersion
-        versionName = (findProperty("versionName") as String?) ?: "0.1.$androidVersion"
+        versionName = nibrasVersionName
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }

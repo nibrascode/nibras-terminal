@@ -30,7 +30,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.2.x-1f6feb?style=flat-square" alt="version 0.2.x">
+  <img src="https://img.shields.io/badge/version-1.0.0-1f6feb?style=flat-square" alt="version 1.0.0">
   <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="MIT license"></a>
