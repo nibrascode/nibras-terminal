@@ -140,7 +140,8 @@ object Rootfs {
         // termux-chsh = nibras-shell (login shell of new sessions)
         for ((l, t) in listOf("termux-chsh" to "nibras-shell", "nibras-chsh" to "nibras-shell"))
             runCatching { Files.deleteIfExists(f("usr/local/bin/$l").toPath()); Files.createSymbolicLink(f("usr/local/bin/$l").toPath(), Paths.get(t)) }
-        exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/banner /etc/nibras/help 2>/dev/null\n")
+        exe(f("usr/local/bin/nibras-help"), guest(context, "nibras-help"))
+        exe(f("usr/local/bin/nibras-alias"), guest(context, "nibras-alias"))
         for (cmd in API_COMMANDS) {
             // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.
             for (prefix in listOf("termux-", "nibras-")) {
@@ -190,6 +191,16 @@ object Rootfs {
         // Language words as commands ("az dili yukle", "türkçe yükle", "تحميل العربية"): last on PATH, never shadow programs.
         for (w in LANG_WORDS) runCatching {
             val short = File(shortDir, w).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
+        }
+        // Native-language command names (kömək, qur, yardım, помощь, مساعدة …), last on PATH; English names always work.
+        runCatching {
+            guest(context, "i18n/commands.tsv").lineSequence().filter { it.isNotBlank() && !it.startsWith("#") }
+                .mapNotNull { it.split('\t').getOrNull(1) }.distinct().forEach { w ->
+                    runCatching {
+                        val short = File(shortDir, w).toPath()
+                        if (!Files.exists(short, java.nio.file.LinkOption.NOFOLLOW_LINKS)) Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-alias"))
+                    }
+                }
         }
         // Storage shortcuts like Termux's ~/storage (work after "nibras-setup-storage").
         mapOf("shared" to "/sdcard", "downloads" to "/sdcard/Download", "dcim" to "/sdcard/DCIM",
