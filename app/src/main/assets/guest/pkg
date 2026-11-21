@@ -49,6 +49,15 @@ elif command -v apt-get >/dev/null 2>&1; then
     *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
   esac
 elif command -v pacman >/dev/null 2>&1; then
+  # First run: Arch images ship without an initialised keyring, so pacman cannot verify packages.
+  if [ ! -s /etc/pacman.d/gnupg/pubring.gpg ] && [ ! -s /etc/pacman.d/gnupg/pubring.kbx ]; then
+    echo "Nibras: preparing the pacman keyring (once)…" >&2
+    pacman-key --init >/dev/null 2>&1
+    for k in /usr/share/pacman/keyrings/*.gpg; do
+      [ -e "$k" ] && pacman-key --populate "$(basename "$k" .gpg)" >/dev/null 2>&1
+    done
+    pkill -f gpg-agent 2>/dev/null; true
+  fi
   case "$cmd" in
     install|i|add|in) [ -d /var/lib/pacman/sync ] && ls /var/lib/pacman/sync/*.db >/dev/null 2>&1 || pacman -Sy --noconfirm; exec pacman -S --needed --noconfirm "$@" ;;
     uninstall|remove|rm|del|un) exec pacman -R --noconfirm "$@" ;;
