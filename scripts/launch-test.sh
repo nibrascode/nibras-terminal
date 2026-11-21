@@ -26,11 +26,18 @@ sleep 3
 adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
 # Termux:API compatible phone commands from the Android shell session.
 adb exec-in run-as com.nibras.terminal sh -c 'cat > files/home/apitest.sh' < "$(dirname "$0")/api-test.sh"
-adb shell input text "sh%sapitest.sh"
-adb shell input keyevent 66
-for i in $(seq 1 30); do
-  sleep 2
-  adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>/dev/null | grep -q API_TEST_DONE && break
+# Typing can be lost while the slow ARM-translated emulator is busy: retry (focus the terminal first).
+for attempt in 1 2 3; do
+  adb shell input tap 540 900 >/dev/null 2>&1 || true
+  sleep 1
+  adb shell input text "sh%sapitest.sh"
+  adb shell input keyevent 66
+  for i in $(seq 1 25); do
+    sleep 2
+    adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>/dev/null | grep -q API_TEST_DONE && break 2
+  done
+  adb shell run-as com.nibras.terminal ls files/home/api-test.txt >/dev/null 2>&1 && { sleep 30; break; }
+  echo "api test attempt $attempt: no output yet, retrying"
 done
 adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>&1 | tee "$OUT/api-test.txt"
 grep -q '"percentage"' "$OUT/api-test.txt" && grep -q '"max_volume"' "$OUT/api-test.txt" && grep -q 'clip: hello-clip' "$OUT/api-test.txt" \
