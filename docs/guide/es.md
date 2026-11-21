@@ -171,6 +171,39 @@ lang auto
 
 Las pantallas en árabe, persa y urdu se muestran de derecha a izquierda. Para mostrar texto árabe con las letras unidas dentro de la terminal, usa el comando `rtl`, por ejemplo `cat note.txt | rtl`.
 
+### Comandos en tu idioma
+
+También puedes escribir los comandos de Nibras en español. Los nombres en inglés siempre funcionan, y los comandos estándar de Linux como `ls`, `git` y `cd` no cambian de nombre. Los comandos funcionan con y sin tildes, por ejemplo `ejecutar` y `actualizar`.
+
+| Español | Inglés |
+|---|---|
+| `ayuda` | `help` |
+| `instalar python` | `install python` |
+| `quitar` | `remove` |
+| `actualizar` | `update` |
+| `ejecutar hello.py` | `run hello.py` |
+| `idioma` | `lang` |
+| `tema dracula` | `theme dracula` |
+| `indicador` | `prompt` |
+| `personalizar` | `customize` |
+| `remoto` | `remote` |
+| `respaldo` | `backup` |
+| `restaurar` | `restore` |
+| `aprender` | `learn` |
+| `arreglar` | `fix` |
+| `preguntar` | `ask` |
+| `explicar` | `explain` |
+| `oración` | `prayer` |
+| `vídeo` | `video` |
+| `sonido` | `audio` |
+| `descargar` | `download` |
+| `medios` | `media` |
+| `archivos` | `files` |
+| `editar` | `edit` |
+| `menú` | `menu` |
+| `corán` | `quran` |
+<!-- native-commands -->
+
 ## 14. Funciones que solo tiene Nibras
 
 - `ask`, `explain` y `fix` te ayudan con comandos y errores.
@@ -180,6 +213,11 @@ Las pantallas en árabe, persa y urdu se muestran de derecha a izquierda. Para m
 - `llm` ejecuta un chat de IA sin conexión en el teléfono.
 - `webterm` abre esta terminal en el navegador de un ordenador a través de Wi-Fi.
 - La pantalla dividida, una ventana flotante y un escritorio Linux (XFCE) funcionan dentro de la aplicación.
+- `scripts` abre la tienda de scripts, donde puedes explorar, leer, instalar y ejecutar scripts listos para usar.
+- `remote` abre este terminal en el navegador de un ordenador conectado a la misma red Wi-Fi. El enlace de un solo uso también se muestra como código QR.
+- `backup drive` guarda tus hosts y ajustes, cifrados con tu propia frase de contraseña, en Google Drive o en cualquier carpeta. `restore drive` los recupera.
+- `learn` inicia lecciones interactivas: escribes comandos reales y se comprueban automáticamente.
+- Los widgets de la pantalla de inicio ejecutan tus comandos favoritos con un toque y muestran el estado de los servidores y los horarios de oración.
 
 ## 15. Permisos
 

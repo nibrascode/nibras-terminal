@@ -1,0 +1,43 @@
+title.linux	লিনাক্সের মূল বিষয়
+title.shell	শেল
+title.git	Git
+title.python	পাইথন
+title.web	ওয়েব
+title.android	অ্যান্ড্রয়েড ও APK
+linux.1	pwd আপনি যে ফোল্ডারে আছেন তা দেখায়। কাজ: বর্তমান ফোল্ডার দেখান।
+linux.2	mkdir ফোল্ডার তৈরি করে। কাজ: notes নামে একটি ফোল্ডার তৈরি করুন।
+linux.3	echo লেখা ছাপে এবং > তা ফাইলে লেখে। কাজ: notes/a.txt-এ যেকোনো লেখা লিখুন।
+linux.4	cat ফাইলের ভেতরের লেখা দেখায়। কাজ: notes/a.txt দেখান।
+linux.5	cp ফাইল কপি করে। কাজ: notes/a.txt কে notes/b.txt-এ কপি করুন।
+linux.6	ls ফাইলের তালিকা দেখায়; ls -l বিস্তারিতও। কাজ: notes ফোল্ডারের তালিকা দেখান।
+shell.1	wc -l লাইন গোনে। কাজ: notes/a.txt-এর লাইন গুনুন।
+shell.2	পাইপ | এক কমান্ডের আউটপুট আরেকটিতে পাঠায়। কাজ: ls ও wc -l দিয়ে notes-এর ফাইল গুনুন।
+shell.3	>> ফাইল বদলানোর বদলে শেষে যোগ করে। কাজ: notes/a.txt-এ দ্বিতীয় লাইন যোগ করুন।
+shell.4	ভেরিয়েবল মান রাখে: NAME=Ali; তারপর $NAME সেটি ব্যবহার করে। কাজ: এক লাইনে ভেরিয়েবল ঠিক করে echo দিয়ে দেখান (; ব্যবহার করুন)।
+shell.5	grep কোনো শব্দ থাকা লাইন খুঁজে বের করে। কাজ: notes/a.txt-এ একটি শব্দ খুঁজুন।
+shell.6	স্ক্রিপ্ট হলো কমান্ডের ফাইল; chmod +x সেটিকে চালানোর উপযোগী করে। কাজ: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git প্রজেক্টের ইতিহাস রাখে। কাজ: রিপোজিটরি তৈরি করুন: git init proj
+git.2	প্রতিটি প্রজেক্টে README দরকার। কাজ: proj/README.md-এ একটি লাইন লিখুন (echo … > proj/README.md)।
+git.3	git add পরিবর্তনকে স্টেজে রাখে। কাজ: git -C proj add README.md
+git.4	git commit স্টেজের পরিবর্তন ইতিহাসে সংরক্ষণ করে। কাজ: git -C proj commit -m "first commit"
+git.5	git log ইতিহাস দেখায়। কাজ: proj-এর লগ দেখান (git -C proj log --oneline)।
+python.1	python3 -c পাইথনের এক লাইন চালায়। কাজ: python3 -c দিয়ে 2+3-এর ফল ছাপুন।
+python.2	পাইথন প্রোগ্রাম .py ফাইলে থাকে। কাজ: শুভেচ্ছা ছাপে এমন hello.py তৈরি করুন (echo 'print("Salam")' > hello.py)।
+python.3	প্রোগ্রাম python3 file.py দিয়ে চালান। কাজ: hello.py চালান।
+python.4	for … in range(n) পুনরাবৃত্তি করে। কাজ: python3 -c-তে for লুপ দিয়ে 0, 1, 2 ছাপুন।
+web.1	curl ওয়েব সার্ভারের সাথে কথা বলে; -I শুধু হেডার দেখায়। কাজ: curl -I https://example.com
+web.2	-o পেজকে ফাইলে সংরক্ষণ করে। কাজ: curl দিয়ে https://example.com কে page.html নামে সংরক্ষণ করুন।
+web.3	প্রতিটি পেজে একটি <title> থাকে। কাজ: grep title page.html দিয়ে খুঁজুন।
+web.4	ওয়েবসাইট মানে শুধু HTML ফাইল। কাজ: mkdir -p site && echo '<h1>Salam</h1>' > site/index.html (তারপর চেষ্টা করুন: web site)
+android.1	nibras-apk ফোনেই অ্যান্ড্রয়েড অ্যাপ তৈরি করে ও খোলে। কাজ: এর সাহায্য দেখান।
+android.2	nibras-* কমান্ড ফোনের সাথে কথা বলে। কাজ: ব্যাটারির অবস্থা দেখান।
+android.3	কাজ: nibras-toast দিয়ে স্ক্রিনে ছোট বার্তা দেখান।
+android.4	nibras-apk new এমন অ্যাপ প্রজেক্ট তৈরি করে যা এখানেই তৈরি করা যায় (nibras-apk build)। কাজ: MyApp নামে প্রজেক্ট তৈরির কমান্ড লিখুন।
+ui.intro	ইন্টারঅ্যাক্টিভ পাঠ: প্রতিটি কাজের জন্য আসল কমান্ড লিখুন। q = বের হন, s = বাদ দিন, h = ইঙ্গিত।
+ui.choose	কোর্স বাছুন (নম্বর), r = অগ্রগতি রিসেট, q = বের হন:
+ui.done	কোর্স শেষ!
+ui.again	পুরোপুরি নয় — আবার চেষ্টা করুন (h = ইঙ্গিত, s = বাদ দিন, q = বের হন)
+ui.ok	সঠিক!
+ui.hint	ইঙ্গিত: কমান্ড শুরু হয়
+ui.progress	অগ্রগতি
+ui.lab	আপনার অনুশীলন ফোল্ডার:

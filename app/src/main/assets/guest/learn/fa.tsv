@@ -1,0 +1,43 @@
+title.linux	مبانی لینوکس
+title.shell	پوسته (شل)
+title.git	Git
+title.python	پایتون
+title.web	وب
+title.android	اندروید و APK
+linux.1	pwd پوشه‌ای را که در آن هستید نشان می‌دهد. کار: پوشه فعلی را نشان دهید.
+linux.2	mkdir پوشه می‌سازد. کار: پوشه‌ای به نام notes بسازید.
+linux.3	echo متن چاپ می‌کند و > آن را در فایل می‌نویسد. کار: یک متن در notes/a.txt بنویسید.
+linux.4	cat محتوای فایل را نشان می‌دهد. کار: notes/a.txt را نشان دهید.
+linux.5	cp فایل را کپی می‌کند. کار: notes/a.txt را به notes/b.txt کپی کنید.
+linux.6	ls فایل‌ها را فهرست می‌کند؛ ls -l جزئیات می‌افزاید. کار: پوشه notes را فهرست کنید.
+shell.1	wc -l خطوط را می‌شمارد. کار: خطوط notes/a.txt را بشمارید.
+shell.2	لوله | خروجی یک فرمان را به فرمان دیگر می‌دهد. کار: با ls و wc -l فایل‌های notes را بشمارید.
+shell.3	>> به انتهای فایل اضافه می‌کند و جایگزین نمی‌کند. کار: خط دومی به notes/a.txt اضافه کنید.
+shell.4	متغیرها مقدار نگه می‌دارند: NAME=Ali; سپس $NAME از آن استفاده می‌کند. کار: در یک خط متغیری بسازید و با echo چاپ کنید (با ;).
+shell.5	grep خطوط دارای یک کلمه را پیدا می‌کند. کار: کلمه‌ای را در notes/a.txt جستجو کنید.
+shell.6	اسکریپت فایلی از فرمان‌هاست؛ chmod +x آن را اجرایی می‌کند. کار: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git تاریخچه پروژه را نگه می‌دارد. کار: یک مخزن بسازید: git init proj
+git.2	هر پروژه یک README لازم دارد. کار: یک خط در proj/README.md بنویسید (echo … > proj/README.md).
+git.3	git add تغییر را آماده ثبت می‌کند. کار: git -C proj add README.md
+git.4	git commit تغییر آماده را در تاریخچه ذخیره می‌کند. کار: git -C proj commit -m "first commit"
+git.5	git log تاریخچه را نشان می‌دهد. کار: تاریخچه proj را نشان دهید (git -C proj log --oneline).
+python.1	python3 -c یک خط پایتون اجرا می‌کند. کار: حاصل 2+3 را با python3 -c چاپ کنید.
+python.2	برنامه‌های پایتون در فایل‌های .py هستند. کار: hello.py بسازید که سلام چاپ کند (echo 'print("Salam")' > hello.py).
+python.3	برنامه را با python3 file.py اجرا کنید. کار: hello.py را اجرا کنید.
+python.4	for … in range(n) تکرار می‌کند. کار: با حلقه for در python3 -c اعداد 0، 1، 2 را چاپ کنید.
+web.1	curl با سرورهای وب حرف می‌زند؛ -I فقط سرآیندها را نشان می‌دهد. کار: curl -I https://example.com
+web.2	-o صفحه را در فایل ذخیره می‌کند. کار: https://example.com را با curl به نام page.html ذخیره کنید.
+web.3	هر صفحه یک <title> دارد. کار: آن را با grep title page.html پیدا کنید.
+web.4	وب‌سایت فقط فایل‌های HTML است. کار: mkdir -p site && echo '<h1>Salam</h1>' > site/index.html (سپس امتحان کنید: web site)
+android.1	nibras-apk برنامه‌های اندروید را روی خود گوشی می‌سازد و باز می‌کند. کار: راهنمای آن را نشان دهید.
+android.2	فرمان‌های nibras-* با گوشی حرف می‌زنند. کار: وضعیت باتری را نشان دهید.
+android.3	کار: با nibras-toast پیام کوتاهی روی صفحه نشان دهید.
+android.4	nibras-apk new پروژه برنامه‌ای می‌سازد که همین‌جا ساخته می‌شود (nibras-apk build). کار: فرمان ساخت پروژه‌ای به نام MyApp را بنویسید.
+ui.intro	درس‌های تعاملی: برای هر کار فرمان واقعی را بنویسید. q = خروج، s = رد شدن، h = راهنما.
+ui.choose	یک دوره انتخاب کنید (شماره)، r = بازنشانی پیشرفت، q = خروج:
+ui.done	دوره تمام شد!
+ui.again	کاملاً درست نیست — دوباره امتحان کنید (h = راهنما، s = رد شدن، q = خروج)
+ui.ok	درست است!
+ui.hint	راهنما: فرمان این‌طور شروع می‌شود
+ui.progress	پیشرفت
+ui.lab	پوشه تمرین شما:

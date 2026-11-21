@@ -1,0 +1,43 @@
+title.linux	लिनक्स की बुनियादी बातें
+title.shell	शेल
+title.git	Git
+title.python	पाइथन
+title.web	वेब
+title.android	एंड्रॉयड और APK
+linux.1	pwd वह फ़ोल्डर दिखाता है जिसमें आप हैं। काम: अपना मौजूदा फ़ोल्डर दिखाएँ।
+linux.2	mkdir फ़ोल्डर बनाता है। काम: notes नाम का फ़ोल्डर बनाएँ।
+linux.3	echo टेक्स्ट छापता है और > उसे फ़ाइल में लिखता है। काम: notes/a.txt में कोई भी टेक्स्ट लिखें।
+linux.4	cat फ़ाइल के अंदर की सामग्री दिखाता है। काम: notes/a.txt दिखाएँ।
+linux.5	cp फ़ाइल कॉपी करता है। काम: notes/a.txt को notes/b.txt में कॉपी करें।
+linux.6	ls फ़ाइलों की सूची देता है; ls -l विवरण भी। काम: notes फ़ोल्डर की सूची दिखाएँ।
+shell.1	wc -l पंक्तियाँ गिनता है। काम: notes/a.txt की पंक्तियाँ गिनें।
+shell.2	पाइप | एक कमांड का आउटपुट दूसरी को देता है। काम: ls और wc -l से notes की फ़ाइलें गिनें।
+shell.3	>> फ़ाइल बदलने के बजाय अंत में जोड़ता है। काम: notes/a.txt में दूसरी पंक्ति जोड़ें।
+shell.4	वेरिएबल मान रखते हैं: NAME=Ali; फिर $NAME उसका उपयोग करता है। काम: एक पंक्ति में वेरिएबल बनाकर echo से दिखाएँ (; का उपयोग करें)।
+shell.5	grep किसी शब्द वाली पंक्तियाँ ढूँढता है। काम: notes/a.txt में कोई शब्द खोजें।
+shell.6	स्क्रिप्ट कमांड्स की फ़ाइल है; chmod +x उसे चलाने योग्य बनाता है। काम: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git प्रोजेक्ट का इतिहास रखता है। काम: रिपॉज़िटरी बनाएँ: git init proj
+git.2	हर प्रोजेक्ट को README चाहिए। काम: proj/README.md में एक पंक्ति लिखें (echo … > proj/README.md)।
+git.3	git add बदलाव को स्टेज पर रखता है। काम: git -C proj add README.md
+git.4	git commit स्टेज का बदलाव इतिहास में सहेजता है। काम: git -C proj commit -m "first commit"
+git.5	git log इतिहास दिखाता है। काम: proj का लॉग दिखाएँ (git -C proj log --oneline)।
+python.1	python3 -c पाइथन की एक पंक्ति चलाता है। काम: python3 -c से 2+3 का परिणाम छापें।
+python.2	पाइथन प्रोग्राम .py फ़ाइलों में होते हैं। काम: नमस्ते छापने वाली hello.py बनाएँ (echo 'print("Namaste")' > hello.py)।
+python.3	प्रोग्राम python3 file.py से चलाएँ। काम: hello.py चलाएँ।
+python.4	for … in range(n) दोहराता है। काम: python3 -c में for लूप से 0, 1, 2 छापें।
+web.1	curl वेब सर्वर से बात करता है; -I केवल हेडर दिखाता है। काम: curl -I https://example.com
+web.2	-o पेज को फ़ाइल में सहेजता है। काम: curl से https://example.com को page.html के रूप में सहेजें।
+web.3	हर पेज में <title> होता है। काम: उसे grep title page.html से ढूँढें।
+web.4	वेबसाइट बस HTML फ़ाइलें हैं। काम: mkdir -p site && echo '<h1>Namaste</h1>' > site/index.html (फिर आज़माएँ: web site)
+android.1	nibras-apk फ़ोन पर ही एंड्रॉयड ऐप बनाता और खोलता है। काम: इसकी मदद दिखाएँ।
+android.2	nibras-* कमांड फ़ोन से बात करती हैं। काम: बैटरी की स्थिति दिखाएँ।
+android.3	काम: nibras-toast से स्क्रीन पर छोटा संदेश दिखाएँ।
+android.4	nibras-apk new ऐप प्रोजेक्ट बनाता है जिसे यहीं बनाया जा सकता है (nibras-apk build)। काम: MyApp नाम का प्रोजेक्ट बनाने वाली कमांड लिखें।
+ui.intro	इंटरैक्टिव पाठ: हर काम के लिए असली कमांड लिखें। q = बाहर, s = छोड़ें, h = संकेत।
+ui.choose	कोर्स चुनें (संख्या), r = प्रगति रीसेट, q = बाहर:
+ui.done	कोर्स पूरा!
+ui.again	पूरी तरह नहीं — फिर कोशिश करें (h = संकेत, s = छोड़ें, q = बाहर)
+ui.ok	सही!
+ui.hint	संकेत: कमांड ऐसे शुरू होती है
+ui.progress	प्रगति
+ui.lab	आपका अभ्यास फ़ोल्डर:

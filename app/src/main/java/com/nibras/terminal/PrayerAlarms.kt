@@ -42,6 +42,12 @@ object PrayerAlarms {
                 "OK\non · $city · next: ${next ?: "?"}" + if (exact) "" else "\n(exact alarms not allowed yet: allow \"Alarms & reminders\" for Nibras for to-the-minute reminders)"
             }
             "off" -> { p.edit().putBoolean("on", false).apply(); cancel(c); "OK\noff" }
+            "city" -> {
+                val city = args.getOrNull(1) ?: return "ERR\nprayer city <city> [country] [method]"
+                p.edit().putString("city", city).putString("country", args.getOrNull(2) ?: "").putString("method", args.getOrNull(3) ?: "13").apply()
+                if (p.getBoolean("on", false)) schedule(c)
+                NibrasWidgets.refreshAll(c); "OK\n$city"
+            }
             "before" -> { p.edit().putInt("before", args.getOrNull(1)?.toIntOrNull() ?: 0).apply(); scheduleNow(c); "OK\nreminder ${p.getInt("before", 0)} min before" }
             "test" -> { notify(c, "Nibras", "🕌 test"); "OK" }
             else -> "OK\n" + (if (p.getBoolean("on", false)) "on" else "off") + " · ${p.getString("city", "-")} ${p.getString("country", "")} · method ${p.getString("method", "13")}" +
@@ -64,6 +70,12 @@ object PrayerAlarms {
     }
 
     fun scheduleBlocking(c: Context) { if (prefs(c).getBoolean("on", false)) runCatching { scheduleNow(c) } }
+
+    /** Today's five times for the widget (cached per day; null when no city is set or offline without cache). */
+    fun today(c: Context): Pair<String, Map<String, Long>>? {
+        val city = prefs(c).getString("city", null)?.takeIf { it.isNotBlank() } ?: return null
+        return fetch(c, Calendar.getInstance())?.let { city to it }
+    }
 
     private fun fetch(c: Context, day: Calendar): Map<String, Long>? {
         val p = prefs(c)

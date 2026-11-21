@@ -349,6 +349,11 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         panel.addView(tools2)
         panel.addView(tools3)
         panel.addView(tools4)
+        val tools5 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tools5.addView(button("📜 " + getString(R.string.scripts_title)) { drawer.closeDrawers(); startActivity(Intent(this, ScriptsActivity::class.java)) }, LinearLayout.LayoutParams(lp))
+        tools5.addView(button("🎓 " + getString(R.string.tool_learn)) { drawer.closeDrawers(); Launcher.run(this, null, "nibras-learn", "learn", keepShell = true) }, LinearLayout.LayoutParams(lp))
+        tools5.addView(button("💻 " + getString(R.string.tool_remote)) { drawer.closeDrawers(); Launcher.run(this, null, "nibras-remote on", "remote", keepShell = true) }, LinearLayout.LayoutParams(lp))
+        panel.addView(tools5)
         panel.addView(row1)
         panel.addView(row2)
         panel.addView(row3)
@@ -438,6 +443,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             intent.removeExtra("open")
             when (what) {
                 "store" -> startActivity(Intent(this, StoreActivity::class.java))
+                "scripts" -> startActivity(Intent(this, ScriptsActivity::class.java))
                 "hosts" -> startActivity(Intent(this, HostsActivity::class.java))
                 "files" -> FilesActivity.open(this, currentEnv(), null)
                 "editor" -> EditorActivity.open(this, Rootfs.ANDROID, java.io.File(filesDir, "snippets.txt").absolutePath)

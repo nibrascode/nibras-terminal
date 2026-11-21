@@ -290,4 +290,21 @@
     <string name="res_app_name">Tətbiqin adı</string>
     <string name="res_package">Paket adı</string>
     <string name="res_app_note">Yeni paket adı ilə tətbiq orijinalın yanında ayrıca quraşdırılır. Öz imzasını yoxlayan tətbiqlər yenidən imzalandıqdan sonra işləməyə bilər.</string>
+    <string name="scripts_title">Skriptlər</string>
+    <string name="scripts_hint">Hazır kiçik skriptlər. Mənbə koduna bax, sonra quraşdır — hər biri yoxlama cəmi ilə yoxlanılır.</string>
+    <string name="scripts_search">Skript axtar</string>
+    <string name="scripts_all">Hamısı</string>
+    <string name="scripts_install">Quraşdır</string>
+    <string name="scripts_source">Mənbə</string>
+    <string name="scripts_run">Quraşdır və işlət</string>
+    <string name="tool_learn">Öyrən</string>
+    <string name="tool_remote">Uzaqdan</string>
+    <string name="widget_status_label">Server vəziyyəti</string>
+    <string name="widget_status_empty">Terminalda server əlavə et: servers add saytim https://example.com</string>
+    <string name="widget_prayer_label">Namaz vaxtları</string>
+    <string name="widget_prayer_empty">Terminalda şəhərini yaz: prayer city Baku</string>
+    <string name="remote_title">Uzaqdan terminal</string>
+    <string name="remote_note">Kompüterdə aç (eyni Wi-Fi, birdəfəlik link):\n%1$s</string>
+    <string name="remote_stop">Dayandır</string>
+    <string name="remote_used">Bu link artıq işlədilib və ya vaxtı bitib. Yenisi üçün Nibras Terminal-da “remote” yaz.</string>
 </resources>

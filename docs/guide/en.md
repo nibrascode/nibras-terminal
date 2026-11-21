@@ -170,6 +170,7 @@ lang auto
 ```
 
 Arabic, Persian and Urdu screens are laid out from right to left. To show shaped Arabic text inside the terminal, use the `rtl` command, for example `cat note.txt | rtl`.
+<!-- native-commands -->
 
 ## 14. Features only Nibras has
 
@@ -180,6 +181,11 @@ Arabic, Persian and Urdu screens are laid out from right to left. To show shaped
 - `llm` runs an offline AI chat on the phone.
 - `webterm` opens this terminal in a computer's browser over Wi-Fi.
 - Split screen, a floating window and a Linux desktop (XFCE) work inside the app.
+- `scripts` opens the script store, where you can browse, read, install and run ready-made scripts.
+- `remote` opens this terminal in a computer browser on the same Wi-Fi. The one-time link is also shown as a QR code.
+- `backup drive` saves your hosts and settings, encrypted with your own passphrase, to Google Drive or any folder. `restore drive` brings them back.
+- `learn` starts interactive lessons: you type real commands and they are checked automatically.
+- Home-screen widgets run your favorite commands with one tap and show server status and prayer times.
 
 ## 15. Permissions
 

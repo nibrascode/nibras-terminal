@@ -269,4 +269,21 @@
     <string name="editor_lint">کوڈ جانچیں (lint)</string>
     <string name="tools_media">میڈیا</string>
     <string name="editor_layout_preview">لے آؤٹ پیش نظارہ</string>
+    <string name="scripts_title">اسکرپٹس</string>
+    <string name="scripts_hint">چھوٹی تیار اسکرپٹس۔ سورس پڑھیں، پھر انسٹال کریں — ہر ایک چیک سم سے جانچی جاتی ہے۔</string>
+    <string name="scripts_search">اسکرپٹس تلاش کریں</string>
+    <string name="scripts_all">سب</string>
+    <string name="scripts_install">انسٹال</string>
+    <string name="scripts_source">سورس</string>
+    <string name="scripts_run">انسٹال اور چلائیں</string>
+    <string name="tool_learn">سیکھیں</string>
+    <string name="tool_remote">ریموٹ</string>
+    <string name="widget_status_label">سرور کی حالت</string>
+    <string name="widget_status_empty">ٹرمینل میں سرور شامل کریں: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">نماز کے اوقات</string>
+    <string name="widget_prayer_empty">ٹرمینل میں اپنا شہر لکھیں: prayer city Lahore</string>
+    <string name="remote_title">ریموٹ ٹرمینل</string>
+    <string name="remote_note">اپنے کمپیوٹر پر کھولیں (وہی Wi-Fi، ایک بار کا لنک):\n%1$s</string>
+    <string name="remote_stop">روکیں</string>
+    <string name="remote_used">یہ لنک استعمال ہو چکا یا ختم ہو گیا۔ نیا لنک لینے کے لیے Nibras Terminal میں “remote” چلائیں۔</string>
 </resources>

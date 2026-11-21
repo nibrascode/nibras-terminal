@@ -43,6 +43,7 @@ case "$name" in
   share) [ "$(positional "-a -c -t" "$@")" = 0 ] && want_stdin=1 ;;
   notification) case " $* " in *" -c "*|*" --content "*|*" --content="*) ;; *) [ ! -t 0 ] && want_stdin=1 ;; esac ;;
   saf-write) want_stdin=1 ;;
+  crypt) want_stdin=1 ;;
   keystore)
     case "${1:-}" in
       sign) data=$(base64 | tr -d '\n'); args=$(printf '%s\037%s\037%s\037%s\037' sign "${2:-}" "${3:-}" "$data"); decode=1 ;;

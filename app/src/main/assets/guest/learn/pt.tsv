@@ -1,0 +1,43 @@
+title.linux	Noções de Linux
+title.shell	O shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android e APK
+linux.1	pwd mostra a pasta onde você está. Tarefa: mostre sua pasta atual.
+linux.2	mkdir cria uma pasta. Tarefa: crie uma pasta chamada notes.
+linux.3	echo imprime texto e > grava em um arquivo. Tarefa: escreva qualquer texto em notes/a.txt.
+linux.4	cat mostra o conteúdo de um arquivo. Tarefa: mostre notes/a.txt.
+linux.5	cp copia um arquivo. Tarefa: copie notes/a.txt para notes/b.txt.
+linux.6	ls lista arquivos; ls -l adiciona detalhes. Tarefa: liste a pasta notes.
+shell.1	wc -l conta linhas. Tarefa: conte as linhas de notes/a.txt.
+shell.2	Um pipe | envia a saída de um comando para outro. Tarefa: conte os arquivos de notes com ls e wc -l.
+shell.3	>> acrescenta ao fim do arquivo em vez de substituir. Tarefa: adicione uma segunda linha a notes/a.txt.
+shell.4	Variáveis guardam valores: NAME=Ali; depois $NAME usa o valor. Tarefa: defina uma variável e mostre-a com echo numa linha (use ;).
+shell.5	grep encontra linhas que contêm uma palavra. Tarefa: procure uma palavra em notes/a.txt.
+shell.6	Um script é um arquivo de comandos; chmod +x o torna executável. Tarefa: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git registra o histórico de um projeto. Tarefa: crie um repositório: git init proj
+git.2	Todo projeto precisa de um README. Tarefa: escreva uma linha em proj/README.md (echo … > proj/README.md).
+git.3	git add prepara uma alteração. Tarefa: git -C proj add README.md
+git.4	git commit salva a alteração preparada no histórico. Tarefa: git -C proj commit -m "primeiro commit"
+git.5	git log mostra o histórico. Tarefa: mostre o log de proj (git -C proj log --oneline).
+python.1	python3 -c executa uma linha de Python. Tarefa: imprima o resultado de 2+3 com python3 -c.
+python.2	Programas Python ficam em arquivos .py. Tarefa: crie hello.py que imprima uma saudação (echo 'print("Olá")' > hello.py).
+python.3	Execute um programa com python3 arquivo.py. Tarefa: execute hello.py.
+python.4	for … in range(n) repete. Tarefa: imprima 0, 1, 2 com um laço for em python3 -c.
+web.1	curl conversa com servidores web; -I mostra só os cabeçalhos. Tarefa: curl -I https://example.com
+web.2	-o salva a página em um arquivo. Tarefa: salve https://example.com como page.html com curl.
+web.3	Toda página tem um <title>. Tarefa: encontre-o com grep title page.html
+web.4	Um site é só um conjunto de arquivos HTML. Tarefa: mkdir -p site && echo '<h1>Olá</h1>' > site/index.html (depois tente: web site)
+android.1	nibras-apk compila e abre apps Android no próprio telefone. Tarefa: mostre a ajuda.
+android.2	Os comandos nibras-* falam com o telefone. Tarefa: mostre o estado da bateria.
+android.3	Tarefa: mostre uma mensagem curta na tela com nibras-toast.
+android.4	nibras-apk new cria um projeto de app que você compila aqui (nibras-apk build). Tarefa: digite o comando que cria um projeto chamado MyApp.
+ui.intro	Lições interativas: digite o comando real de cada tarefa. q = sair, s = pular, h = dica.
+ui.choose	Escolha um curso (número), r = zerar progresso, q = sair:
+ui.done	Curso concluído!
+ui.again	Quase — tente de novo (h = dica, s = pular, q = sair)
+ui.ok	Correto!
+ui.hint	Dica: o comando começa com
+ui.progress	Progresso
+ui.lab	Sua pasta de prática:

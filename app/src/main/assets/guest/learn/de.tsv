@@ -1,0 +1,43 @@
+title.linux	Linux-Grundlagen
+title.shell	Die Shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android & APK
+linux.1	pwd zeigt den Ordner, in dem Sie sind. Aufgabe: Zeigen Sie Ihren aktuellen Ordner.
+linux.2	mkdir erstellt einen Ordner. Aufgabe: Erstellen Sie einen Ordner namens notes.
+linux.3	echo gibt Text aus, > schreibt ihn in eine Datei. Aufgabe: Schreiben Sie beliebigen Text in notes/a.txt.
+linux.4	cat zeigt den Inhalt einer Datei. Aufgabe: Zeigen Sie notes/a.txt.
+linux.5	cp kopiert eine Datei. Aufgabe: Kopieren Sie notes/a.txt nach notes/b.txt.
+linux.6	ls listet Dateien; ls -l zeigt Details. Aufgabe: Listen Sie den Ordner notes auf.
+shell.1	wc -l zählt Zeilen. Aufgabe: Zählen Sie die Zeilen von notes/a.txt.
+shell.2	Eine Pipe | leitet die Ausgabe eines Befehls an einen anderen. Aufgabe: Zählen Sie die Dateien in notes mit ls und wc -l.
+shell.3	>> hängt an das Dateiende an, statt zu ersetzen. Aufgabe: Fügen Sie notes/a.txt eine zweite Zeile hinzu.
+shell.4	Variablen speichern Werte: NAME=Ali; danach nutzt $NAME den Wert. Aufgabe: Setzen Sie eine Variable und geben Sie sie in einer Zeile mit echo aus (mit ;).
+shell.5	grep findet Zeilen mit einem Wort. Aufgabe: Suchen Sie ein Wort in notes/a.txt.
+shell.6	Ein Skript ist eine Datei mit Befehlen; chmod +x macht es ausführbar. Aufgabe: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git verfolgt die Geschichte eines Projekts. Aufgabe: Legen Sie ein Repository an: git init proj
+git.2	Jedes Projekt braucht ein README. Aufgabe: Schreiben Sie eine Zeile in proj/README.md (echo … > proj/README.md).
+git.3	git add legt eine Änderung in den Index. Aufgabe: git -C proj add README.md
+git.4	git commit speichert die Änderung in der Geschichte. Aufgabe: git -C proj commit -m "erster Commit"
+git.5	git log zeigt die Geschichte. Aufgabe: Zeigen Sie das Log von proj (git -C proj log --oneline).
+python.1	python3 -c führt eine Zeile Python aus. Aufgabe: Geben Sie das Ergebnis von 2+3 mit python3 -c aus.
+python.2	Python-Programme stehen in .py-Dateien. Aufgabe: Erstellen Sie hello.py, das einen Gruß ausgibt (echo 'print("Hallo")' > hello.py).
+python.3	Programme startet man mit python3 datei.py. Aufgabe: Starten Sie hello.py.
+python.4	for … in range(n) wiederholt. Aufgabe: Geben Sie 0, 1, 2 mit einer for-Schleife in python3 -c aus.
+web.1	curl spricht mit Webservern; -I zeigt nur die Header. Aufgabe: curl -I https://example.com
+web.2	-o speichert die Seite in einer Datei. Aufgabe: Speichern Sie https://example.com mit curl als page.html.
+web.3	Jede Seite hat einen <title>. Aufgabe: Finden Sie ihn mit grep title page.html
+web.4	Eine Website besteht einfach aus HTML-Dateien. Aufgabe: mkdir -p site && echo '<h1>Hallo</h1>' > site/index.html (dann probieren: web site)
+android.1	nibras-apk baut und öffnet Android-Apps direkt auf dem Telefon. Aufgabe: Zeigen Sie seine Hilfe.
+android.2	nibras-*-Befehle sprechen mit dem Telefon. Aufgabe: Zeigen Sie den Akkustatus.
+android.3	Aufgabe: Zeigen Sie mit nibras-toast eine kurze Meldung auf dem Bildschirm.
+android.4	nibras-apk new erstellt ein App-Projekt, das Sie hier bauen können (nibras-apk build). Aufgabe: Tippen Sie den Befehl, der ein Projekt namens MyApp erstellt.
+ui.intro	Interaktive Lektionen: Tippen Sie für jede Aufgabe den echten Befehl. q = beenden, s = überspringen, h = Tipp.
+ui.choose	Kurs wählen (Nummer), r = Fortschritt zurücksetzen, q = beenden:
+ui.done	Kurs abgeschlossen!
+ui.again	Nicht ganz — noch einmal (h = Tipp, s = überspringen, q = beenden)
+ui.ok	Richtig!
+ui.hint	Tipp: Der Befehl beginnt mit
+ui.progress	Fortschritt
+ui.lab	Ihr Übungsordner:

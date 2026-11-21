@@ -590,9 +590,11 @@ EOF
 
 # ---------------------------------------------------------------- web / git / python / node / dev
 cmd_web() {
+  # web = remote (terminal in a computer browser); web <folder> = instant static web server.
+  case "${1:-}" in ""|on|off|stop|status) exec nibras-remote "$@" ;; serve) shift; set -- "${1:-.}" "${2:-}" ;; esac
   a=${1:-.}
   case "$a" in
-    help|-h) echo "web [folder] [port]   ·  web php [folder]  ·  web node [folder]   ($(say "instant web server" "ani veb server" "anında web sunucu" "веб-сервер"))"; return ;;
+    help|-h) echo "web · web off   ($(say "terminal in your computer's browser" "kompüter brauzerində terminal" "bilgisayar tarayıcısında terminal" "терминал в браузере компьютера"))"; echo "web <folder> [port]   ·  web php [folder]  ·  web node [folder]   ($(say "instant web server" "ani veb server" "anında web sunucu" "веб-сервер"))"; return ;;
     php) need php; d=${2:-.}; ip=$(ip_addr); echo "http://127.0.0.1:8080  http://$ip:8080"; exec php -S 0.0.0.0:8080 -t "$d" ;;
     node) need node; d=${2:-.}; ip=$(ip_addr); echo "http://127.0.0.1:8080  http://$ip:8080"; exec npx --yes http-server "$d" -p 8080 ;;
   esac
@@ -621,13 +623,90 @@ cmd_python() { need python3 pip3; [ $# -gt 0 ] && exec python3 "$@"; python3 --v
 cmd_node() { need node; [ $# -gt 0 ] && exec node "$@"; node --version; exec node; }
 
 # ---------------------------------------------------------------- backup / snapshot
+read_pass() { # prompt → $PASS (not echoed)
+  printf '%s ' "$1" >&2; stty -echo 2>/dev/null; read -r PASS; stty echo 2>/dev/null; echo >&2
+}
+settings_backup() { # drive | settings: encrypted archive of your setup
+  tmp=$HOME/.cache/nibras-backup; rm -rf "$tmp"; mkdir -p "$tmp"
+  nibras-api app-data export "$tmp/app-data.json" >/dev/null 2>&1 || true
+  list=""; for p in .ssh/config .ssh/known_hosts .nibras .config/nibras .shortcuts bin .profile .bashrc .zshrc .gitconfig .todo; do [ -e "$HOME/$p" ] && list="$list $p"; done
+  keys=$(ls "$HOME"/.ssh/id_* 2>/dev/null)
+  if [ -n "$keys" ]; then
+    printf '%s ' "$(say "Include your SSH private keys? (only inside the encrypted file) [y/N]" "SSH gizli açarların da daxil edilsin? (yalnız şifrəli faylın içində) [b/X]" "SSH özel anahtarların da eklensin mi? (yalnızca şifreli dosyada) [e/H]" "Включить приватные SSH-ключи? (только в зашифрованном файле) [д/Н]")"; read -r a
+    case "$a" in y|Y|b|B|e|E|д|Д) for k in $keys; do list="$list .ssh/${k##*/}"; done ;; esac
+  fi
+  # shellcheck disable=SC2086
+  tar -czf "$tmp/setup.tar.gz" -C "$HOME" $list -C "$tmp" app-data.json 2>/dev/null || die "tar failed"
+  read_pass "$(say "Passphrase (8+ characters, you need it to restore):" "Parol (8+ simvol, bərpa üçün lazımdır):" "Parola (8+ karakter, geri yüklemek için gerekir):" "Парольная фраза (8+ символов, нужна для восстановления):")"; p1=$PASS
+  read_pass "$(say "Repeat passphrase:" "Parolu təkrarla:" "Parolayı tekrarla:" "Повторите фразу:")"
+  [ "$p1" = "$PASS" ] || die "$(say "Passphrases do not match" "Parollar uyğun gəlmir" "Parolalar eşleşmiyor" "Фразы не совпадают")"
+  [ ${#p1} -ge 8 ] || die "$(say "Passphrase too short (8+)" "Parol çox qısadır (8+)" "Parola çok kısa (8+)" "Фраза слишком короткая (8+)")"
+  name=nibras-setup-$(date +%Y%m%d-%H%M).nbk
+  printf '%s\n' "$p1" | nibras-api crypt enc "$tmp/setup.tar.gz" "$tmp/$name" || { rm -rf "$tmp"; exit 1; }
+  p1=; PASS=
+  mkdir -p "$o"; cp "$tmp/$name" "$o/$name"
+  printf '\033[32m✓\033[0m %s %s\n' "$(say "Encrypted backup:" "Şifrəli ehtiyat nüsxə:" "Şifreli yedek:" "Зашифрованная копия:")" "$o/$name"
+  if [ "$1" = drive ]; then
+    say "Choose where to save it: pick Google Drive in the list (or any folder)." "Harada saxlanacağını seç: siyahıda Google Drive-ı seç (və ya istənilən qovluq)." "Nereye kaydedileceğini seç: listede Google Drive'ı seç (veya herhangi bir klasör)." "Выберите место: Google Drive в списке (или любую папку)."
+    nibras-api storage-put "$o/$name" "$name" >/dev/null && printf '\033[32m✓\033[0m %s\n' "$(say "Saved" "Saxlanıldı" "Kaydedildi" "Сохранено")"
+  fi
+  rm -rf "$tmp"
+}
+settings_restore() { # drive | file.nbk
+  tmp=$HOME/.cache/nibras-restore; rm -rf "$tmp"; mkdir -p "$tmp"
+  if [ "$1" = drive ]; then
+    say "Pick your nibras-setup-….nbk file (Google Drive or any folder)." "nibras-setup-….nbk faylını seç (Google Drive və ya istənilən qovluq)." "nibras-setup-….nbk dosyasını seç (Google Drive veya herhangi bir klasör)." "Выберите файл nibras-setup-….nbk (Google Drive или любая папка)."
+    nibras-api storage-get "$tmp/in.nbk" >/dev/null || die "$(say "Cancelled" "Ləğv edildi" "İptal edildi" "Отменено")"
+  else cp "$1" "$tmp/in.nbk" || exit 1; fi
+  read_pass "$(say "Passphrase:" "Parol:" "Parola:" "Парольная фраза:")"
+  printf '%s\n' "$PASS" | nibras-api crypt dec "$tmp/in.nbk" "$tmp/setup.tar.gz" || { PASS=; rm -rf "$tmp"; exit 1; }
+  PASS=
+  tar -tzf "$tmp/setup.tar.gz" | grep -v '^app-data.json$' | sed 's/^/  /' | head -40
+  printf '%s ' "$(say "Restore these into your home (existing files are overwritten)? [y/N]" "Bunlar ev qovluğuna bərpa edilsin (mövcud fayllar əvəz olunur)? [b/X]" "Bunlar ev klasörüne geri yüklensin mi (mevcut dosyaların üzerine yazılır)? [e/H]" "Восстановить в домашнюю папку (файлы будут перезаписаны)? [д/Н]")"; read -r a
+  case "$a" in y|Y|b|B|e|E|д|Д) ;; *) rm -rf "$tmp"; exit 1 ;; esac
+  tar -xzf "$tmp/setup.tar.gz" -C "$HOME" --exclude=app-data.json
+  tar -xzf "$tmp/setup.tar.gz" -C "$tmp" app-data.json 2>/dev/null && nibras-api app-data import "$tmp/app-data.json" >/dev/null 2>&1
+  chmod 700 "$HOME/.ssh" 2>/dev/null; chmod 600 "$HOME"/.ssh/id_* 2>/dev/null
+  rm -rf "$tmp"; nibras-api widget-refresh >/dev/null 2>&1
+  printf '\033[32m✓\033[0m %s\n' "$(say "Restored. Open a new session to load everything." "Bərpa olundu. Hər şeyin yüklənməsi üçün yeni sessiya aç." "Geri yüklendi. Her şeyin yüklenmesi için yeni oturum aç." "Восстановлено. Откройте новую сессию.")"
+}
+cmd_pin() { # pinned commands for the home-screen shortcut widget
+  f=$HOME/.config/nibras/pinned; mkdir -p "${f%/*}"; touch "$f"
+  case "${1:-}" in
+    "") nl -w2 -s'. ' "$f"; say "pin \"<command>\" · pin rm <n> — shown in the Nibras shortcuts widget" "pin \"<əmr>\" · pin rm <n> — Nibras qısayol vidcetində görünür" "pin \"<komut>\" · pin rm <n> — Nibras kısayol widget'ında görünür" "pin \"<команда>\" · pin rm <n> — показывается в виджете ярлыков" ;;
+    rm|remove|del) sed -i "${2:?n}d" "$f"; nl -w2 -s'. ' "$f" ;;
+    *) printf '%s\n' "$*" >> "$f"; printf '\033[32m✓\033[0m ★ %s\n' "$*" ;;
+  esac
+  nibras-api widget-refresh >/dev/null 2>&1
+}
+cmd_servers() { # list for the server status widget
+  f=$HOME/.config/nibras/servers; mkdir -p "${f%/*}"; touch "$f"
+  case "${1:-}" in
+    add) [ -n "${3:-}" ] || die "servers add <name> <https://url | host[:port]>"; printf '%s %s\n' "$2" "$3" >> "$f" ;;
+    rm|remove|del) awk -v n="${2:?name}" '$1 != n' "$f" > "$f.tmp" && mv "$f.tmp" "$f" ;;
+    check|"") ;;
+    *) die "servers · servers add <name> <url|host:port> · servers rm <name>" ;;
+  esac
+  while read -r n t; do [ -n "$n" ] || continue
+    case "$t" in http*) c=$(curl -o /dev/null -s -m 8 -w '%{http_code}' "$t"); ok=$( [ "$c" -ge 200 ] 2>/dev/null && [ "$c" -lt 400 ] && echo 1 ) ;;
+      *) h=${t%:*}; pt=${t##*:}; [ "$pt" = "$t" ] && pt=443; ok=$(nc -z -w 3 "$h" "$pt" 2>/dev/null && echo 1) ;; esac
+    if [ -n "$ok" ]; then printf '🟢 %-14s %s\n' "$n" "$t"; else printf '🔴 %-14s %s\n' "$n" "$t"; fi
+  done < "$f"
+  [ -s "$f" ] || say "No servers yet: servers add mysite https://example.com" "Hələ server yoxdur: servers add saytim https://example.com" "Henüz sunucu yok: servers add sitem https://example.com" "Пока нет серверов: servers add mysite https://example.com"
+  nibras-api widget-refresh >/dev/null 2>&1
+}
 cmd_backup() {
   a=${1:-help}; [ $# -gt 0 ] && shift; o=$(outdir)/backups; mkdir -p "$o"
   case "$a" in
-    help) echo "backup home · backup <folder> · backup list · backup restore <file.tar.gz> · backup sync <src> <dst> (rsync) · backup cloud (rclone config)"; ;;
+    help) echo "backup drive · restore drive · backup settings · backup home · backup <folder> · backup list · restore <file> · backup sync <src> <dst> (rsync) · backup cloud (rclone config)"
+          say "drive/settings: encrypted (AES-256-GCM, your passphrase) — hosts, settings, aliases, prompt, scripts, shortcuts; SSH keys only if you say yes. Drive = the Android file picker, choose Google Drive (or any folder)." \
+              "drive/settings: şifrəli (AES-256-GCM, öz parolun) — hostlar, ayarlar, aliaslar, prompt, skriptlər, qısayollar; SSH açarları yalnız razılığınla. Drive = Android fayl seçicisi, Google Drive-ı (və ya istənilən qovluğu) seç." \
+              "drive/settings: şifreli (AES-256-GCM, kendi parolan) — sunucular, ayarlar, takma adlar, prompt, betikler, kısayollar; SSH anahtarları yalnızca onayınla. Drive = Android dosya seçici, Google Drive'ı (veya herhangi bir klasörü) seç." \
+              "drive/settings: зашифровано (AES-256-GCM, ваша фраза) — хосты, настройки, алиасы, prompt, скрипты, ярлыки; SSH-ключи только с вашего согласия. Drive = выбор файла Android, выберите Google Drive (или любую папку)." ;;
+    drive|settings|encrypt) settings_backup "$a" ;;
     home) out=$o/home-$(date +%F-%H%M).tar.gz; run tar -czf "$out" -C / --exclude=root/storage --exclude=root/.cache root; echo "→ $out" ;;
     list) ls -lh "$o" ;;
-    restore) run tar -xzf "$1" -C / ;;
+    restore) case "${1:-drive}" in drive|*.nbk) settings_restore "${1:-drive}" ;; *) run tar -xzf "$1" -C / ;; esac ;;
     sync) need rsync; run rsync -avh --progress "$1" "$2" ;;
     cloud) need rclone; rclone config ;;
     *) d=$(readlink -f "$a"); out=$o/$(basename "$d")-$(date +%F-%H%M).tar.gz; run tar -czf "$out" -C "$(dirname "$d")" "$(basename "$d")"; echo "→ $out" ;;
@@ -768,7 +847,7 @@ cmd_prayer() {
   a=${1:-today}
   case "$a" in
     help) echo "prayer · prayer city Baku [Azerbaijan] [method] · prayer remind on|off|status|test|before 10"; return ;;
-    city) shift; printf 'CITY=%s\nCOUNTRY=%s\nMETHOD=%s\n' "$1" "${2:-}" "${3:-13}" > "$conf"; a=today ;;
+    city) shift; printf 'CITY=%s\nCOUNTRY=%s\nMETHOD=%s\n' "$1" "${2:-}" "${3:-13}" > "$conf"; nibras-api prayer-alarm city "$1" "${2:-}" "${3:-13}" >/dev/null 2>&1; a=today ;;
   esac
   [ -f "$conf" ] && . "$conf"; CITY=${CITY:-Baku}; COUNTRY=${COUNTRY:-Azerbaijan}
   case "$a" in
@@ -1060,6 +1139,9 @@ case "$me" in
   pdf) cmd_pdf "$@" ;;
   download|dl) cmd_download "$@" ;;
   web) cmd_web "$@" ;;
+  restore) cmd_backup restore "$@" ;;
+  pin) cmd_pin "$@" ;;
+  servers) cmd_servers "$@" ;;
   git) cmd_git "$@" ;;
   py|python) cmd_python "$@" ;;
   node) cmd_node "$@" ;;

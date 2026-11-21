@@ -171,6 +171,37 @@ lang auto
 
 As telas em árabe, persa e urdu são exibidas da direita para a esquerda. Para mostrar texto árabe com as letras ligadas dentro do terminal, use o comando `rtl`, por exemplo `cat note.txt | rtl`.
 
+### Comandos no seu idioma
+
+Você também pode escrever os comandos do Nibras em português. Os nomes em inglês sempre funcionam, e os comandos padrão do Linux, como `ls`, `git` e `cd`, não são renomeados. Os comandos funcionam com e sem acentos, por exemplo `instalar` e `atualizar`.
+
+| Português | Inglês |
+|---|---|
+| `ajuda` | `help` |
+| `instalar python` | `install python` |
+| `remover` | `remove` |
+| `atualizar` | `update` |
+| `executar hello.py` | `run hello.py` |
+| `idioma` | `lang` |
+| `tema dracula` | `theme dracula` |
+| `cor red Salam` | `color red Salam` |
+| `personalizar` | `customize` |
+| `remoto` | `remote` |
+| `restaurar` | `restore` |
+| `aprender` | `learn` |
+| `corrigir` | `fix` |
+| `perguntar` | `ask` |
+| `explicar` | `explain` |
+| `oração` | `prayer` |
+| `vídeo` | `video` |
+| `som` | `audio` |
+| `baixar` | `download` |
+| `mídia` | `media` |
+| `arquivos` | `files` |
+| `editar` | `edit` |
+| `alcorão` | `quran` |
+<!-- native-commands -->
+
 ## 14. Recursos que só o Nibras tem
 
 - `ask`, `explain` e `fix` ajudam você com comandos e erros.
@@ -180,6 +211,11 @@ As telas em árabe, persa e urdu são exibidas da direita para a esquerda. Para 
 - `llm` roda um chat de IA offline no celular.
 - `webterm` abre este terminal no navegador de um computador pelo Wi-Fi.
 - Tela dividida, janela flutuante e um desktop Linux (XFCE) funcionam dentro do aplicativo.
+- `scripts` abre a loja de scripts, onde você pode explorar, ler, instalar e executar scripts prontos.
+- `remote` abre este terminal no navegador de um computador na mesma rede Wi-Fi. O link de uso único também aparece como código QR.
+- `backup drive` salva seus hosts e configurações, criptografados com sua própria frase-senha, no Google Drive ou em qualquer pasta. `restore drive` os traz de volta.
+- `learn` inicia aulas interativas: você digita comandos reais e eles são verificados automaticamente.
+- Os widgets da tela inicial executam seus comandos favoritos com um toque e mostram o status dos servidores e os horários de oração.
 
 ## 15. Permissões
 

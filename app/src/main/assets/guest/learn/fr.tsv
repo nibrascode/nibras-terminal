@@ -1,0 +1,43 @@
+title.linux	Bases de Linux
+title.shell	Le shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android et APK
+linux.1	pwd affiche le dossier où vous êtes. Tâche : affichez votre dossier actuel.
+linux.2	mkdir crée un dossier. Tâche : créez un dossier nommé notes.
+linux.3	echo affiche du texte et > l'écrit dans un fichier. Tâche : écrivez un texte dans notes/a.txt.
+linux.4	cat montre le contenu d'un fichier. Tâche : affichez notes/a.txt.
+linux.5	cp copie un fichier. Tâche : copiez notes/a.txt vers notes/b.txt.
+linux.6	ls liste les fichiers ; ls -l ajoute les détails. Tâche : listez le dossier notes.
+shell.1	wc -l compte les lignes. Tâche : comptez les lignes de notes/a.txt.
+shell.2	Un tube | envoie la sortie d'une commande à une autre. Tâche : comptez les fichiers de notes avec ls et wc -l.
+shell.3	>> ajoute à la fin d'un fichier au lieu de le remplacer. Tâche : ajoutez une deuxième ligne à notes/a.txt.
+shell.4	Les variables gardent des valeurs : NAME=Ali; puis $NAME l'utilise. Tâche : définissez une variable et affichez-la avec echo sur une ligne (avec ;).
+shell.5	grep trouve les lignes contenant un mot. Tâche : cherchez un mot dans notes/a.txt.
+shell.6	Un script est un fichier de commandes ; chmod +x le rend exécutable. Tâche : echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git suit l'historique d'un projet. Tâche : créez un dépôt : git init proj
+git.2	Chaque projet a besoin d'un README. Tâche : écrivez une ligne dans proj/README.md (echo … > proj/README.md).
+git.3	git add place une modification dans l'index. Tâche : git -C proj add README.md
+git.4	git commit enregistre la modification dans l'historique. Tâche : git -C proj commit -m "premier commit"
+git.5	git log montre l'historique. Tâche : affichez l'historique de proj (git -C proj log --oneline).
+python.1	python3 -c exécute une ligne de Python. Tâche : affichez le résultat de 2+3 avec python3 -c.
+python.2	Les programmes Python sont dans des fichiers .py. Tâche : créez hello.py qui affiche un salut (echo 'print("Salut")' > hello.py).
+python.3	Lancez un programme avec python3 fichier.py. Tâche : lancez hello.py.
+python.4	for … in range(n) répète. Tâche : affichez 0, 1, 2 avec une boucle for dans python3 -c.
+web.1	curl parle aux serveurs web ; -I n'affiche que les en-têtes. Tâche : curl -I https://example.com
+web.2	-o enregistre la page dans un fichier. Tâche : enregistrez https://example.com sous page.html avec curl.
+web.3	Chaque page a un <title>. Tâche : trouvez-le avec grep title page.html
+web.4	Un site web, ce sont juste des fichiers HTML. Tâche : mkdir -p site && echo '<h1>Bonjour</h1>' > site/index.html (puis essayez : web site)
+android.1	nibras-apk compile et ouvre des applis Android directement sur le téléphone. Tâche : affichez son aide.
+android.2	Les commandes nibras-* parlent au téléphone. Tâche : affichez l'état de la batterie.
+android.3	Tâche : affichez un court message à l'écran avec nibras-toast.
+android.4	nibras-apk new crée un projet d'appli que vous pouvez compiler ici (nibras-apk build). Tâche : tapez la commande qui crée un projet nommé MyApp.
+ui.intro	Leçons interactives : tapez la vraie commande pour chaque tâche. q = quitter, s = passer, h = indice.
+ui.choose	Choisissez un cours (numéro), r = remettre à zéro, q = quitter :
+ui.done	Cours terminé !
+ui.again	Pas tout à fait — réessayez (h = indice, s = passer, q = quitter)
+ui.ok	Correct !
+ui.hint	Indice : la commande commence par
+ui.progress	Progression
+ui.lab	Votre dossier d'exercice :

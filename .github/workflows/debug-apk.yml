@@ -89,8 +89,8 @@ jobs:
           PY
       - name: Build
         run: |
-          CODE=$((100 + ${GITHUB_RUN_NUMBER:-0}))
-          GRADLE=(./gradlew --no-daemon -Psdk="$SDK" -PversionCode="$CODE" -PversionName="0.2.$CODE")
+          CODE=1.0.0  # fixed versionName (app/build.gradle.kts); not tied to the run number
+          GRADLE=(./gradlew --no-daemon -Psdk="$SDK")
           if [ "$KIND" = "sign" ]; then
             set -a
             . ./nibras-signing.env

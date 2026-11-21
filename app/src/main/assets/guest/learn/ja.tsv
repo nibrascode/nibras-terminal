@@ -1,0 +1,43 @@
+title.linux	Linux の基本
+title.shell	シェル
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android と APK
+linux.1	pwd は今いるフォルダーを表示します。課題：現在のフォルダーを表示してください。
+linux.2	mkdir はフォルダーを作ります。課題：notes というフォルダーを作ってください。
+linux.3	echo は文字を出力し、> はそれをファイルに書き込みます。課題：notes/a.txt に好きな文字を書き込んでください。
+linux.4	cat はファイルの中身を表示します。課題：notes/a.txt を表示してください。
+linux.5	cp はファイルをコピーします。課題：notes/a.txt を notes/b.txt にコピーしてください。
+linux.6	ls はファイル一覧を表示し、ls -l は詳細も表示します。課題：notes フォルダーの一覧を表示してください。
+shell.1	wc -l は行数を数えます。課題：notes/a.txt の行数を数えてください。
+shell.2	パイプ | はコマンドの出力を別のコマンドに渡します。課題：ls と wc -l で notes のファイル数を数えてください。
+shell.3	>> は上書きせずファイルの末尾に追記します。課題：notes/a.txt に2行目を追加してください。
+shell.4	変数は値を保存します：NAME=Ali; のあと $NAME で使えます。課題：1行で変数を設定し echo で表示してください（; を使用）。
+shell.5	grep は単語を含む行を探します。課題：notes/a.txt の中で単語を検索してください。
+shell.6	スクリプトはコマンドを並べたファイルで、chmod +x で実行可能になります。課題：echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git はプロジェクトの履歴を管理します。課題：リポジトリを作成：git init proj
+git.2	どのプロジェクトにも README が必要です。課題：proj/README.md に1行書いてください（echo … > proj/README.md）。
+git.3	git add は変更をステージに載せます。課題：git -C proj add README.md
+git.4	git commit はステージの変更を履歴に保存します。課題：git -C proj commit -m "first commit"
+git.5	git log は履歴を表示します。課題：proj のログを表示（git -C proj log --oneline）。
+python.1	python3 -c は Python を1行実行します。課題：python3 -c で 2+3 の結果を表示してください。
+python.2	Python のプログラムは .py ファイルに書きます。課題：あいさつを表示する hello.py を作成（echo 'print("こんにちは")' > hello.py）。
+python.3	プログラムは python3 ファイル.py で実行します。課題：hello.py を実行してください。
+python.4	for … in range(n) で繰り返します。課題：python3 -c の for ループで 0、1、2 を表示してください。
+web.1	curl は Web サーバーと通信し、-I はヘッダーだけを表示します。課題：curl -I https://example.com
+web.2	-o はページをファイルに保存します。課題：curl で https://example.com を page.html として保存してください。
+web.3	どのページにも <title> があります。課題：grep title page.html で見つけてください。
+web.4	Web サイトはただの HTML ファイルです。課題：mkdir -p site && echo '<h1>こんにちは</h1>' > site/index.html（次に試す：web site）
+android.1	nibras-apk はスマホ上で Android アプリをビルドして開きます。課題：ヘルプを表示してください。
+android.2	nibras-* コマンドはスマホとやり取りします。課題：バッテリーの状態を表示してください。
+android.3	課題：nibras-toast で画面に短いメッセージを表示してください。
+android.4	nibras-apk new はここでビルドできるアプリのプロジェクトを作ります（nibras-apk build）。課題：MyApp という名前のプロジェクトを作るコマンドを入力してください。
+ui.intro	対話型レッスン：各課題に本物のコマンドを入力します。q = 終了、s = スキップ、h = ヒント。
+ui.choose	コースを選択（番号）、r = 進捗をリセット、q = 終了：
+ui.done	コース修了！
+ui.again	惜しい — もう一度（h = ヒント、s = スキップ、q = 終了）
+ui.ok	正解！
+ui.hint	ヒント：コマンドの始まりは
+ui.progress	進捗
+ui.lab	練習用フォルダー：

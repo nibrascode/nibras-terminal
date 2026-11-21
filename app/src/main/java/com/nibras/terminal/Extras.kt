@@ -74,6 +74,7 @@ class ShortcutsWidgetService : RemoteViewsService() {
 
     private class Factory(private val context: Context) : RemoteViewsFactory {
         private var items: List<Pair<File, Boolean>> = emptyList()
+        private var pinned: List<String> = emptyList()
         private lateinit var home: File
 
         override fun onCreate() = Unit
@@ -84,11 +85,20 @@ class ShortcutsWidgetService : RemoteViewsService() {
                 (dir.listFiles()?.filter { it.isFile }?.map { it to false }.orEmpty()) +
                     (File(dir, "tasks").listFiles()?.filter { it.isFile }?.map { it to true }.orEmpty())
             }.sortedBy { it.first.name.lowercase() }
+            // Pinned commands: `pin "<command>"` writes ~/.config/nibras/pinned (one per line).
+            pinned = NibrasWidgets.config(context, "pinned").take(30)
         }
         override fun onDestroy() = Unit
-        override fun getCount() = items.size
+        override fun getCount() = pinned.size + items.size
         override fun getViewAt(position: Int): RemoteViews {
-            val (file, task) = items[position]
+            if (position < pinned.size) {
+                val cmd = pinned[position]
+                val views = RemoteViews(context.packageName, R.layout.widget_item)
+                views.setTextViewText(R.id.widget_item, "★ $cmd")
+                views.setOnClickFillInIntent(R.id.widget_item, Intent().putExtra(MainActivity.EXTRA_COMMAND, arrayOf("sh", "-c", cmd)).putExtra(MainActivity.EXTRA_TITLE, cmd.take(24)))
+                return views
+            }
+            val (file, task) = items[position - pinned.size]
             val views = RemoteViews(context.packageName, R.layout.widget_item)
             views.setTextViewText(R.id.widget_item, (if (task) "⚙ " else "▶ ") + file.name)
             val guest = "/root/" + file.relativeTo(home).path

@@ -176,6 +176,21 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_info" />
         </receiver>
 
+        <receiver android:name=".ServerStatusWidget" android:exported="true" android:label="@string/widget_status_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_status_info" />
+        </receiver>
+        <receiver android:name=".PrayerWidget" android:exported="true" android:label="@string/widget_prayer_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_prayer_info" />
+        </receiver>
+        <receiver android:name=".RemoteStopReceiver" android:exported="false" />
+        <activity android:name=".ScriptsActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
+
         <service
             android:name=".ShortcutsWidgetService"
             android:exported="false"

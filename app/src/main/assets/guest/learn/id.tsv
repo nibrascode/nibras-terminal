@@ -1,0 +1,43 @@
+title.linux	Dasar Linux
+title.shell	Shell
+title.git	Git
+title.python	Python
+title.web	Web
+title.android	Android & APK
+linux.1	pwd menampilkan folder tempat Anda berada. Tugas: tampilkan folder Anda saat ini.
+linux.2	mkdir membuat folder. Tugas: buat folder bernama notes.
+linux.3	echo mencetak teks dan > menulisnya ke file. Tugas: tulis teks apa saja ke notes/a.txt.
+linux.4	cat menampilkan isi file. Tugas: tampilkan notes/a.txt.
+linux.5	cp menyalin file. Tugas: salin notes/a.txt ke notes/b.txt.
+linux.6	ls menampilkan daftar file; ls -l menambah detail. Tugas: tampilkan isi folder notes.
+shell.1	wc -l menghitung baris. Tugas: hitung baris notes/a.txt.
+shell.2	Pipa | mengirim keluaran satu perintah ke perintah lain. Tugas: hitung file di notes dengan ls dan wc -l.
+shell.3	>> menambah di akhir file, bukan menimpanya. Tugas: tambahkan baris kedua ke notes/a.txt.
+shell.4	Variabel menyimpan nilai: NAME=Ali; lalu $NAME memakainya. Tugas: buat variabel dan tampilkan dengan echo dalam satu baris (pakai ;).
+shell.5	grep mencari baris yang berisi sebuah kata. Tugas: cari sebuah kata di notes/a.txt.
+shell.6	Skrip adalah file berisi perintah; chmod +x membuatnya bisa dijalankan. Tugas: echo 'echo hi' > hi.sh && chmod +x hi.sh
+git.1	git mencatat riwayat proyek. Tugas: buat repositori: git init proj
+git.2	Setiap proyek perlu README. Tugas: tulis satu baris ke proj/README.md (echo … > proj/README.md).
+git.3	git add menyiapkan perubahan. Tugas: git -C proj add README.md
+git.4	git commit menyimpan perubahan ke riwayat. Tugas: git -C proj commit -m "commit pertama"
+git.5	git log menampilkan riwayat. Tugas: tampilkan log proj (git -C proj log --oneline).
+python.1	python3 -c menjalankan satu baris Python. Tugas: cetak hasil 2+3 dengan python3 -c.
+python.2	Program Python disimpan di file .py. Tugas: buat hello.py yang mencetak salam (echo 'print("Halo")' > hello.py).
+python.3	Jalankan program dengan python3 file.py. Tugas: jalankan hello.py.
+python.4	for … in range(n) mengulang. Tugas: cetak 0, 1, 2 dengan perulangan for di python3 -c.
+web.1	curl berbicara dengan server web; -I hanya menampilkan header. Tugas: curl -I https://example.com
+web.2	-o menyimpan halaman ke file. Tugas: simpan https://example.com sebagai page.html dengan curl.
+web.3	Setiap halaman punya <title>. Tugas: temukan dengan grep title page.html
+web.4	Situs web hanyalah file HTML. Tugas: mkdir -p site && echo '<h1>Halo</h1>' > site/index.html (lalu coba: web site)
+android.1	nibras-apk membangun dan membuka aplikasi Android langsung di ponsel. Tugas: tampilkan bantuannya.
+android.2	Perintah nibras-* berbicara dengan ponsel. Tugas: tampilkan status baterai.
+android.3	Tugas: tampilkan pesan singkat di layar dengan nibras-toast.
+android.4	nibras-apk new membuat proyek aplikasi yang bisa dibangun di sini (nibras-apk build). Tugas: ketik perintah untuk membuat proyek bernama MyApp.
+ui.intro	Pelajaran interaktif: ketik perintah sebenarnya untuk setiap tugas. q = keluar, s = lewati, h = petunjuk.
+ui.choose	Pilih kursus (nomor), r = atur ulang kemajuan, q = keluar:
+ui.done	Kursus selesai!
+ui.again	Belum tepat — coba lagi (h = petunjuk, s = lewati, q = keluar)
+ui.ok	Benar!
+ui.hint	Petunjuk: perintah diawali dengan
+ui.progress	Kemajuan
+ui.lab	Folder latihan Anda:

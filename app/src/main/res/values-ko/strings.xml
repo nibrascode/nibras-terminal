@@ -102,4 +102,21 @@
     <string name="hosts_title">SSH 호스트</string>
     <string name="hosts_connect">연결</string>
     <string name="hosts_add">추가</string>
+    <string name="scripts_title">스크립트</string>
+    <string name="scripts_hint">바로 쓸 수 있는 작은 스크립트. 소스를 읽고 설치하세요 — 각각 체크섬으로 검증됩니다.</string>
+    <string name="scripts_search">스크립트 검색</string>
+    <string name="scripts_all">전체</string>
+    <string name="scripts_install">설치</string>
+    <string name="scripts_source">소스</string>
+    <string name="scripts_run">설치 후 실행</string>
+    <string name="tool_learn">배우기</string>
+    <string name="tool_remote">원격</string>
+    <string name="widget_status_label">서버 상태</string>
+    <string name="widget_status_empty">터미널에서 서버 추가: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">기도 시간</string>
+    <string name="widget_prayer_empty">터미널에서 도시 설정: prayer city Seoul</string>
+    <string name="remote_title">원격 터미널</string>
+    <string name="remote_note">컴퓨터에서 여세요(같은 Wi-Fi, 일회용 링크):\n%1$s</string>
+    <string name="remote_stop">중지</string>
+    <string name="remote_used">이 링크는 이미 사용되었거나 만료되었습니다. Nibras Terminal에서 “remote”를 실행해 새 링크를 받으세요.</string>
 </resources>

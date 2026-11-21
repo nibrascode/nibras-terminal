@@ -290,4 +290,21 @@
     <string name="res_app_name">Название приложения</string>
     <string name="res_package">Имя пакета</string>
     <string name="res_app_note">Новое имя пакета ставится отдельным приложением рядом с оригиналом. Приложения, проверяющие свою подпись, могут не работать после переподписи.</string>
+    <string name="scripts_title">Скрипты</string>
+    <string name="scripts_hint">Небольшие готовые скрипты. Прочитайте код, затем установите — каждый проверяется по контрольной сумме.</string>
+    <string name="scripts_search">Поиск скриптов</string>
+    <string name="scripts_all">Все</string>
+    <string name="scripts_install">Установить</string>
+    <string name="scripts_source">Код</string>
+    <string name="scripts_run">Установить и запустить</string>
+    <string name="tool_learn">Учиться</string>
+    <string name="tool_remote">Удалённо</string>
+    <string name="widget_status_label">Состояние серверов</string>
+    <string name="widget_status_empty">Добавьте серверы в терминале: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">Время намаза</string>
+    <string name="widget_prayer_empty">Укажите город в терминале: prayer city Kazan</string>
+    <string name="remote_title">Удалённый терминал</string>
+    <string name="remote_note">Откройте на компьютере (тот же Wi-Fi, одноразовая ссылка):\n%1$s</string>
+    <string name="remote_stop">Остановить</string>
+    <string name="remote_used">Эта ссылка уже использована или истекла. Выполните «remote» в Nibras Terminal, чтобы получить новую.</string>
 </resources>

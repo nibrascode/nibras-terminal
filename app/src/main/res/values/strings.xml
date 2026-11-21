@@ -291,4 +291,21 @@
     <string name="res_app_name">App name</string>
     <string name="res_package">Package name</string>
     <string name="res_app_note">A new package name installs as a separate app next to the original. Apps that check their own signature may refuse to run after re-signing.</string>
+    <string name="scripts_title">Scripts</string>
+    <string name="scripts_hint">Small ready-made scripts. Read the source, then install — each one is checked against its checksum.</string>
+    <string name="scripts_search">Search scripts</string>
+    <string name="scripts_all">All</string>
+    <string name="scripts_install">Install</string>
+    <string name="scripts_source">Source</string>
+    <string name="scripts_run">Install &amp; run</string>
+    <string name="tool_learn">Learn</string>
+    <string name="tool_remote">Remote</string>
+    <string name="widget_status_label">Server status</string>
+    <string name="widget_status_empty">Add servers in the terminal: servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">Prayer times</string>
+    <string name="widget_prayer_empty">Set your city in the terminal: prayer city Baku</string>
+    <string name="remote_title">Remote terminal</string>
+    <string name="remote_note">Open on your computer (same Wi-Fi, one-time link):\n%1$s</string>
+    <string name="remote_stop">Stop</string>
+    <string name="remote_used">This link was already used or has expired. Run “remote” in Nibras Terminal for a new one.</string>
 </resources>

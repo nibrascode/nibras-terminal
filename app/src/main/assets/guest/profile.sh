@@ -52,8 +52,11 @@ install() {
   esac
 }
 # Friendly help when a command is missing (bash / zsh).
-command_not_found_handle() { nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
-command_not_found_handler() { nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+__nibras_native() { _k=$(nibras-alias --lookup "$1" 2>/dev/null); [ -n "$_k" ] || return 1; shift; nibras-alias --run "$_k" "$@"; }
+command_not_found_handle() { __nibras_native "$@" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+command_not_found_handler() { __nibras_native "$@" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+# help: Nibras command list plus the command names in your language (overrides the shell builtin).
+help() { nibras-help "$@"; }
 # bash: after a failed command, a one-line hint that `fix` can explain it (not for Ctrl+C / not found).
 if [ -n "${BASH_VERSION:-}" ]; then
   __nibras_rc() { local r=$?; case $r in 0|127|130|141|148) ;; *) printf '\033[2m[exit %s · fix = %s]\033[0m\n' "$r" "${NIBRAS_FIX_HINT:-suggestion}" ;; esac; return $r; }

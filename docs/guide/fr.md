@@ -171,6 +171,40 @@ lang auto
 
 Les écrans en arabe, en persan et en ourdou s'affichent de droite à gauche. Pour afficher dans le terminal un texte arabe aux lettres liées, utilisez la commande `rtl`, par exemple `cat note.txt | rtl`.
 
+### Les commandes dans votre langue
+
+Vous pouvez aussi écrire les commandes Nibras en français. Les noms anglais fonctionnent toujours, et les commandes Linux standard comme `ls`, `git` et `cd` ne sont pas renommées. Les commandes fonctionnent avec ou sans accents, par exemple `thème` et `theme`.
+
+| Français | Anglais |
+|---|---|
+| `aide` | `help` |
+| `installer python` | `install python` |
+| `supprimer` | `remove` |
+| `actualiser` | `update` |
+| `exécuter hello.py` | `run hello.py` |
+| `langue` | `lang` |
+| `thème dracula` | `theme dracula` |
+| `couleur red Salam` | `color red Salam` |
+| `bannière` | `banner` |
+| `invite` | `prompt` |
+| `personnaliser` | `customize` |
+| `distant` | `remote` |
+| `sauvegarde` | `backup` |
+| `restaurer` | `restore` |
+| `apprendre` | `learn` |
+| `réparer` | `fix` |
+| `demander` | `ask` |
+| `expliquer` | `explain` |
+| `prière` | `prayer` |
+| `vidéo` | `video` |
+| `son` | `audio` |
+| `télécharger` | `download` |
+| `média` | `media` |
+| `fichiers` | `files` |
+| `éditer` | `edit` |
+| `coran` | `quran` |
+<!-- native-commands -->
+
 ## 14. Fonctions propres à Nibras
 
 - `ask`, `explain` et `fix` vous aident avec les commandes et les erreurs.
@@ -180,6 +214,11 @@ Les écrans en arabe, en persan et en ourdou s'affichent de droite à gauche. Po
 - `llm` fait tourner un assistant IA hors ligne sur le téléphone.
 - `webterm` ouvre ce terminal dans le navigateur d'un ordinateur via le Wi-Fi.
 - L'écran partagé, une fenêtre flottante et un bureau Linux (XFCE) fonctionnent dans l'application.
+- `scripts` ouvre la boutique de scripts : vous pouvez y parcourir, lire, installer et lancer des scripts prêts à l'emploi.
+- `remote` ouvre ce terminal dans le navigateur d'un ordinateur connecté au même Wi-Fi. Le lien à usage unique s'affiche aussi sous forme de QR code.
+- `backup drive` enregistre vos hôtes et vos réglages, chiffrés avec votre propre phrase secrète, sur Google Drive ou dans n'importe quel dossier. `restore drive` les restaure.
+- `learn` lance des leçons interactives : vous tapez de vraies commandes, qui sont vérifiées automatiquement.
+- Les widgets de l'écran d'accueil lancent vos commandes préférées d'une seule touche et affichent l'état des serveurs et les heures de prière.
 
 ## 15. Autorisations
 

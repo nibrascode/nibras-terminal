@@ -269,4 +269,21 @@
     <string name="editor_lint">检查代码 (lint)</string>
     <string name="tools_media">媒体</string>
     <string name="editor_layout_preview">布局预览</string>
+    <string name="scripts_title">脚本</string>
+    <string name="scripts_hint">现成的小脚本。先阅读源码再安装——每个脚本都会校验其校验和。</string>
+    <string name="scripts_search">搜索脚本</string>
+    <string name="scripts_all">全部</string>
+    <string name="scripts_install">安装</string>
+    <string name="scripts_source">源码</string>
+    <string name="scripts_run">安装并运行</string>
+    <string name="tool_learn">学习</string>
+    <string name="tool_remote">远程</string>
+    <string name="widget_status_label">服务器状态</string>
+    <string name="widget_status_empty">在终端中添加服务器：servers add mysite https://example.com</string>
+    <string name="widget_prayer_label">礼拜时间</string>
+    <string name="widget_prayer_empty">在终端中设置城市：prayer city Beijing</string>
+    <string name="remote_title">远程终端</string>
+    <string name="remote_note">在电脑上打开（同一 Wi-Fi，一次性链接）：\n%1$s</string>
+    <string name="remote_stop">停止</string>
+    <string name="remote_used">此链接已被使用或已过期。在 Nibras Terminal 中运行 “remote” 获取新链接。</string>
 </resources>

@@ -1,0 +1,27 @@
+#!/bin/sh
+# Native-language command names (kömək, qur, yardım, помощь, مساعدة …) → the English Nibras command.
+# Table: /usr/local/share/nibras/i18n/commands.tsv (lang, native word, English command). English always works.
+T=/usr/local/share/nibras/i18n/commands.tsv
+target() {
+  case "$1" in
+    help) echo nibras-help ;; install) echo "nibras-kit install" ;; remove) echo "pkg remove" ;; update) echo "pkg upgrade" ;;
+    run) echo "nibras-kit run" ;; lang) echo "nibras-kit lang" ;; theme|color|banner|prompt|customize) echo "nibras-look $1" ;;
+    scripts) echo nibras-scripts ;; remote) echo nibras-remote ;; backup) echo "nibras-kit backup" ;; restore) echo "nibras-kit restore" ;;
+    learn) echo nibras-learn ;; fix|ask|explain|prayer|video|audio|download|media|quran) echo "nibras-kit $1" ;;
+    files) echo nibras-files ;; edit) echo nibras-edit ;; menu) echo nibras ;; *) return 1 ;;
+  esac
+}
+if [ "${1:-}" = --list ]; then # nibras-alias --list [lang]: "native<TAB>english", first spelling per command
+  awk -F'\t' -v l="${2:-$NIBRAS_LANG}" '$1==l && !s[$3]++ {print $2 "\t" $3}' "$T"; exit 0
+fi
+if [ "${1:-}" = --lookup ]; then # used by the command-not-found handler (any case)
+  w=$(printf '%s' "$2" | sed 's/Ç/ç/g;s/Ğ/ğ/g;s/İ/i/g;s/Ö/ö/g;s/Ş/ş/g;s/Ü/ü/g;s/Ə/ə/g;s/Ä/ä/g;s/É/é/g' | tr 'A-Z' 'a-z')
+  awk -F'\t' -v w="$w" '$2==w {print $3; exit}' "$T"; exit 0
+fi
+if [ "${1:-}" = --run ]; then k=$2; shift 2; cmd=$(target "$k") || exit 127; exec $cmd "$@"; fi
+me=${0##*/}
+k=$(awk -F'\t' -v w="$me" '$2==w {print $3; exit}' "$T")
+[ -n "$k" ] || { echo "$me: ?" >&2; exit 127; }
+cmd=$(target "$k") || exit 127
+# shellcheck disable=SC2086
+exec $cmd "$@"

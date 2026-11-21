@@ -12,3 +12,4 @@ captures/
 *.aab
 /payloads-cache/
 .kotlin/
+__pycache__/

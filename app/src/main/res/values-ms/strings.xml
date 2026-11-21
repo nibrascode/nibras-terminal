@@ -269,4 +269,21 @@
     <string name="editor_lint">Periksa kode (lint)</string>
     <string name="tools_media">Media</string>
     <string name="editor_layout_preview">Pratonton tata letak</string>
+    <string name="scripts_title">Skrip</string>
+    <string name="scripts_hint">Skrip kecil sedia guna. Baca kodnya, kemudian pasang — setiap skrip disemak dengan checksum.</string>
+    <string name="scripts_search">Cari skrip</string>
+    <string name="scripts_all">Semua</string>
+    <string name="scripts_install">Pasang</string>
+    <string name="scripts_source">Kod</string>
+    <string name="scripts_run">Pasang &amp; jalankan</string>
+    <string name="tool_learn">Belajar</string>
+    <string name="tool_remote">Jarak jauh</string>
+    <string name="widget_status_label">Status pelayan</string>
+    <string name="widget_status_empty">Tambah pelayan dalam terminal: servers add lamanku https://example.com</string>
+    <string name="widget_prayer_label">Waktu solat</string>
+    <string name="widget_prayer_empty">Tetapkan bandar anda dalam terminal: prayer city Kuala Lumpur</string>
+    <string name="remote_title">Terminal jarak jauh</string>
+    <string name="remote_note">Buka pada komputer (Wi-Fi yang sama, pautan sekali guna):\n%1$s</string>
+    <string name="remote_stop">Henti</string>
+    <string name="remote_used">Pautan ini telah digunakan atau tamat tempoh. Jalankan “remote” dalam Nibras Terminal untuk pautan baharu.</string>
 </resources>

@@ -171,6 +171,36 @@ lang auto
 
 Layar dalam bahasa Arab, Persia, dan Urdu ditata dari kanan ke kiri. Untuk menampilkan teks Arab dengan huruf bersambung di dalam terminal, gunakan perintah `rtl`, misalnya `cat note.txt | rtl`.
 
+### Perintah dalam bahasa Anda
+
+Anda juga dapat menulis perintah Nibras dalam bahasa Indonesia. Nama bahasa Inggris selalu berfungsi, dan perintah Linux standar seperti `ls`, `git`, dan `cd` tidak diganti namanya.
+
+| Bahasa Indonesia | Bahasa Inggris |
+|---|---|
+| `bantuan` | `help` |
+| `pasang python` | `install python` |
+| `hapus` | `remove` |
+| `perbarui` | `update` |
+| `jalankan hello.py` | `run hello.py` |
+| `bahasa` | `lang` |
+| `tema dracula` | `theme dracula` |
+| `warna red Salam` | `color red Salam` |
+| `spanduk` | `banner` |
+| `sesuaikan` | `customize` |
+| `skrip` | `scripts` |
+| `jarakjauh` | `remote` |
+| `cadangkan` | `backup` |
+| `pulihkan` | `restore` |
+| `belajar` | `learn` |
+| `perbaiki` | `fix` |
+| `tanya` | `ask` |
+| `jelaskan` | `explain` |
+| `salat` | `prayer` |
+| `unduh` | `download` |
+| `berkas` | `files` |
+| `sunting` | `edit` |
+<!-- native-commands -->
+
 ## 14. Fitur yang hanya ada di Nibras
 
 - `ask`, `explain`, dan `fix` membantu Anda dengan perintah dan kesalahan.
@@ -180,6 +210,11 @@ Layar dalam bahasa Arab, Persia, dan Urdu ditata dari kanan ke kiri. Untuk menam
 - `llm` menjalankan obrolan AI luring di ponsel.
 - `webterm` membuka terminal ini di peramban komputer melalui Wi-Fi.
 - Layar terpisah, jendela mengambang, dan desktop Linux (XFCE) berjalan di dalam aplikasi.
+- `scripts` membuka toko skrip, tempat Anda dapat menjelajah, membaca, memasang, dan menjalankan skrip siap pakai.
+- `remote` membuka terminal ini di peramban komputer pada Wi-Fi yang sama. Tautan sekali pakai juga ditampilkan sebagai kode QR.
+- `backup drive` menyimpan host dan pengaturan Anda, terenkripsi dengan frasa sandi Anda sendiri, ke Google Drive atau folder mana pun. `restore drive` mengembalikannya.
+- `learn` memulai pelajaran interaktif: Anda mengetik perintah sungguhan dan perintah itu diperiksa secara otomatis.
+- Widget layar utama menjalankan perintah favorit Anda dengan satu ketukan serta menampilkan status server dan waktu salat.
 
 ## 15. Izin
 
