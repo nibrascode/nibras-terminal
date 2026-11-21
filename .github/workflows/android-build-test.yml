@@ -1,0 +1,42 @@
+name: Android build test
+
+# On-phone app building (Android Code Studio parity): runs nibras-apk inside an arm64 Debian
+# container exactly as the guest does — JDK 17, Android SDK with phone-native aapt2, Gradle 8.11,
+# project templates — and checks that the built APK is valid.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "wip/**"]
+    paths:
+      - "app/src/main/assets/guest/nibras-apk"
+      - ".github/workflows/android-build-test.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        template: [views, kotlin]
+    name: template ${{ matrix.template }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build an app with nibras-apk (arm64 Debian)
+        run: |
+          mkdir -p t && cp app/src/main/assets/guest/nibras-apk app/src/main/assets/guest/nibras-need app/src/main/assets/guest/nibras-msg.sh t/
+          cat > t/run.sh <<'SH'
+          set -e
+          apt-get update -qq && apt-get install -y -qq curl unzip ca-certificates git >/dev/null
+          install -m755 /t/nibras-apk /usr/local/bin/nibras-apk; install -m755 /t/nibras-need /usr/local/bin/nibras-need
+          mkdir -p /usr/local/share/nibras /root/.nibras; cp /t/nibras-msg.sh /usr/local/share/nibras/msg.sh
+          yes | nibras-apk setup --sdk
+          nibras-apk new /root/demo com.nibras.demo --template "$1"
+          ls /root/demo
+          nibras-apk build /root/demo
+          apk=$(find /root/demo -path '*/build/outputs/apk/*' -name '*.apk' | head -1)
+          test -n "$apk"
+          /opt/android-sdk/build-tools/35.0.0/aapt2 dump badging "$apk" | head -3
+          java -jar /opt/android-sdk/build-tools/35.0.0/lib/apksigner.jar verify "$apk" && echo "ANDROID_BUILD_OK $(du -h "$apk" | cut -f1)"
+          SH
+          docker run --rm -v "$PWD/t:/t" arm64v8/debian:bookworm sh /t/run.sh ${{ matrix.template }} 2>&1 | tee build.log
+          grep -q ANDROID_BUILD_OK build.log
