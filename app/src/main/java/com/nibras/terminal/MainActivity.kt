@@ -425,6 +425,19 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private fun handleIntent(intent: Intent?): Boolean {
         pendingIntent = null
         intent ?: return false
+        // Open a tool screen (also used by the launch test): store, hosts, files, editor, split, search, snippets.
+        intent.getStringExtra("open")?.let { what ->
+            intent.removeExtra("open")
+            when (what) {
+                "store" -> startActivity(Intent(this, StoreActivity::class.java))
+                "hosts" -> startActivity(Intent(this, HostsActivity::class.java))
+                "files" -> FilesActivity.open(this, currentEnv(), null)
+                "editor" -> EditorActivity.open(this, Rootfs.ANDROID, java.io.File(filesDir, "snippets.txt").absolutePath)
+                "split" -> toggleSplit()
+                "clipboard" -> clipboardHistory()
+                "monitor" -> { prefs.sp.edit().putBoolean("monitor", true).apply(); startMonitor() }
+            }
+        }
         val command = intent.getStringArrayExtra(EXTRA_COMMAND)
         if (command != null && intent.getBooleanExtra(EXTRA_BACKGROUND, false)) {
             service?.createSession(intent.getStringExtra(EXTRA_ENV), command.toList(), intent.getStringExtra(EXTRA_TITLE), inBackground = true)
