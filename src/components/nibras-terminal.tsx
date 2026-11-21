@@ -585,11 +585,16 @@ export function NibrasTerminal() {
         } else {
           try {
             const built = await runApk(token, result.apk.verb, result.apk.sdk, result.apk.kind);
-            if (built.file) {
-              const url = URL.createObjectURL(new Blob([built.file.bytes], { type: "application/zip" }));
+            for (let index = 0; index < (built.files?.length ?? 0); index += 1) {
+              const file = built.files?.[index];
+              if (!file) continue;
+              if (index) await new Promise((resolve) => window.setTimeout(resolve, 400));
+              const copy = new Uint8Array(file.bytes.byteLength);
+              copy.set(file.bytes);
+              const url = URL.createObjectURL(new Blob([copy], { type: file.type }));
               const link = document.createElement("a");
               link.href = url;
-              link.download = built.file.name;
+              link.download = file.name;
               link.click();
               window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
             }

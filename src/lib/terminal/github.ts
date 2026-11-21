@@ -171,12 +171,13 @@ export async function runApk(
   const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=10`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
   if (!listed.ok) throw new Error(await githubError(listed));
-  const body = (await listed.json()) as { workflow_runs?: Array<{ name?: string; status: string; conclusion: string | null; html_url: string; artifacts_url: string }> };
+  const body = (await listed.json()) as { workflow_runs?: Array<{ name?: string; run_number?: number; status: string; conclusion: string | null; html_url: string; artifacts_url: string }> };
   const run = body.workflow_runs?.find((item) => matchKind(item.name || "", kind));
   if (!run) return { text: `No build yet. ${command}${kind === "sign" ? "" : " build"}` };
   if (run.status !== "completed") return { text: `${run.status}\n${run.html_url}` };
   if (run.conclusion !== "success") return { text: `failed: ${run.conclusion ?? "error"}\n${run.html_url}` };
-  if (verb === "status") return { text: `ready\n${run.html_url}\ndownload: ${command} download` };
+  const code = run.run_number ? String(100 + run.run_number) : "";
+  if (verb === "status") return { text: `ready${code ? `\nversionCode ${code}` : ""}\n${run.html_url}\ndownload: ${command} download` };
   const arts = await fetch(run.artifacts_url, { headers });
   if (!arts.ok) throw new Error(await githubError(arts));
   const packed = (await arts.json()) as { artifacts?: Array<{ name: string; archive_download_url: string }> };
@@ -188,16 +189,41 @@ export async function runApk(
   if (!zip.ok) throw new Error(await githubError(zip));
   const bytes = await zip.arrayBuffer();
   const packedFiles = await unzip(bytes);
-  const version = new TextDecoder().decode(packedFiles.get("version.txt") ?? new Uint8Array()).trim();
+  const version = new TextDecoder().decode(packedFiles.get("version.txt") ?? new Uint8Array()).trim() || code;
+  const files = packageFiles(kind, packedFiles, version);
+  if (!files.length) return { text: `ready, file was not found\n${run.html_url}` };
   const versionLine = version ? `\nversionCode ${version}` : "";
   const text =
     kind === "sign"
-      ? `Signed release APK and AAB downloaded. The same release key was used. The password is not shown.${versionLine}`
+      ? `Signed release APK and AAB downloaded.${versionLine}\nThe same release key was used. The password is not shown.`
       : kind === "aab"
-        ? `AAB downloaded. The zip contains app-debug.aab, signed with the Android debug key.${versionLine}`
-        : `APK downloaded. The zip contains app-debug.apk, signed with the Android debug key.${versionLine}`;
-  const name = kind === "sign" ? "nibras-signed.zip" : kind === "aab" ? "nibras-aab.zip" : "nibras-terminal-debug.zip";
-  return { text, file: { name, bytes } };
+        ? `AAB downloaded.${versionLine}\nSigned with the Android debug key.`
+        : `APK downloaded. Open it on the phone to install.${versionLine}\nSigned with the Android debug key.`;
+  return { text, files };
+}
+
+export function packageFiles(kind: "apk" | "aab" | "sign", files: Map<string, Uint8Array>, version: string) {
+  const stamp = version || "0";
+  const apkType = "application/vnd.android.package-archive";
+  if (kind === "sign") {
+    const apk = named(files, ".apk");
+    const aab = named(files, ".aab");
+    const out: Array<{ name: string; bytes: Uint8Array; type: string }> = [];
+    if (apk) out.push({ name: `nibras-terminal-${stamp}.apk`, bytes: apk, type: apkType });
+    if (aab) out.push({ name: `nibras-terminal-${stamp}.aab`, bytes: aab, type: "application/octet-stream" });
+    return out;
+  }
+  if (kind === "aab") {
+    const aab = named(files, ".aab");
+    return aab ? [{ name: `nibras-terminal-${stamp}.aab`, bytes: aab, type: "application/octet-stream" }] : [];
+  }
+  const apk = named(files, ".apk");
+  return apk ? [{ name: `nibras-terminal-${stamp}.apk`, bytes: apk, type: apkType }] : [];
+}
+
+function named(files: Map<string, Uint8Array>, suffix: string) {
+  for (const [name, bytes] of files) if (name.endsWith(suffix)) return bytes;
+  return undefined;
 }
 
 function matchKind(name: string, kind: "apk" | "aab" | "sign") {
