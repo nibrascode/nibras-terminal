@@ -1,0 +1,183 @@
+#!/bin/sh
+# Termux core tools, Nibras style (each also answers to its termux-* name):
+#   change-repo  fix-shebang  backup  restore  reset  info  setup-package-manager  am  x11
+# and Android command wrappers that run the phone's own binaries: getprop logcat cmd pm settings dumpsys
+[ -r /usr/local/share/nibras/msg.sh ] && . /usr/local/share/nibras/msg.sh
+L=$(cat /etc/nibras/lang 2>/dev/null || echo en)
+say() { case "$L" in az) echo "$2" ;; tr) echo "$3" ;; ru) echo "$4" ;; *) echo "$1" ;; esac; }
+die() { echo "$*" >&2; exit 1; }
+me=${0##*/}; me=${me#termux-}; me=${me#nibras-}
+[ "$me" = tools ] && { me=${1:-help}; [ $# -gt 0 ] && shift; }
+
+android() { # run an Android system binary with the app's Android environment
+  b=$1; shift
+  [ -x "/system/bin/$b" ] || die "/system/bin/$b: not available"
+  # shellcheck disable=SC2046
+  exec env -i $(cat /etc/nibras/android-env 2>/dev/null) PATH=/system/bin:/system/xbin "/system/bin/$b" "$@"
+}
+
+pm_kind() {
+  if command -v apk >/dev/null 2>&1; then echo apk
+  elif command -v apt-get >/dev/null 2>&1; then echo apt
+  elif command -v pacman >/dev/null 2>&1; then echo pacman
+  elif command -v dnf >/dev/null 2>&1; then echo dnf
+  else echo none; fi
+}
+
+mirrors() {
+  case "$(pm_kind)" in
+    apk) cat <<'M'
+default https://dl-cdn.alpinelinux.org/alpine
+europe https://ftp.halifax.rwth-aachen.de/alpine
+russia https://mirror.yandex.ru/mirrors/alpine
+turkey https://mirror.rabisu.com/alpine
+asia https://mirrors.tuna.tsinghua.edu.cn/alpine
+china https://mirrors.aliyun.com/alpine
+usa https://mirrors.edge.kernel.org/alpine
+M
+      ;;
+    apt) if grep -qi ubuntu /etc/os-release; then cat <<'M'
+default http://ports.ubuntu.com/ubuntu-ports
+europe https://ftp.halifax.rwth-aachen.de/ubuntu-ports
+russia https://mirror.yandex.ru/ubuntu-ports
+asia https://mirrors.tuna.tsinghua.edu.cn/ubuntu-ports
+china https://mirrors.aliyun.com/ubuntu-ports
+M
+      elif grep -qi kali /etc/os-release; then cat <<'M'
+default http://http.kali.org/kali
+europe https://ftp.halifax.rwth-aachen.de/kali
+asia https://mirrors.tuna.tsinghua.edu.cn/kali
+china https://mirrors.aliyun.com/kali
+M
+      else cat <<'M'
+default http://deb.debian.org/debian
+europe https://ftp.de.debian.org/debian
+russia https://mirror.yandex.ru/debian
+turkey https://ftp.linux.org.tr/debian
+asia https://mirrors.tuna.tsinghua.edu.cn/debian
+china https://mirrors.aliyun.com/debian
+usa https://mirrors.edge.kernel.org/debian
+M
+      fi ;;
+    pacman) if [ "$(uname -m)" = x86_64 ]; then echo "default https://geo.mirror.pkgbuild.com"; else cat <<'M'
+default http://mirror.archlinuxarm.org
+europe https://de3.mirror.archlinuxarm.org
+usa https://fl.us.mirror.archlinuxarm.org
+asia https://mirrors.tuna.tsinghua.edu.cn/archlinuxarm
+china https://mirrors.ustc.edu.cn/archlinuxarm
+M
+      fi ;;
+    dnf) echo "default metalink (dnf picks the fastest mirror itself)" ;;
+  esac
+}
+
+probe() { # seconds to fetch a small index from a mirror (lower is better)
+  t0=$(date +%s%N 2>/dev/null || date +%s)
+  if command -v curl >/dev/null 2>&1; then curl -fsS -m 6 -o /dev/null "$1/" 2>/dev/null || { echo 99; return; }
+  else wget -q -T 6 -O /dev/null "$1/" 2>/dev/null || { echo 99; return; }; fi
+  t1=$(date +%s%N 2>/dev/null || date +%s)
+  echo $(( (t1 - t0) / 1000000 ))
+}
+
+set_mirror() {
+  m=${1%/}
+  case "$(pm_kind)" in
+    apk) sed -i -E "s#^https?://[^ ]*/alpine/#$m/#" /etc/apk/repositories && apk update ;;
+    apt)
+      for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+        [ -f "$f" ] || continue
+        sed -i -E "s#https?://[^ ]*/(debian|ubuntu-ports|ubuntu|kali)([ /])#$m\\2#; s#(URIs: )https?://[^ ]*/(debian|ubuntu-ports|ubuntu|kali)\$#\\1$m#" "$f"
+      done
+      apt-get update ;;
+    pacman)
+      f=/etc/pacman.d/mirrorlist
+      if [ "$(uname -m)" = x86_64 ]; then line="Server = $m/\$repo/os/\$arch"; else line="Server = $m/\$arch/\$repo"; fi
+      { echo "$line"; grep -v "^Server = $m/" "$f" 2>/dev/null; } > "$f.new" && mv "$f.new" "$f" && pacman -Sy ;;
+    dnf) grep -q '^fastestmirror' /etc/dnf/dnf.conf || echo fastestmirror=True >> /etc/dnf/dnf.conf; dnf makecache ;;
+    *) die "no package manager" ;;
+  esac
+}
+
+case "$me" in
+  change-repo)
+    [ "$(pm_kind)" = dnf ] && { set_mirror x; exit; }
+    pick=${1:-}
+    if [ -z "$pick" ]; then
+      say "Package mirrors ($(pm_kind)):" "Paket güzgüləri ($(pm_kind)):" "Paket aynaları ($(pm_kind)):" "Зеркала пакетов ($(pm_kind)):"
+      i=1; mirrors | while read -r n u; do printf '  %d) %-8s %s\n' $i "$n" "$u"; i=$((i+1)); done
+      echo "  a) auto   $(say "(test all, pick the fastest)" "(hamısını yoxla, ən sürətlisini seç)" "(hepsini dene, en hızlısını seç)" "(проверить все, выбрать быстрое)")"
+      printf '> '; read -r pick
+    fi
+    case "$pick" in
+      a|auto) best=; bt=99999
+        for u in $(mirrors | awk '{print $2}'); do t=$(probe "$u"); printf '%6s ms  %s\n' "$t" "$u"; [ "$t" != 99 ] && [ "$t" -lt "$bt" ] && { bt=$t; best=$u; }; done
+        [ -n "$best" ] || die "no mirror answered"; echo "→ $best"; set_mirror "$best" ;;
+      http*://*) set_mirror "$pick" ;;
+      *[!0-9]*) u=$(mirrors | awk -v n="$pick" '$1==n{print $2}'); [ -n "$u" ] || die "unknown mirror: $pick"; set_mirror "$u" ;;
+      *) u=$(mirrors | sed -n "${pick}p" | awk '{print $2}'); [ -n "$u" ] || die "?"; set_mirror "$u" ;;
+    esac ;;
+
+  fix-shebang)
+    [ $# -gt 0 ] || die "usage: nibras-fix-shebang <file>…  (rewrites Termux/Android interpreter paths to /usr/bin/env)"
+    for f in "$@"; do
+      [ -f "$f" ] || { echo "skip: $f" >&2; continue; }
+      sed -i -E '1s@^#!\s*/data/data/com\.termux/files/usr/bin/(env )?@#!/usr/bin/env @; 1s@^#!\s*/system/bin/sh@#!/bin/sh@; 1s@^#!\s*/(usr/)?(local/)?bin/env\s+@#!/usr/bin/env @' "$f"
+      head -n 1 "$f"
+    done ;;
+
+  backup)
+    force=; [ "${1:-}" = --force ] && { force=1; shift; }
+    out=${1:-} ; [ -n "$out" ] || die "usage: nibras-backup [--force] <output.tar.gz|.tar.xz|-> [dirs…]   (default: /root and /usr/local)"
+    shift; set -- "${@:-root usr/local etc}"
+    [ "$out" != - ] && [ -e "$out" ] && [ -z "$force" ] && die "$out exists (use --force)"
+    case "$out" in *.xz) z=-J ;; *.bz2) z=-j ;; *) z=-z ;; esac
+    say "Backing up $* …" "$* ehtiyat nüsxəsi çıxarılır…" "$* yedekleniyor…" "Резервная копия $* …" >&2
+    # shellcheck disable=SC2086
+    tar -c $z -f "$out" -C / --exclude=root/storage --exclude=root/.cache --exclude='*/.nibras-trash' $* && [ "$out" != - ] && echo "→ $out ($(du -h "$out" | cut -f1))" ;;
+
+  restore)
+    in=${1:-}; [ -n "$in" ] || die "usage: nibras-restore <backup.tar.gz|->"
+    say "Restoring $in over the environment…" "$in mühitin üzərinə bərpa olunur…" "$in geri yükleniyor…" "Восстановление $in …"
+    tar -x -f "$in" -C / && say "Done. Open a new session." "Hazırdır. Yeni sessiya aç." "Tamam. Yeni oturum aç." "Готово. Откройте новую сессию." ;;
+
+  reset)
+    say "Reset reinstalls this environment from scratch (your files in /sdcard stay). Back up first: termux-backup ~/backup.tar.gz" \
+        "Reset bu mühiti sıfırdan quraşdırır (/sdcard-dakı fayllar qalır). Əvvəl ehtiyat nüsxə: termux-backup ~/backup.tar.gz" \
+        "Sıfırlama bu ortamı baştan kurar (/sdcard dosyaları kalır). Önce yedek: termux-backup ~/backup.tar.gz" \
+        "Сброс переустановит окружение (файлы в /sdcard останутся). Сначала: termux-backup ~/backup.tar.gz"
+    exec nibras-api environments ;;
+
+  setup-package-manager) echo "$(pm_kind) ($(. /etc/os-release 2>/dev/null; echo "${PRETTY_NAME:-?}"))" ;;
+
+  info)
+    echo "Nibras Terminal info"; echo "===================="
+    nibras-api info 2>/dev/null; echo
+    . /etc/os-release 2>/dev/null; echo "Environment: ${PRETTY_NAME:-?} · $(uname -m) · package manager: $(pm_kind)"
+    echo "Kernel: $(uname -srv)"
+    echo "Shell: ${SHELL:-?} · TERM=${TERM:-?} · LANG=${LANG:-?}"
+    case "$(pm_kind)" in
+      apk) echo "Mirrors:"; sed 's/^/  /' /etc/apk/repositories ;;
+      apt) echo "Mirrors:"; grep -hE '^(deb |URIs:)' /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null | sed 's/^/  /' ;;
+      pacman) echo "Mirrors:"; grep -m3 '^Server' /etc/pacman.d/mirrorlist | sed 's/^/  /' ;;
+    esac
+    echo "Disk: $(df -h / 2>/dev/null | awk 'NR==2{print $4" free of "$2}')"
+    [ -d /sdcard ] && echo "Storage: /sdcard linked (~/storage)" || echo "Storage: not granted (nibras-setup-storage)"
+    printf 'Android: '; getprop ro.build.version.release 2>/dev/null || android getprop ro.build.version.release ;;
+
+  am)
+    case "${1:-}" in
+      start|startservice|start-service|start-foreground-service|broadcast|start-activity) exec nibras-api am "$@" ;;
+      "") echo "nibras-am start|broadcast|startservice [-a action] [-d data] [-t type] [-c category] [-n pkg/.Class] [-p pkg] [-f flags] [--es k v] [--ei k n] [--ez k true] …" ;;
+      *) android am "$@" ;;
+    esac ;;
+
+  x11) exec nibras-desktop "${1:-start}" ;;
+
+  getprop|logcat|cmd|dumpsys|wm|ime|input|svc|monkey) android "$me" "$@" ;;
+  pm) android cmd package "$@" ;;
+  settings) android cmd settings "$@" ;;
+
+  help|*)
+    echo "nibras-tools: change-repo fix-shebang backup restore reset info setup-package-manager am x11"
+    echo "Android: getprop logcat cmd pm settings dumpsys wm input svc" ;;
+esac

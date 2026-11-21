@@ -1,0 +1,15 @@
+#!/bin/sh
+# proot-distro compatible front-end for Nibras environments:
+#   proot-distro list | install <name> | login <name> [-- command] | remove|reset <name> | backup|restore
+case "${1:-help}" in
+  list|ls) exec nibras-api env-list ;;
+  install|i) [ -n "${2:-}" ] || { echo "usage: proot-distro install <alpine|debian|ubuntu|arch|fedora|kali>"; exit 1; }; exec nibras-api env-install "$2" ;;
+  login|sh) d=${2:-}; [ -n "$d" ] || { echo "usage: proot-distro login <name> [-- command]"; exit 1; }; shift 2
+    [ "${1:-}" = -- ] && shift
+    while [ $# -gt 0 ] && [ "${1#-}" != "$1" ]; do shift; done
+    exec nibras-api env-open "$d" "$*" ;;
+  remove|rm|reset|clear-cache) echo "Removing / reinstalling environments is done in the Environments screen (opening it)."; exec nibras-api environments ;;
+  backup) shift; exec termux-backup "$@" ;;
+  restore) shift; exec termux-restore "$@" ;;
+  *) echo "proot-distro list | install <name> | login <name> [-- cmd] | remove <name> | backup <file> | restore <file>" ;;
+esac

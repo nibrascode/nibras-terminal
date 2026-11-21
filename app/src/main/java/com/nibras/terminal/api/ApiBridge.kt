@@ -146,6 +146,21 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 "OK\n${Rootfs.name(id)}: download started in the Environments screen"
             }
             "keystore" -> com.nibras.terminal.KeystoreBridge.run(words(raw))
+            "am" -> "OK\n" + AmCommand.run(context, words(raw))
+            "env-list" -> "OK\n" + Rootfs.all.joinToString("\n") { e ->
+                val ready = Rootfs.isReady(context, e.id)
+                "%-8s %s%s".format(e.id.removePrefix("rootfs-"), if (ready) "installed" else "available", if (Rootfs.pick(context, null) == e.id) " (default)" else "")
+            }
+            "env-open" -> {
+                val w = words(raw)
+                val id = w.firstOrNull()?.let { if (it.startsWith("rootfs-")) it else "rootfs-$it" } ?: return "ERR\nusage: proot-distro login <name>"
+                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: ${w.first()}"
+                if (!Rootfs.isReady(context, id)) return "ERR\n${Rootfs.name(id)} is not installed: proot-distro install ${id.removePrefix("rootfs-")}"
+                val cmd = w.drop(1).joinToString(" ").trim()
+                main.post { host.newSession(id, if (cmd.isEmpty()) null else listOf("/bin/sh", "-c", cmd)) }
+                "OK\n${Rootfs.name(id)}: opened in a new session"
+            }
+            "environments" -> ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "nfc" -> {
                 val r = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "nfc", words(raw)))
                 (if (r.optInt("code") == -1) "OK\n" else "ERR\n") + r.optString("text")

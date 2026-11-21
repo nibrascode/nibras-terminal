@@ -143,6 +143,19 @@ object Rootfs {
                 }
             }
         }
+        // Termux core tools (termux-change-repo …) and Android wrappers; installed after the API links so they win.
+        exe(f("usr/local/bin/nibras-tools"), guest(context, "nibras-tools"))
+        exe(f("usr/local/bin/nibras-distro"), guest(context, "nibras-distro"))
+        for (cmd in TOOL_COMMANDS) for (prefix in listOf("termux-", "nibras-")) {
+            val link = f("usr/local/bin/$prefix$cmd").toPath()
+            runCatching { Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("nibras-tools")) }
+        }
+        // Android binaries (getprop, logcat, pm, …) as plain commands, last on PATH so distro packages win.
+        val shortTools = f("usr/local/lib/nibras/short").apply { mkdirs() }
+        for (cmd in ANDROID_WRAPPERS + listOf("change-repo", "am")) runCatching {
+            val link = File(shortTools, cmd).toPath(); Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("/usr/local/bin/nibras-tools"))
+        }
+        runCatching { val link = File(shortTools, "proot-distro").toPath(); Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("/usr/local/bin/nibras-distro")) }
         // Nibras toolkit: nibras-video … plus short names (video, download, ask …) in a directory
         // that comes last on PATH, so real programs are never shadowed.
         exe(f("usr/local/bin/nibras-kit"), guest(context, "nibras-kit"))
@@ -195,6 +208,11 @@ object Rootfs {
         writeReplacing(File(etc, "motd"), banner + context.getString(R.string.motd) + "\n")
         writeReplacing(File(etc, "lang"), guestLang(context) + "\n")
         writeReplacing(File(etc, "help"), context.getString(R.string.shell_help) + "\n")
+        // Android environment for /system binaries run from Linux (getprop, logcat, cmd, pm …).
+        val androidEnv = listOf("ANDROID_ROOT", "ANDROID_DATA", "ANDROID_ART_ROOT", "ANDROID_I18N_ROOT", "ANDROID_TZDATA_ROOT", "ANDROID_RUNTIME_ROOT",
+            "BOOTCLASSPATH", "DEX2OATBOOTCLASSPATH", "SYSTEMSERVERCLASSPATH", "ANDROID_STORAGE", "EXTERNAL_STORAGE")
+            .mapNotNull { k -> System.getenv(k)?.let { "$k=$it" } }
+        writeReplacing(File(etc, "android-env"), androidEnv.joinToString("\n") + "\n")
         val api = File(etc, "api")
         writeReplacing(api, "NIBRAS_API_PORT=$apiPort\nNIBRAS_API_TOKEN=$apiToken\n")
         chmod(api, "600".toInt(8))
@@ -368,6 +386,10 @@ object Rootfs {
         "infrared-frequencies", "notification-channel", "sms-inbox", "tts-engines", "wifi-enable", "api-start", "api-stop",
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
     )
+
+    /** Termux core tools served by assets/guest/nibras-tools (termux-* and nibras-* names). */
+    val TOOL_COMMANDS = listOf("change-repo", "fix-shebang", "backup", "restore", "reset", "info", "setup-package-manager", "am", "x11")
+    val ANDROID_WRAPPERS = listOf("getprop", "logcat", "cmd", "pm", "settings", "dumpsys", "wm", "input", "svc")
 
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */
     val KIT_COMMANDS = listOf(
