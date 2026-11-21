@@ -5,9 +5,15 @@
 L=$NIBRAS_LANG
 me=${0##*/}; me=${me#nibras-}
 if [ "$me" = kit ]; then me=${1:-menu}; [ $# -gt 0 ] && shift; fi
+if lang_code_early=$(printf '%s' "$me" | tr 'A-Z' 'a-z') && case "$lang_code_early" in yukle|yüklə|yükle|yukla|تحميل|загрузить|dil|dili) true ;; *) false ;; esac; then
+  set -- "$me" "$@"; me=guess_or_install
+fi
 
-say() { # say "en" "az" "tr" "ru"
-  case "$L" in az) printf '%s\n' "$2" ;; tr) printf '%s\n' "$3" ;; ru) printf '%s\n' "$4" ;; *) printf '%s\n' "$1" ;; esac
+say() { # say "en" "az" "tr" "ru"; other languages come from i18n/<lang>.tsv, English is the fallback
+  case "$L" in
+    az) printf '%s\n' "${2:-$1}" ;; tr) printf '%s\n' "${3:-$1}" ;; ru) printf '%s\n' "${4:-$1}" ;; en|"") printf '%s\n' "$1" ;;
+    *) _s=$(nibras_i18n "$1"); printf '%s\n' "${_s:-$1}" ;;
+  esac
 }
 die() { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 need() { nibras-need "$@" || die "$(say "Install failed: $*" "Quraşdırılmadı: $*" "Kurulamadı: $*" "Не установлено: $*")"; }
@@ -57,12 +63,41 @@ pack_desc() {
     notes) say "Markdown notes in the terminal" "Terminalda Markdown qeydlər" "Terminalde Markdown notlar" "Заметки Markdown" ;;
     monitor) say "System monitor (htop, btop)" "Sistem monitoru (htop, btop)" "Sistem monitörü (htop, btop)" "Системный монитор" ;;
     security) say "Security tools (nmap, hydra, sqlmap…) for your own systems" "Təhlükəsizlik alətləri (yalnız öz sistemlərin üçün)" "Güvenlik araçları (sadece kendi sistemlerin için)" "Инструменты безопасности (для своих систем)" ;;
+    android-sdk) say "Android SDK + Gradle + JDK 17 for on-phone app builds (ACS style)" "Telefonda tətbiq yığmaq üçün Android SDK + Gradle + JDK 17" "Telefonda uygulama derlemek için Android SDK + Gradle + JDK 17" "Android SDK + Gradle + JDK 17 для сборки приложений" ;;
+    jdk) say "Java JDK (17 or 21): install jdk 21" "Java JDK (17 ya da 21): install jdk 21" "Java JDK (17 veya 21): install jdk 21" "Java JDK (17 или 21)" ;;
+    gradle) say "Gradle 8.11 (new enough for Android Gradle Plugin 8)" "Gradle 8.11 (Android Gradle Plugin 8 üçün)" "Gradle 8.11 (AGP 8 için)" "Gradle 8.11 (для AGP 8)" ;;
+    ndk) say "C/C++ for Android: clang, cmake, ninja (+ notes)" "Android üçün C/C++: clang, cmake, ninja" "Android için C/C++: clang, cmake, ninja" "C/C++: clang, cmake, ninja" ;;
+    java) say "Java + Kotlin + Maven" "Java + Kotlin + Maven" "Java + Kotlin + Maven" "Java + Kotlin + Maven" ;;
+    php) say "PHP + Composer" "PHP + Composer" "PHP + Composer" "PHP + Composer" ;;
+    ruby) say "Ruby + gems + bundler" "Ruby + gem + bundler" "Ruby + gem + bundler" "Ruby + bundler" ;;
+    perl) say "Perl + cpanminus" "Perl + cpanminus" "Perl + cpanminus" "Perl + cpanminus" ;;
+    lua) say "Lua + LuaRocks" "Lua + LuaRocks" "Lua + LuaRocks" "Lua + LuaRocks" ;;
+    zsh) say "Zsh + Oh My Zsh (+ autosuggestions, highlighting)" "Zsh + Oh My Zsh (+ təkliflər, rəngləmə)" "Zsh + Oh My Zsh" "Zsh + Oh My Zsh" ;;
+    fish) say "fish shell (friendly, autosuggestions)" "fish shell (rahat, təkliflər)" "fish kabuğu" "оболочка fish" ;;
+    editors) say "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" "vim, neovim, nano, micro, emacs" ;;
+    tmux) say "tmux + screen (split terminals, detach)" "tmux + screen (bölünmüş terminal)" "tmux + screen" "tmux + screen" ;;
+    code-server) say "VS Code in the browser (code-server)" "Brauzerdə VS Code (code-server)" "Tarayıcıda VS Code" "VS Code в браузере" ;;
+    jupyter) say "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" "Jupyter Notebook / Lab" ;;
+    adb) say "adb + fastboot (control phones / this phone over Wi-Fi)" "adb + fastboot" "adb + fastboot" "adb + fastboot" ;;
+    typescript) say "TypeScript + tsx (run .ts directly)" "TypeScript + tsx (.ts faylını birbaşa işlədir)" "TypeScript + tsx (.ts doğrudan çalışır)" "TypeScript + tsx (запуск .ts напрямую)" ;;
+    dart) say "Dart SDK (Debian/Ubuntu environments)" "Dart SDK (Debian/Ubuntu mühitləri)" "Dart SDK (Debian/Ubuntu ortamları)" "Dart SDK (Debian/Ubuntu)" ;;
+    r) say "R language (Rscript)" "R dili (Rscript)" "R dili (Rscript)" "Язык R (Rscript)" ;;
+    julia) say "Julia (arm64, Debian/Ubuntu)" "Julia (arm64, Debian/Ubuntu)" "Julia (arm64, Debian/Ubuntu)" "Julia (arm64, Debian/Ubuntu)" ;;
+    haskell) say "Haskell (GHC, runghc)" "Haskell (GHC, runghc)" "Haskell (GHC, runghc)" "Haskell (GHC, runghc)" ;;
+    elixir) say "Elixir + Erlang" "Elixir + Erlang" "Elixir + Erlang" "Elixir + Erlang" ;;
+    zig) say "Zig compiler 0.13" "Zig kompilyatoru 0.13" "Zig derleyicisi 0.13" "Компилятор Zig 0.13" ;;
+    nim) say "Nim compiler" "Nim kompilyatoru" "Nim derleyicisi" "Компилятор Nim" ;;
+    powershell) say "PowerShell 7 (pwsh, Debian/Ubuntu)" "PowerShell 7 (pwsh, Debian/Ubuntu)" "PowerShell 7 (pwsh, Debian/Ubuntu)" "PowerShell 7 (pwsh, Debian/Ubuntu)" ;;
+    metasploit) say "Metasploit Framework (in the Kali environment)" "Metasploit Framework (Kali mühitində)" "Metasploit (Kali ortamında)" "Metasploit (в Kali)" ;;
+    x11) say "Linux desktop (XFCE over VNC, opens in the app)" "Linux masaüstü (XFCE, tətbiqdə açılır)" "Linux masaüstü (XFCE)" "Рабочий стол Linux (XFCE)" ;;
     office) say "Documents: pandoc, Markdown → PDF/DOCX" "Sənədlər: pandoc, Markdown → PDF/DOCX" "Belgeler: pandoc, Markdown → PDF/DOCX" "Документы: pandoc" ;;
     *) return 1 ;;
   esac
 }
-PACKS="arch fedora kali debian ubuntu lsp video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
+PACKS="arch fedora kali debian ubuntu lsp android-sdk jdk gradle ndk java php ruby perl lua typescript dart r julia haskell elixir zig nim powershell zsh fish editors tmux code-server jupyter adb metasploit x11 video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
 
+glibc_only() { is_alpine && die "$(say "$1 needs a glibc environment: install debian (or ubuntu), then run it there." "$1 glibc mühiti tələb edir: install debian (və ya ubuntu), sonra orada işlədin." "$1 glibc ortamı ister: install debian (veya ubuntu), sonra orada çalıştırın." "$1 нужна среда glibc: install debian (или ubuntu) и запускайте там.")"; return 0; }
+fetch_to() { curl -fL --retry 3 -o "$2" "$1" || die "download failed: $1"; }
 install_pack() {
   p=$1
   case "$p" in
@@ -72,13 +107,31 @@ install_pack() {
       esac
       nibras-api env-install "$p"; return ;;
     lsp) lsp_install ;;
+    typescript) need node npm; npm install -g typescript tsx ;;
+    dart) has dart && return 0; glibc_only Dart; case "$(uname -m)" in aarch64) a=arm64 ;; *) a=arm ;; esac
+      need unzip; fetch_to "https://storage.googleapis.com/dart-archive/channels/stable/release/latest/sdk/dartsdk-linux-$a-release.zip" /tmp/dart.zip
+      rm -rf /opt/dart-sdk; unzip -q /tmp/dart.zip -d /opt && rm -f /tmp/dart.zip && ln -sf /opt/dart-sdk/bin/dart /usr/local/bin/dart && dart --version ;;
+    r) nibras-need Rscript ;;
+    julia) has julia && return 0; glibc_only Julia; [ "$(uname -m)" = aarch64 ] || die "Julia: arm64 only"
+      fetch_to https://julialang-s3.julialang.org/bin/linux/aarch64/1.11/julia-1.11.2-linux-aarch64.tar.gz /tmp/julia.tgz
+      rm -rf /opt/julia-1.11.2; tar -xzf /tmp/julia.tgz -C /opt && rm -f /tmp/julia.tgz && ln -sf /opt/julia-1.11.2/bin/julia /usr/local/bin/julia && julia --version ;;
+    haskell) nibras-need ghc && { has runghc || nibras-need runghc >/dev/null 2>&1 || true; } ;;
+    elixir) nibras-need elixir ;;
+    zig) has zig && return 0; case "$(uname -m)" in aarch64) a=aarch64 ;; *) a=armv7a ;; esac
+      need xz; fetch_to "https://ziglang.org/download/0.13.0/zig-linux-$a-0.13.0.tar.xz" /tmp/zig.txz
+      rm -rf /opt/zig; mkdir -p /opt/zig && tar -xJf /tmp/zig.txz -C /opt/zig --strip-components=1 && rm -f /tmp/zig.txz && ln -sf /opt/zig/zig /usr/local/bin/zig && zig version ;;
+    nim) nibras-need nim ;;
+    powershell) has pwsh && return 0; glibc_only PowerShell; case "$(uname -m)" in aarch64) a=arm64 ;; *) a=arm32 ;; esac
+      nibras-need libicu72 >/dev/null 2>&1 || nibras-need libicu-dev >/dev/null 2>&1 || true
+      fetch_to "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/powershell-7.4.6-linux-$a.tar.gz" /tmp/pwsh.tgz
+      rm -rf /opt/powershell; mkdir -p /opt/powershell && tar -xzf /tmp/pwsh.tgz -C /opt/powershell && rm -f /tmp/pwsh.tgz && chmod +x /opt/powershell/pwsh && ln -sf /opt/powershell/pwsh /usr/local/bin/pwsh && pwsh -v ;;
     video) need ffmpeg ;;
     audio) need ffmpeg sox ;;
     image) need magick 2>/dev/null || need convert ;;
     pdf) need qpdf gs pdfinfo ;;
     download) need python3 ffmpeg aria2c curl; install_ytdlp ;;
     web) need python3 ;;
-    git) need git ssh ;;
+    git) need git ssh; nibras-need lazygit >/dev/null 2>&1 || install_lazygit || true; nibras-need tig >/dev/null 2>&1 || true ;;
     python|py) need python3 pip3; is_alpine && apk add py3-virtualenv >/dev/null 2>&1; true ;;
     node) need node ;;
     dev) need gcc g++ make; nibras-need cmake go rustc >/dev/null || true ;;
@@ -100,6 +153,42 @@ install_pack() {
     notes) nibras-need glow >/dev/null 2>&1 || true ;;
     monitor) need htop; nibras-need btop >/dev/null 2>&1 || true ;;
     security) need nmap; for t in hydra sqlmap nikto john hashcat aircrack-ng; do nibras-need "$t" >/dev/null 2>&1; done; true ;;
+    android-sdk|sdk|acs) nibras-apk setup --sdk && nibras-apk gradle ;;
+    jdk) nibras-apk jdk 17 ;;
+    gradle) nibras-apk gradle ;;
+    ndk) for t in clang cmake ninja make; do nibras-need "$t" >/dev/null 2>&1 || true; done
+      say "Ready: clang/cmake/ninja build native code for this phone (CMake projects, JNI .so for arm64/arm). Google's official NDK ships only x86_64 host tools, so Gradle externalNativeBuild needs prebuilt .so files in app/src/main/jniLibs/." \
+          "Hazırdır: clang/cmake/ninja bu telefon üçün native kod yığır (.so). Google-un rəsmi NDK-sı yalnız x86_64 üçündür, ona görə Gradle-də hazır .so faylları app/src/main/jniLibs/ qovluğuna qoyulur." \
+          "Hazır: clang/cmake/ninja bu telefon için native kod derler. Resmi NDK sadece x86_64; Gradle için .so dosyalarını app/src/main/jniLibs/ içine koyun." \
+          "Готово: clang/cmake/ninja. Официальный NDK только для x86_64; готовые .so кладите в app/src/main/jniLibs/." ;;
+    java) nibras-apk jdk; nibras-need mvn >/dev/null 2>&1 || nibras-need maven >/dev/null 2>&1 || true; nibras-need kotlin >/dev/null 2>&1 || nibras-need kotlinc >/dev/null 2>&1 || true ;;
+    php) need php; nibras-need composer >/dev/null 2>&1 || { has curl && curl -fsSL https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer; } || true ;;
+    ruby) need ruby; nibras-need gem >/dev/null 2>&1 || true; gem install bundler --no-document >/dev/null 2>&1 || true ;;
+    perl) need perl; nibras-need cpanm >/dev/null 2>&1 || nibras-need cpanminus >/dev/null 2>&1 || true ;;
+    lua) nibras-need lua5.4 >/dev/null 2>&1 || nibras-need lua >/dev/null 2>&1 || need lua5.3; nibras-need luarocks >/dev/null 2>&1 || true ;;
+    zsh) need zsh git curl
+      [ -d "$HOME/.oh-my-zsh" ] || RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      c=${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins
+      [ -d "$c/zsh-autosuggestions" ] || git clone -q --depth 1 https://github.com/zsh-users/zsh-autosuggestions "$c/zsh-autosuggestions"
+      [ -d "$c/zsh-syntax-highlighting" ] || git clone -q --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting "$c/zsh-syntax-highlighting"
+      [ -f "$HOME/.zshrc" ] && sed -i 's/^plugins=(git)$/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' "$HOME/.zshrc"
+      nibras-shell zsh ;;
+    fish) need fish; nibras-shell fish ;;
+    editors) for t in vim nvim nano micro emacs; do nibras-need "$t" >/dev/null 2>&1 || true; done ;;
+    tmux) need tmux; nibras-need screen >/dev/null 2>&1 || true ;;
+    code-server) need curl
+      if ! has code-server; then
+        v=4.96.4; a=$(uname -m); case "$a" in aarch64) a=arm64 ;; armv7l|armv8l|arm*) a=armv7l ;; x86_64) a=amd64 ;; esac
+        curl -fL "https://github.com/coder/code-server/releases/download/v$v/code-server-$v-linux-$a.tar.gz" | tar -xz -C /opt && ln -sf "/opt/code-server-$v-linux-$a/bin/code-server" /usr/local/bin/code-server
+      fi
+      say "Start: code-server --auth none --bind-addr 127.0.0.1:8080  → open http://127.0.0.1:8080" "Başlat: code-server --auth none --bind-addr 127.0.0.1:8080  → http://127.0.0.1:8080" "Başlat: code-server --auth none --bind-addr 127.0.0.1:8080" "Запуск: code-server --auth none --bind-addr 127.0.0.1:8080" ;;
+    jupyter) need python3 pip3; pip3 install -q jupyterlab notebook --break-system-packages 2>/dev/null || pip3 install -q jupyterlab notebook
+      say "Start: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Başlat: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Başlat: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" "Запуск: jupyter lab --ip 127.0.0.1 --no-browser --allow-root" ;;
+    adb) need adb; nibras-need fastboot >/dev/null 2>&1 || true ;;
+    metasploit)
+      if grep -qi kali /etc/os-release 2>/dev/null; then DEBIAN_FRONTEND=noninteractive apt-get install -y metasploit-framework
+      else say "Metasploit is packaged by Kali: install kali, then in Kali run: install metasploit" "Metasploit Kali-də hazırdır: install kali, sonra Kali-də: install metasploit" "Metasploit Kali'de paketli: install kali, sonra Kali'de: install metasploit" "Metasploit есть в Kali: install kali, затем install metasploit"; return 1; fi ;;
+    x11) nibras-desktop install ;;
     office) need pandoc ;;
     *) die "$(say "Unknown pack: $p" "Naməlum paket: $p" "Bilinmeyen paket: $p" "Неизвестный пакет: $p")" ;;
   esac && printf '\033[32m✓ %s\033[0m\n' "$(say "Ready: $p" "Hazırdır: $p" "Hazır: $p" "Готово: $p")"
@@ -121,6 +210,47 @@ lsp_install() {
       "LSP готов: открывайте  hx <файл>  (helix) или nvim; в редакторе Nibras есть 🩺 Проверить код."
 }
 
+lsp_one() { # language server for the Nibras editor's built-in LSP client (completion, errors, hover, go-to-definition)
+  case "$1" in
+    python|py) has pylsp && return 0; need python3 pip3
+      nibras-need py3-lsp-server >/dev/null 2>&1 || nibras-need python3-pylsp >/dev/null 2>&1 || true
+      has pylsp || pip3 install -q python-lsp-server pyflakes --break-system-packages 2>/dev/null || pip3 install -q python-lsp-server pyflakes ;;
+    js|ts|javascript|typescript) has typescript-language-server && return 0; need node npm; npm install -g typescript typescript-language-server ;;
+    c|cpp|c++|clangd) has clangd && return 0; nibras-need clangd >/dev/null 2>&1 || nibras-need clang-extra-tools >/dev/null 2>&1 || nibras-need clang-tools >/dev/null 2>&1 || nibras-need clang ;;
+    java|jdtls) has nibras-jdtls && return 0; nibras-apk jdk 21 >/dev/null || die "JDK 21"
+      say "Downloading Eclipse JDT Language Server (~50 MB)…" "Eclipse JDT dil serveri yüklənir (~50 MB)…" "Eclipse JDT dil sunucusu indiriliyor (~50 MB)…" "Загрузка Eclipse JDT LS (~50 МБ)…"
+      rm -rf /opt/jdtls; mkdir -p /opt/jdtls && curl -fL --retry 3 https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz | tar -xz -C /opt/jdtls || die "jdtls download failed"
+      cat > /usr/local/bin/nibras-jdtls <<'J'
+#!/bin/sh
+J=$(ls /opt/jdk-21*/bin/java /usr/lib/jvm/*21*/bin/java 2>/dev/null | head -1); [ -n "$J" ] || J=java
+L=$(ls /opt/jdtls/plugins/org.eclipse.equinox.launcher_*.jar | head -1)
+exec "$J" -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product \
+  -Xms64m -Xmx768m --add-modules=ALL-SYSTEM --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED \
+  -jar "$L" -configuration /opt/jdtls/config_linux -data "${HOME:-/root}/.cache/jdtls/$(pwd | tr / _)" "$@"
+J
+      chmod +x /usr/local/bin/nibras-jdtls ;;
+    kotlin|kt) has kotlin-language-server && return 0; nibras-apk jdk 17 >/dev/null; need unzip
+      curl -fL --retry 3 -o /tmp/kls.zip https://github.com/fwcd/kotlin-language-server/releases/download/1.3.12/server.zip || die "download failed"
+      rm -rf /opt/kotlin-ls; mkdir -p /opt/kotlin-ls && unzip -q /tmp/kls.zip -d /opt/kotlin-ls && rm -f /tmp/kls.zip
+      ln -sf /opt/kotlin-ls/server/bin/kotlin-language-server /usr/local/bin/kotlin-language-server ;;
+    xml|lemminx) has nibras-lemminx && return 0; nibras-apk jdk 17 >/dev/null; mkdir -p /opt/lemminx
+      curl -fL --retry 3 -o /opt/lemminx/lemminx.jar https://repo.eclipse.org/content/repositories/lemminx-releases/org/eclipse/lemminx/org.eclipse.lemminx/0.28.0/org.eclipse.lemminx-0.28.0-uber.jar || die "download failed"
+      printf '#!/bin/sh\nJ=$(ls /opt/jdk-*/bin/java 2>/dev/null | head -1); exec "${J:-java}" -Xmx256m -jar /opt/lemminx/lemminx.jar "$@"\n' > /usr/local/bin/nibras-lemminx; chmod +x /usr/local/bin/nibras-lemminx ;;
+    bash|sh) has bash-language-server && return 0; need node npm; npm install -g bash-language-server ;;
+    go) need go; go install golang.org/x/tools/gopls@latest ;;
+    rust|rs) has rustup && rustup component add rust-analyzer || nibras-need rust-analyzer ;;
+    web|html|css|json) need node npm; npm install -g vscode-langservers-extracted ;;
+    all) for l in python js c java kotlin xml bash web; do lsp_one $l || true; done; return ;;
+    *) die "lsp-$1? → lsp-python lsp-js lsp-c lsp-java lsp-kotlin lsp-xml lsp-bash lsp-go lsp-rust lsp-web lsp-all" ;;
+  esac && say "✓ lsp-$1 ready: reopen the file in the editor (🧠 in the status bar)" "✓ lsp-$1 hazırdır: faylı redaktorda yenidən açın (status sətrində 🧠)" "✓ lsp-$1 hazır: dosyayı editörde yeniden açın (durum satırında 🧠)" "✓ lsp-$1 готов: откройте файл в редакторе заново (🧠 в строке статуса)"
+}
+
+install_lazygit() { # full-screen Git client (stage, commit, push, branches, diff, merge) — the compact ACS Git UI
+  has lazygit && return 0
+  v=0.44.1; a=$(uname -m); case "$a" in aarch64) a=arm64 ;; armv7l|armv8l|arm*) a=armv6 ;; x86_64) a=x86_64 ;; esac
+  curl -fL "https://github.com/jesseduffield/lazygit/releases/download/v$v/lazygit_${v}_Linux_$a.tar.gz" | tar -xz -C /usr/local/bin lazygit
+}
+
 install_ytdlp() {
   has yt-dlp && return 0
   say "Downloading yt-dlp…" "yt-dlp yüklənir…" "yt-dlp indiriliyor…" "Загрузка yt-dlp…"
@@ -135,9 +265,144 @@ cmd_install() {
     say "Any other Linux package: pkg install <name>" "Başqa istənilən Linux paketi: pkg install <ad>" "Başka herhangi bir paket: pkg install <ad>" "Любой другой пакет: pkg install <имя>"
     return
   fi
+  case "${1:-}:${2:-}" in jdk:1[0-9]|jdk:2[0-9]) nibras-apk jdk "$2"; return ;; esac
+  case "${1:-}" in lang-*|lang) cmd_lang "${2:-${1#lang-}}"; return ;; lsp-*) for p in "$@"; do lsp_one "${p#lsp-}"; done; return ;; esac
+  if [ $# -le 2 ] && lang_code "$1" >/dev/null && ! pack_desc "$1" >/dev/null 2>&1; then cmd_lang "$@"; return; fi
   for p in "$@"; do
+    case "$p" in sdk|acs|android) p=android-sdk ;; neovim|vim|nano|emacs|micro) pkg install "$p"; continue ;; esac
     if pack_desc "$p" >/dev/null; then install_pack "$p"; else pkg install "$p"; fi
   done
+}
+
+
+# ---------------------------------------------------------------- languages (human)
+# lang [code|name|list|auto] — English is the default; every built-in language switches instantly.
+LANGS="en az ar tr ru fa ur id ms fr de es pt it zh ja ko hi bn"
+lang_code() { # word in any language/script → code (empty if not a language)
+  w=$(printf '%s' "$1" | tr 'A-Z' 'a-z' | sed 's/^lang-//')
+  case "$w" in
+    en|eng|english|ingilis|ingiliscə|ingilisce|ingilizce|i̇ngilizce|английский|الإنجليزية|الانجليزية|انجليزي|إنجليزي|انگلیسی|英语|英語|영어) echo en ;;
+    az|aze|azerbaijani|azərbaycan|azerbaycan|azərbaycanca|azerbaycanca|azeri|azəri|azerice|azerbaycanca|азербайджанский|الأذربيجانية|آذربایجانی) echo az ;;
+    ar|ara|arabic|ərəb|ereb|ərəbcə|erebce|arapça|arapca|арабский|العربية|عربي|عربية|عربى|عربی) echo ar ;;
+    tr|tur|turkish|türk|turk|türkçe|turkce|türkcə|turkce|турецкий|التركية|تركي|ترکی) echo tr ;;
+    ru|rus|russian|rusca|rusça|rusça|русский|русском|الروسية|روسي|روسی) echo ru ;;
+    fa|per|persian|farsi|fars|farsca|farsça|فارسی|الفارسية|персидский) echo fa ;;
+    ur|urdu|اردو|الأردية|урду) echo ur ;;
+    id|indonesian|indonesia|indonez|endonezce|индонезийский|الإندونيسية) echo id ;;
+    ms|malay|melayu|malayca|малайский|الماليزية) echo ms ;;
+    fr|french|français|francais|fransız|fransiz|fransızca|французский|الفرنسية) echo fr ;;
+    de|german|deutsch|alman|almanca|немецкий|الألمانية) echo de ;;
+    es|spanish|español|espanol|ispan|ispanca|i̇spanyolca|ispanyolca|испанский|الإسبانية) echo es ;;
+    pt|portuguese|português|portugues|portuqal|portekizce|португальский|البرتغالية) echo pt ;;
+    it|italian|italiano|italyan|italyanca|итальянский|الإيطالية) echo it ;;
+    zh|chinese|中文|汉语|漢語|çin|cin|çince|китайский|الصينية) echo zh ;;
+    ja|japanese|日本語|yapon|japonca|японский|اليابانية) echo ja ;;
+    ko|korean|한국어|koreya|korece|корейский|الكورية) echo ko ;;
+    hi|hindi|हिन्दी|हिंदी|hind|hintçe|хинди|الهندية) echo hi ;;
+    bn|bengali|bangla|বাংলা|benqal|bengalce|бенгальский|البنغالية) echo bn ;;
+    *) return 1 ;;
+  esac
+}
+lang_word() { # load / switch / language words (az tr en ru ar …)
+  w=$(printf '%s' "$1" | tr 'A-Z' 'a-z')
+  case "$w" in
+    lang|language|dil|dili|dilini|yukle|yüklə|yükle|yukla|yüklə|install|load|set|switch|use|kur|qur|qurash|язык|загрузить|установить|تحميل|اللغة|لغة|زبان|langue|sprache|idioma|lingua|bahasa|语言|言語|언어|भाषा|ভাষা) return 0 ;;
+  esac
+  return 1
+}
+cmd_lang() {
+  code=
+  for w in "$@"; do c=$(lang_code "$w") && { code=$c; break; }; done
+  case "${1:-}" in
+    ""|list|ls|-l) [ -z "$code" ] && { nibras-api lang list 2>/dev/null || echo "$LANGS"; return 0; } ;;
+    auto|system|device) code=auto ;;
+  esac
+  if [ -z "$code" ]; then nibras-api lang list 2>/dev/null || echo "$LANGS"; return 1; fi
+  out=$(nibras-api lang "$code" 2>/dev/null) || out=
+  if [ -z "$out" ]; then [ "$code" = auto ] && code=en; echo "$code" > /etc/nibras/lang 2>/dev/null; fi
+  NIBRAS_LANG=$(cat /etc/nibras/lang 2>/dev/null || echo en); L=$NIBRAS_LANG
+  nmsg lang_now "$NIBRAS_LANG"
+}
+cmd_guess() { # natural phrases like "az dili yukle", "türkçe yükle", "تحميل العربية", "lang ru"
+  code=; hint=
+  for w in "$@"; do lang_code "$w" >/dev/null && code=1; lang_word "$w" && hint=1; done
+  if [ -n "$code" ] && { [ -n "$hint" ] || lang_code "${1:-}" >/dev/null; }; then cmd_lang "$@"; return 0; fi
+  return 1
+}
+
+# ---------------------------------------------------------------- right-to-left text in the terminal
+# rtl [file] — show Arabic/Persian/Urdu/Hebrew text shaped and in visual order (fribidi).
+cmd_rtl() {
+  has fribidi || need fribidi
+  if [ $# -gt 0 ] && [ -f "$1" ]; then fribidi --nopad --width "$(tput cols 2>/dev/null || echo 80)" "$1"
+  elif [ $# -gt 0 ]; then printf '%s\n' "$*" | fribidi --nopad
+  else fribidi --nopad --width "$(tput cols 2>/dev/null || echo 80)"; fi
+}
+
+# ---------------------------------------------------------------- run any source file
+# run <file|dir> [args] — detects the language, installs the runtime on first use, runs it.
+need_cmd() { has "$1" || nibras-need "$1" >/dev/null 2>&1 || install_pack "$2" || die "$(say "Install failed: $2" "Quraşdırılmadı: $2" "Kurulamadı: $2" "Не установлено: $2")"; }
+cmd_run() {
+  f=${1:-}
+  if [ -z "$f" ]; then
+    say "run <file> [args] — python, js/ts, java, kotlin, c/c++, go, rust, php, ruby, perl, lua, dart, r, julia, haskell, elixir, zig, nim, bash, powershell…" \
+        "run <fayl> [arqumentlər] — istənilən dildə faylı tanıyıb işə salır" "run <dosya> [argümanlar] — her dildeki dosyayı tanıyıp çalıştırır" "run <файл> [аргументы] — запускает файл на любом языке"
+    return 1
+  fi
+  shift
+  if [ -d "$f" ]; then
+    cd "$f" || return 1
+    if [ -f Cargo.toml ]; then need_cmd cargo dev; cargo run -- "$@"
+    elif [ -f go.mod ]; then need_cmd go dev; go run . "$@"
+    elif [ -f package.json ]; then need_cmd npm node; npm start -- "$@"
+    elif [ -f settings.gradle ] || [ -f settings.gradle.kts ]; then nibras-apk run .
+    elif [ -f pubspec.yaml ]; then need_cmd dart dart; dart run "$@"
+    elif [ -f mix.exs ]; then need_cmd mix elixir; mix run
+    elif [ -f build.zig ]; then need_cmd zig zig; zig build run
+    elif [ -f CMakeLists.txt ]; then need_cmd cmake dev; cmake -B build -S . >/dev/null && cmake --build build -j2 && for x in build/*; do [ -f "$x" ] && [ -x "$x" ] && exec "$x" "$@"; done
+    elif [ -f Makefile ] || [ -f makefile ]; then need_cmd make dev; make
+    elif [ -f main.py ]; then need_cmd python3 python; python3 main.py "$@"
+    else die "$(say "No project file found (Cargo.toml, go.mod, package.json, Makefile…)" "Layihə faylı tapılmadı (Cargo.toml, go.mod, package.json, Makefile…)" "Proje dosyası bulunamadı" "Файл проекта не найден")"; fi
+    return
+  fi
+  [ -f "$f" ] || die "$f?"
+  out=${TMPDIR:-/tmp}/nibras-run-$$; ext=${f##*.}; [ "$ext" = "$f" ] && ext=
+  if [ -z "$ext" ]; then case "$(head -1 "$f")" in "#!"*) chmod +x "$f"; exec "./${f#./}" "$@" ;; esac; fi
+  case "$(printf %s "$ext" | tr A-Z a-z)" in
+    py|pyw) need_cmd python3 python; python3 "$f" "$@" ;;
+    js|mjs|cjs) need_cmd node node; node "$f" "$@" ;;
+    ts|mts|tsx) need_cmd node node; has tsx || npm install -g tsx >/dev/null 2>&1; tsx "$f" "$@" ;;
+    java) has java || nibras-apk jdk; java "$f" "$@" ;;
+    kt) has kotlinc || install_pack java; kotlinc -nowarn "$f" -include-runtime -d "$out.jar" && java -jar "$out.jar" "$@"; rm -f "$out.jar" ;;
+    kts) has kotlinc || install_pack java; kotlinc -script "$f" "$@" ;;
+    c) need_cmd cc dev; cc -O2 -o "$out" "$f" -lm && "$out" "$@"; rm -f "$out" ;;
+    cc|cpp|cxx|c++) need_cmd c++ dev; c++ -O2 -std=c++20 -o "$out" "$f" && "$out" "$@"; rm -f "$out" ;;
+    go) need_cmd go dev; go run "$f" "$@" ;;
+    rs) need_cmd rustc dev; rustc -O -o "$out" "$f" && "$out" "$@"; rm -f "$out" ;;
+    php) need_cmd php php; php "$f" "$@" ;;
+    rb) need_cmd ruby ruby; ruby "$f" "$@" ;;
+    pl) need_cmd perl perl; perl "$f" "$@" ;;
+    lua) has lua || has lua5.4 || install_pack lua; if has lua; then lua "$f" "$@"; else lua5.4 "$f" "$@"; fi ;;
+    dart) need_cmd dart dart; dart run "$f" "$@" ;;
+    r) need_cmd Rscript r; Rscript "$f" "$@" ;;
+    jl) need_cmd julia julia; julia "$f" "$@" ;;
+    hs) need_cmd runghc haskell; runghc "$f" "$@" ;;
+    ex|exs) need_cmd elixir elixir; elixir "$f" "$@" ;;
+    zig) need_cmd zig zig; zig run "$f" -- "$@" ;;
+    nim) need_cmd nim nim; nim r --hints:off "$f" "$@" ;;
+    sh) sh "$f" "$@" ;; bash) need_cmd bash bash; bash "$f" "$@" ;; zsh) need_cmd zsh zsh; zsh "$f" "$@" ;; fish) need_cmd fish fish; fish "$f" "$@" ;;
+    ps1) need_cmd pwsh powershell; pwsh -File "$f" "$@" ;;
+    swift) need_cmd swift swift; swift "$f" "$@" ;;
+    scala|sc) need_cmd scala-cli scala; scala-cli run "$f" -- "$@" ;;
+    cs) need_cmd dotnet dotnet; dotnet run "$f" ;;
+    f90|f95|f) need_cmd gfortran dev; gfortran -O2 -o "$out" "$f" && "$out" "$@"; rm -f "$out" ;;
+    tcl) need_cmd tclsh tcl; tclsh "$f" "$@" ;;
+    awk) awk -f "$f" "$@" ;;
+    sql) need_cmd sqlite3 sqlite3; sqlite3 :memory: < "$f" ;;
+    html|htm|svg) nibras-api open "$f" ;;
+    md|markdown) has glow && glow "$f" || cat "$f" ;;
+    *) die "$(say "Unknown file type: .$ext" "Naməlum fayl növü: .$ext" "Bilinmeyen dosya türü: .$ext" "Неизвестный тип файла: .$ext")" ;;
+  esac
 }
 
 # ---------------------------------------------------------------- menu
@@ -338,7 +603,11 @@ cmd_web() {
 cmd_git() {
   need git; a=${1:-help}; [ $# -gt 0 ] && shift
   case "$a" in
-    help) echo "git: get <url> · save \"message\" · sync · undo · log · setup"; ;;
+    help) echo "git: ui (lazygit) · get <url> · save \"message\" · sync · undo · log · branch · diff · status · setup"; ;;
+    ui) has lazygit || install_lazygit || die lazygit; exec lazygit ;;
+    branch) git branch -a ;;
+    diff) git diff --stat; git diff ;;
+    status|st) git status -sb ;;
     get) run git clone --depth 1 "$@" ;;
     save) git add -A && git commit -m "${1:-update $(date +%F)}" ;;
     sync) git pull --rebase && git push ;;
@@ -780,6 +1049,11 @@ case "$me" in
   menu) cmd_menu ;;
   list) cmd_list ;;
   install|add) cmd_install "$@" ;;
+  lang|language|dil|langs|اللغة|язык|زبان) cmd_lang "$@" ;;
+  guess) cmd_guess "$@" ;;
+  guess_or_install) shift; cmd_guess "$@" || cmd_install "$@" ;;
+  run) cmd_run "$@" ;;
+  rtl|bidi) cmd_rtl "$@" ;;
   video) cmd_video "$@" ;;
   audio) cmd_audio "$@" ;;
   image|img) cmd_image "$@" ;;
@@ -821,5 +1095,5 @@ case "$me" in
   apk) exec nibras-apk "$@" ;;
   media|builder) exec nibras-api media-builder "${1:-video}" ;;
   dev|desktop) cmd_install "$me" ;;
-  *) printf '%s?\n' "$me"; cmd_menu ;;
+  *) if lang_code "$me" >/dev/null; then cmd_lang "$me" "$@"; else printf '%s?\n' "$me"; cmd_menu; fi ;;
 esac

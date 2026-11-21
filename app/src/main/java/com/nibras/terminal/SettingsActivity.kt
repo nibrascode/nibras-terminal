@@ -82,9 +82,9 @@ class SettingsActivity : ComponentActivity() {
             Spacer(Modifier.padding(6.dp))
 
             Section(stringResource(R.string.set_language))
-            val langs = listOf("" to stringResource(R.string.lang_system), "az" to "Azərbaycan", "tr" to "Türkçe", "en" to "English", "ru" to "Русский")
+            val langs = listOf("" to stringResource(R.string.lang_system)) + com.nibras.terminal.core.Lang.names.toList()
             Choices(langs, prefs.language) {
-                prefs.language = it
+                com.nibras.terminal.core.Lang.set(this@SettingsActivity, it)
                 recreate()
             }
 

@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s kuruluyor…</string>
     <string name="boot_extracting_n">%1$s kuruluyor… %2$d dosya</string>
     <string name="boot_failed">Kurulum başarısız: %s. Android kabuğu açılıyor.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaketler:  install &lt;paket&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;ad&gt;\nMenü:      nibras  ·  soldaki menüde Mağaza\nİşler:     video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nYardım:    ask \"nasıl …\"  ·  explain &lt;komut&gt;  ·  learn  ·  nibras-help\nTelefon:   nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  depolama: nibras-setup-storage\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaketler:  install &lt;paket&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;ad&gt;\nMenü:      nibras  ·  soldaki menüde Mağaza\nİşler:     video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nYardım:    ask \"nasıl …\"  ·  explain &lt;komut&gt;  ·  learn  ·  nibras-help\nTelefon:   nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  depolama: nibras-setup-storage\nDil:       lang\n</string>
     <string name="shell_help" formatted="false">Nibras Terminal komutları\n\n  install [paket]                 paketler: video audio image pdf download web git python node dev apk\n                                  backup net ocr share webterm desktop llm quran prayer games learn …\n  nibras                          tüm araçların menüsü\n  video · audio · image · pdf     birleştir, kes, dönüştür, sıkıştır\n  download &lt;url&gt;                  video/müzik (yt-dlp), dosyalar (aria2)\n  web · share · webterm · qr      web sunucu, WebDAV/FTP/DLNA, PC tarayıcısında terminal, QR\n  ask · explain · fix · recipes   doğru komutu bul, açıkla, hatayı düzelt\n  trash · snapshot · backup       güvenli silme, ortamı kaydet/geri yükle, yedek\n  notes · vault · clip · record   notlar, şifreli kasa, pano geçmişi, oturum kaydı\n  cron · plugin · hs · sysinfo    zamanlı görevler, kendi komutların, geçmişte arama, sistem\n  llm · quran · prayer · games · learn\n  pkg install|remove|search|update|upgrade &lt;paket&gt;\n  nibras-shell bash|zsh|fish  ·  nibras-sshd [port] (8022)\n  nibras-desktop · nibras-adb · nibras-rish · nibras-apk\n  nibras-edit &lt;dosya&gt; · nibras-files · nibras-hosts · nibras-dialog · nibras-job-scheduler\n  nibras-* telefon: pano, bildirim, pil, fener, kamera, konum, sensör, ses, duvar kağıdı …\n  ~/.shortcuts/ widget · ~/.nibras/boot/ açılışta · ~/.nibras/plugins/ kendi komutların\n\nTuşlar: Ses-kıs = Ctrl · Ses-aç + W/A/S/D = oklar, E = Esc, T = Tab, Q = ek tuşlar\nKlavye: Ctrl+Alt+C yeni oturum · Ctrl+Alt+N/P sonraki/önceki · Ctrl+Alt+V yapıştır</string>
     <string name="drawer_sessions">Oturumlar</string>
     <string name="new_session">Yeni oturum</string>
@@ -269,4 +269,25 @@
     <string name="editor_autocomplete">Otomatik tamamlama</string>
     <string name="editor_lint">Kodu denetle (lint)</string>
     <string name="tools_media">Medya</string>
+    <string name="editor_layout_preview">Düzen önizlemesi</string>
+    <string name="editor_definition">Tanıma git</string>
+    <string name="editor_problems">Sorunlar</string>
+    <string name="editor_hover">İmleçteki bilgi (uzun bas)</string>
+    <string name="editor_lsp_off">Dil sunucusu çalışmıyor</string>
+    <string name="editor_lsp_none">.%1$s için henüz dil sunucusu yok</string>
+    <string name="editor_lsp_install">Akıllı tamamlama, hatalar, bilgi ve tanıma gitme için dil sunucusu gerekir. Şimdi kurulsun: install %1$s</string>
+    <string name="res_title">Kaynak düzenleyici</string>
+    <string name="res_strings">Metinler</string>
+    <string name="res_colors">Renkler</string>
+    <string name="res_images">Görseller</string>
+    <string name="res_app">Uygulama</string>
+    <string name="res_rebuild">Derle · imzala · kur</string>
+    <string name="res_none">%1$s içinde res/values klasörü yok. Önce APK açın: nibras-apk res app.apk</string>
+    <string name="res_strings_hint">%1$d metin · düzenlemek için dokunun · ⚠ = henüz çevrilmedi</string>
+    <string name="res_add_lang">Dil ekle</string>
+    <string name="res_images_hint">Görsele dokunup galeriden değiştirin (aynı boyuta getirilir)</string>
+    <string name="res_app_icon">Uygulama simgesi</string>
+    <string name="res_app_name">Uygulama adı</string>
+    <string name="res_package">Paket adı</string>
+    <string name="res_app_note">Yeni paket adı orijinalin yanında ayrı uygulama olarak kurulur. Kendi imzasını denetleyen uygulamalar yeniden imzadan sonra çalışmayabilir.</string>
 </resources>

@@ -33,6 +33,15 @@ alias ls='ls --color=auto' 2>/dev/null
 alias ll='ls -lh'
 alias la='ls -lha'
 alias grep='grep --color=auto' 2>/dev/null
+# Colors everywhere by default (ls, grep, diff, ip, man pages, gcc); customize: theme · prompt · color · customize
+alias egrep='grep -E --color=auto' 2>/dev/null; alias fgrep='grep -F --color=auto' 2>/dev/null
+diff --color=auto /dev/null /dev/null >/dev/null 2>&1 && alias diff='diff --color=auto'
+ip -color=auto addr >/dev/null 2>&1 && alias ip='ip -color=auto'
+export CLICOLOR=1 GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+export LS_COLORS="${LS_COLORS:-di=1;34:ln=1;36:so=35:pi=33:ex=1;32:bd=1;33:cd=1;33:su=37;41:sg=30;43:tw=30;42:ow=34;42:*.tar=1;31:*.gz=1;31:*.zip=1;31:*.apk=1;31:*.jpg=35:*.png=35:*.mp4=35:*.mp3=36:*.pdf=33:*.py=32:*.sh=32}"
+export LESS="${LESS:--R}" LESS_TERMCAP_mb=$(printf '\033[1;31m') LESS_TERMCAP_md=$(printf '\033[1;36m') LESS_TERMCAP_me=$(printf '\033[0m') \
+  LESS_TERMCAP_so=$(printf '\033[30;43m') LESS_TERMCAP_se=$(printf '\033[0m') LESS_TERMCAP_us=$(printf '\033[1;32m') LESS_TERMCAP_ue=$(printf '\033[0m')
+export MANPAGER="${MANPAGER:-less -R}" GROFF_NO_SGR=1
 
 # "install video" / "install apk" for people; everything else still goes to the real install(1).
 install() {
@@ -43,10 +52,13 @@ install() {
   esac
 }
 # Friendly help when a command is missing (bash / zsh).
-command_not_found_handle() { nibras-kit fix "$1"; return 127; }
-command_not_found_handler() { nibras-kit fix "$1"; return 127; }
+command_not_found_handle() { nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+command_not_found_handler() { nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
 # bash: after a failed command, a one-line hint that `fix` can explain it (not for Ctrl+C / not found).
 if [ -n "${BASH_VERSION:-}" ]; then
   __nibras_rc() { local r=$?; case $r in 0|127|130|141|148) ;; *) printf '\033[2m[exit %s · fix = %s]\033[0m\n' "$r" "${NIBRAS_FIX_HINT:-suggestion}" ;; esac; return $r; }
   case "${PROMPT_COMMAND:-}" in *__nibras_rc*) ;; *) PROMPT_COMMAND="__nibras_rc${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;; esac
 fi
+# Your look: prompt preset and aliases written by the prompt / aliases commands.
+[ -r "$HOME/.nibras/prompt.sh" ] && . "$HOME/.nibras/prompt.sh"
+[ -r "$HOME/.nibras/aliases.sh" ] && . "$HOME/.nibras/aliases.sh"

@@ -21,7 +21,7 @@
 - ✅ SSH açarı yaratmaq (ed25519/rsa/ecdsa), açarı hosta göndərmək
 - ✅ Port yönləndirmə (L/R/D), jump host, keep-alive, agent forwarding
 - ✅ Mosh, Telnet, SFTP, hazır əmrlər (snippets), girişdən sonra əmr
-- 🟡 Cihazlar arası sinxronizasiya: yoxdur (bulud hesabı tələb edir); hosts faylı `files/hosts.txt`
+- 🟡 Cihazlar arası sinxronizasiya: bulud hesabı yoxdur; hostlar `ssh config` ixrac/idxal faylı ilə köçürülür (`files/hosts.txt`). Bu, dürüst olaraq "fayl ilə sinxron"dur.
 - ✅ USB serial konsol: `nibras-usb serial [cihaz] [baud]` (CDC-ACM/Arduino, CP210x/ESP32, FTDI, CH340) — root lazım deyil, menyuda 🔌 USB
 
 ## UserLAnd · Andronix · AnLinux · Linux Deploy · NetHunter
@@ -59,6 +59,200 @@ Mağaza, `plugin`, `notes`, `llm`, `quran`, `hadith`, `prayer`, `games`, sessiya
 | SSH | Termius | hostlar, açarlar, tunellər, multi-exec, snippets, sinxron | Hamısı + mosh/telnet, `ssh config` idxal/ixrac, fayl ilə köçürmə | 🟡 bulud sinxronizasiyası yoxdur (hesab tələb edir); parol saxlanmır (açar tövsiyə olunur) |
 | Terminal | Termux | əlavə düymələr, sessiyalar, temalar, pinch-zoom | Hamısı + ekranı bölmək, əmr təklifləri, köhnə yazılarda axtarış, sessiya bərpası, səslə əmr | ✅ üstün |
 | Linux | Andronix / UserLAnd | distro seçimi, masaüstü | Alpine/Debian/Ubuntu + öz rootfs, masaüstü tətbiqin içində, snapshot | ✅ |
-| APK alətləri | APK Editor / jadx | decompile, imzala, manifest | `apk` əmrləri + fayl menecerindən bir toxunuş | 🟡 vizual resurs redaktoru yoxdur (terminal + redaktor ilə) |
+| APK alətləri | APK Editor / jadx | decompile, imzala, manifest | `apk` əmrləri + fayl menecerindən bir toxunuş | ✅ vizual resurs redaktoru (`nibras-apk res`): dillər üzrə mətnlər, rənglər, ikonlar, ad/paket/versiya, bir toxunuşla yığ+imzala+quraşdır |
 | Python/C++ | Pydroid / Cxxdroid | Run, pip, çıxış | Run + çıxış kodu və vaxt, layihə faylı tanıma, `py` paket menyusu | ✅ |
 | ADB/Shizuku | LADB | pair/connect/shell | Eyni + `rish` | ✅ |
+
+## Termux ilə sətir-sətir uyğunluq (v0.2.120)
+
+✅ var idi · ➕ indi əlavə olundu · ⛔ mümkün deyil / fərqli yolla (səbəbi). Bütün əmrlər `nibras-*` adı ilə; `termux-*` gizli uyğunluq adlarıdır.
+
+### termux-tools
+| Termux | Nibras | Status |
+|---|---|---|
+| termux-setup-storage, `~/storage` | `nibras-setup-storage` | ✅ |
+| termux-open (`--send --view --chooser --content-type`) | `nibras-open` | ➕ bütün bayraqlar, qovluq → Fayllar |
+| termux-open-url | `nibras-open-url` | ✅ |
+| termux-reload-settings | `nibras-reload-settings` | ✅ |
+| termux-change-repo | `nibras-change-repo` (apk/apt/pacman/dnf güzgü menyusu + ən sürətlini avtomatik seçir) | ➕ |
+| termux-wake-lock / unlock | `nibras-wake-lock` | ✅ |
+| termux-fix-shebang | `nibras-fix-shebang` | ➕ |
+| termux-backup / restore | `nibras-backup` (kit) + `termux-backup/restore` | ➕ |
+| termux-reset | `nibras-reset` → Mühitlər ekranı | ➕ |
+| termux-info | `nibras-info` (API, OS, nüvə, güzgülər, disk, Android) | ➕ |
+| termux-am / am | `nibras-am` (tətbiqin içində: start/broadcast/startservice, bütün `-e*` növləri, bayraqlar, intent: URI) | ➕ |
+| pm, getprop, logcat, cmd, settings, dumpsys, wm, input, svc | Linux mühitində Android sarğıları | ➕ |
+| login / motd | `nibras-login`, `/etc/motd` (4 dil) | ✅ |
+| chsh | `nibras-shell` (+ `termux-chsh`) | ➕ ad |
+| termux-setup-package-manager | `nibras-setup-package-manager` | ➕ |
+| termux-x11 | `nibras-x11` → XFCE masaüstü (VNC, tətbiqin içində) | ⛔ X11 APK əvəzinə daxili masaüstü |
+
+### termux.properties (`~/.termux/termux.properties` və ya `~/.nibras/nibras.properties`)
+| Açar | Status |
+|---|---|
+| extra-keys (JSON, popup, macro, display), extra-keys-hidden | ➕ |
+| bell-character (vibrate/beep/ignore) | ➕ |
+| back-key (escape/back), volume-keys | ➕ |
+| fullscreen | ➕ |
+| terminal-cursor-style, terminal-cursor-blink-rate | ➕ |
+| terminal-margin-horizontal/vertical | ➕ |
+| terminal-transcript-rows | ➕ |
+| hide-soft-keyboard-on-startup | ➕ |
+| terminal-onclick-url-open | ➕ |
+| disable-hardware-keyboard-shortcuts, shortcut.create-session/next/previous/rename | ➕ |
+| default-working-directory | ➕ |
+| allow-external-apps | ➕ (həm də tətbiq ayarı) |
+| font.ttf, colors.properties | ✅ (`~/.nibras/font.ttf`, `~/.termux/colors.properties`) |
+
+### Sessiya, intent, fayl
+| Termux | Status |
+|---|---|
+| Çox sessiya, ad dəyişmə, sürüşmə menyusu | ✅ (+ ekranı bölmək, bərpa) |
+| RUN_COMMAND (PATH, ARGUMENTS, WORKDIR, STDIN, BACKGROUND, PENDING_INTENT) — `com.termux.*` və `com.nibras.terminal.*` əlavələri | ➕ |
+| Qısayollar / Widget (`~/.shortcuts`, `~/.shortcuts/tasks`) | ✅ |
+| Boot (`~/.nibras/boot`, `~/.termux/boot`) | ✅ |
+| Float | ✅ |
+| Tasker plugin | ✅ |
+| Styling (tema + şrift) | ✅ |
+| "Terminala paylaş" (share-to-terminal), fayl provayderi, SAF Documents | ✅ |
+
+### Termux:API (hər əmr eyni bayraqlar + eyni JSON)
+➕ yenidən yazıldı (TermuxApi.kt): battery-status, brightness, call-log, camera-info, camera-photo (səssiz Camera2), clipboard-get/set, contact-list, dialog (confirm/checkbox/counter/date/radio/sheet/spinner/speech/text/time), download, fingerprint, infrared-frequencies/transmit, job-scheduler (Termux bayraqları), location (`-p -r updates`), media-player, media-scan, microphone-record, notification (düymələr, action, media növü, kanallar), notification-channel, notification-list, notification-remove, open, open-url, sensor (axın), share, sms-inbox/list/send, speech-to-text, storage-get, telephony-call/cellinfo/deviceinfo, toast, torch, tts-engines, tts-speak, usb, vibrate, volume, wallpaper, wifi-connectioninfo/scaninfo/enable, keystore, nfc, saf-* (managedir, dirs, ls, stat, read, write, mkdir, create, rm), api-start/stop.
+Həmçinin Android shell-də işləyir (`~/.nibras/android-rc`).
+
+| Mümkün olmayan / şərtli | Səbəb |
+|---|---|
+| wifi-enable Android 10+ | Android yalnız istifadəçiyə icazə verir → Wi-Fi paneli açılır (root/adb ilə `svc wifi`) |
+| notification-list (bütün tətbiqlər) | "Bildirişlərə giriş" icazəsi istifadəçi tərəfindən verilməlidir |
+| brightness | "Sistem ayarlarını dəyişmək" icazəsi |
+| sms/zəng/kontakt | İş vaxtı icazələri (ilk istifadədə soruşulur) |
+
+### Paketlər (hamısı `install <paket>` ilə, APK kiçik qalır)
+| Termux | Nibras | Status |
+|---|---|---|
+| pkg | `pkg` (apk/apt/pacman/dnf üzərində) | ✅ |
+| python, node, clang, go, rust | `install python`, `install node`, `install dev` (gcc/clang, make, cmake, go, rustc) | ✅ |
+| java (openjdk-17/21) | `install jdk [17|21]` | ➕ |
+| php, ruby, perl, lua | `install php|ruby|perl|lua` | ➕ |
+| git, ssh, curl, aria2, tmux | ✅ / `install tmux` ➕ | ✅ |
+| ffmpeg, yt-dlp, imagemagick | `media`, `video`, `image` | ✅ |
+| nmap + qanuni pentest alətləri | `install security`; metasploit `install metasploit` (yalnız Kali) | ✅ / ➕ |
+| vim/nano/micro/helix/neovim/emacs | `install editors` | ➕ |
+| zsh + oh-my-zsh, fish | `install zsh` (autosuggestions + syntax-highlighting), `install fish` | ➕ |
+| proot-distro | `proot-distro list/install/login/remove/backup/restore` | ➕ |
+| x11-repo, tur-repo, root-repo | Lazım deyil: tam Debian/Ubuntu/Arch/Fedora/Kali depoları | ⛔ (daha geniş) |
+| code-server | `install code-server` (4.96.4) | ➕ |
+| jupyter | `install jupyter` | ➕ |
+| apktool/jadx/apksigner/aapt2 | `nibras-apk` (telefon üçün statik aapt2) | ✅ |
+| adb/fastboot | `install adb`, `nibras-adb pair/connect` | ➕ |
+
+Root tələb edən (yalnız root olan telefonda): SMB 445 portu, FUSE/sshfs bağlama.
+
+## Android Code Studio (AndroidIDE fork) ilə sətir-sətir uyğunluq
+
+| ACS | Nibras | Status |
+|---|---|---|
+| Layihə şablonları | `nibras-apk new <qovluq> [paket] --template basic|views|kotlin|compose|library` | ➕ |
+| Telefonda Gradle yığımı | Gradle 8.11.1 + AGP 8.7.3, `install gradle`; arm64 CI-da yoxlanılır | ➕ |
+| JDK 17/21 | `install jdk 17|21` | ➕ |
+| SDK, build-tools, platform-tools | `install android-sdk` (cmdline-tools 19 + telefon üçün aapt2/zipalign) | ➕ |
+| NDK / CMake | `install ndk` → clang + cmake + ninja | ⛔ rəsmi NDK yalnız x86_64 host üçündür |
+| APK yığ / quraşdır / işlət | `nibras-apk build`, `install`, `run` (yığ → quraşdır → aç) | ➕ |
+| Logcat | `nibras-apk logcat [paket]` | ➕ tam logcat üçün `nibras-adb` cütləşməsi lazımdır |
+| Git inteqrasiyası | `git ui` (lazygit), `tig`, `git status/diff/branch` | ➕ |
+| Fayl ağacı | Fayl meneceri (2 panel) | ✅ |
+| Terminal | Nibras Terminal | ✅ |
+| Redaktor: rəngləmə, çox tab, axtar/əvəz et (regex) | ✅ |
+| Java/Kotlin/XML tamamlama | Açar sözlər + Android XML atributları/teqləri + snippetlər | ➕ (yığcam, LSP deyil) |
+| Diaqnostika | Layihədə Gradle kompilyasiyası, ayrı faylda javac/kotlinc, xmllint | ➕ |
+| Format | Hər dil üçün (google-java-format, ktfmt, xmllint, black, prettier, shfmt, clang-format, gofmt, rustfmt, stylua) | ➕ |
+| Layout XML önizləmə | Yığcam önizləmə: əsas widget-lər, @string/@color/@dimen/@drawable; ConstraintLayout/RelativeLayout sütun kimi | ➕ (yığcam, sürüklə-burax dizayner yoxdur) |
+| LSP | Redaktorun öz LSP müştərisi: tamamlama, xətalar, izah (uzun bas), tərifə keçid; `install lsp-python|js|c|java|kotlin|xml|bash|go|rust|web|all` | ✅ |
+| Pluginlər, temalar | `plugin`, 12 tema | ✅ |
+
+## Bütün dillər (Nibras-ın əsas fərqi)
+
+### İnsan dilləri
+- **Əsas dil ingiliscədir.** Telefonun dili tətbiqdə varsa, o dil seçilir, yoxdursa ingilis dili açılır.
+- **İlk açılışda dil seçimi ekranı** çıxır: bütün dillər öz adları ilə, telefonun dili əvvəlcədən seçili olur. Sonra `lang` əmri ilə və ya Ayarlar → Dil bölməsindən dəyişmək olar. Android 13+ sistem ayarlarında da tətbiqin dili seçilə bilir (localeConfig).
+- **19 dil APK-nın içindədir** (yüklənmə lazım deyil): en, az, ar, tr, ru, fa, ur, id, ms, fr, de, es, pt, it, zh, ja, ko, hi, bn.
+  - Tətbiq ekranı tam tərcümə olunub: en, az, tr, ru, ar, fa, ur, fr, de, es, id, ms, zh.
+  - Əsas ekranlar (menyu, ayarlar, fayllar, redaktor, mağaza) tərcümə olunub: pt, it, ja, ko, hi, bn. Qalan sətirlər ingiliscə görünür.
+  - Ölçüsü: tərcümələr APK-ya təxminən **290 KB** əlavə edir (resources.arsc sıxılmamış saxlanılır). Bu, APK-nın təxminən 1.5%-idir, ona görə hamısı içəridə qalır.
+- **Sağdan sola (RTL):** ar, fa və ur üçün tətbiq ekranı sağdan sola düzülür (`supportsRtl` + layoutDirection).
+- **Terminal əmrləri:**
+  - `motd`, `nibras-help` və tətbiq mətnləri seçilmiş dildədir.
+  - nibras-* mesajları (`nmsg`) bütün 19 dildədir.
+  - Alət menyuları və paket təsvirləri (`say`) bu dillərdədir: en, az, tr, ru, ar (tam). Qalan dillərdə bu hissə ingiliscədir; `i18n/<dil>.tsv` faylına sətir əlavə etmək kifayətdir.
+- **Dil dəyişmək:** `lang az`, `lang list`, `lang auto`. Təbii yazılışlar da işləyir, böyük-kiçik hərf fərq etmir:
+  - `az dili yukle`, `AZ DILI YUKLE`
+  - `türkçe yükle`
+  - `تحميل العربية`
+  - `install lang-fr`, `install ar`
+  - `english`
+- **Unicode:**
+  - Bütün mühitlərdə `LANG=C.UTF-8` qoyulub.
+  - CJK (Çin, Yapon, Koreya) hərfləri Androidin sistem şriftləri ilə göstərilir, ona görə əlavə şrift yükləmək lazım deyil.
+  - Termux-un terminal görünüşü kimi, bizim terminal da ərəb hərflərini hücrə-hücrə, birləşdirmədən göstərir. Düzgün birləşmiş və sağdan sola düzülmüş mətn üçün `rtl fayl.txt` və ya `… | rtl` əmri var (fribidi ilə formalaşdırma). Redaktor, dialoqlar və fayl meneceri ərəb mətnini tam düzgün göstərir.
+- **Yüklənən hissələr:** yalnız həqiqətən böyük olanlar. Məsələn, oflayn AI modeli (`install llm`, ~400 MB) və OCR dil məlumatları (`install ocr`). Tərcümələr yüklənmir.
+
+### Proqramlaşdırma dilləri
+`run <fayl>` faylın uzantısından dili tanıyır, lazım olan aləti ilk dəfə özü quraşdırır və faylı işə salır. Redaktordakı ▶ Run düyməsi də eyni yolla işləyir.
+
+| Dil | Fayl | Necə quraşdırılır |
+|---|---|---|
+| Python | .py | `install python` |
+| JavaScript / TypeScript | .js .mjs / .ts .tsx | `install node`, `install typescript` |
+| Java / Kotlin | .java / .kt .kts | `install jdk`, `install java` |
+| C / C++ / Fortran | .c / .cpp .cc / .f90 | `install dev` |
+| Go / Rust | .go / .rs | `install dev` |
+| PHP / Ruby / Perl / Lua | .php .rb .pl .lua | `install php|ruby|perl|lua` |
+| Dart | .dart | `install dart` (Debian/Ubuntu: Dart glibc tələb edir) |
+| R | .r | `install r` |
+| Julia | .jl | `install julia` (arm64, Debian/Ubuntu) |
+| Haskell | .hs | `install haskell` |
+| Elixir | .ex .exs | `install elixir` |
+| Zig | .zig | `install zig` (statik, hər mühitdə) |
+| Nim | .nim | `install nim` |
+| Bash / Zsh / Fish / sh | .sh .bash .zsh .fish | daxili, ya da `install zsh|fish` |
+| PowerShell | .ps1 | `install powershell` (Debian/Ubuntu) |
+| Swift / Scala / C# / Tcl / SQL | .swift .scala .cs .tcl .sql | mövcud paketlərlə (`pkg install …`) |
+
+`run <qovluq>` layihə faylını tanıyır: Cargo.toml, go.mod, package.json, Gradle (Android: yığ, quraşdır, aç), pubspec.yaml, mix.exs, build.zig, CMakeLists.txt, Makefile, main.py.
+
+Redaktor bu dillərin hamısını rəngləyir: sh, py, js/ts, java, kt, c/c++, go, rs, php, rb, pl, lua, dart, r, jl, hs, ex, zig, nim, ps1, swift, scala, cs, f90, xml/html.
+
+## APK alətləri: digər APK tətbiqləri ilə sətir-sətir uyğunluq
+
+| Müəllim | Onda olan iş | Nibras-da | Status |
+|---|---|---|---|
+| AndroidIDE / CodeAssist | Telefonda Gradle ilə yığma, Java/Kotlin/XML, LSP | `nibras-apk build/run`, redaktorda LSP (`install lsp-java`, `lsp-kotlin`, `lsp-xml`) | ✅ |
+| Sketchware Pro | Bloklarla vizual tətbiq qurucusu | `nibras-apk wizard`: sual-cavab ilə layihə (düymə, siyahı, forma, veb-sayt, Kotlin, Compose) + layout önizləmə | 🟡 blok redaktoru yoxdur, yığcam sehrbaz var |
+| AIDE / Jstudio / Dcoder | Telefonda kod yazıb işə salmaq | `run fayl` (30+ dil), redaktor ▶ | ✅ |
+| APK Editor (Pro/Studio) | Resursları, ikonu, adı, paketi dəyişmək | `nibras-apk res` vizual redaktor, `rename`, `rebuild` | ✅ |
+| MT Manager / NP Manager | dex/smali redaktoru | `nibras-apk baksmali` / `smali`, redaktorda smali faylları | ✅ |
+| MT Manager | arsc redaktoru, resurs adlarını bərpa | `nibras-apk arsc d/b`, `refactor` (APKEditor) | ✅ |
+| MT Manager | İmza yoxlaması, yenidən imzalama | `nibras-apk verify`, `sigcheck`, `sign`, `signdebug` | ✅ |
+| MT Manager | "İmzanı öldür" (signature kill) | — | ❌ etik deyil: başqasının tətbiqinin qorumasını sındırmaq, əlavə olunmur |
+| MT / NP Manager | Split → tək APK, zipalign, optimallaşdırma, obfuskasiya | `merge`, `align`, `optimize` (aapt2 + R8), `protect` | ✅ |
+| MT Manager | Resurs tərcüməsi | `nibras-apk translate <qovluq> <dil>` + cədvəldə redaktə | ✅ |
+| APKTool M / SAI | Split APK/APKS/XAPK/APKM quraşdırmaq, antisplit | `install-split` (PackageInstaller sessiyası), `merge` | ✅ şifrəli APKM açılmır |
+| App Cloner | Paket adını dəyişib klon yaratmaq | `nibras-apk rename app.apk com.yeni.ad "Ad"` | ✅ |
+| apk-mitm | Sertifikat pinning-i götürmək | `nibras-apk mitm` (yalnız öz tətbiqiniz və ya icazəli test üçün) | ✅ |
+| App Manager | Quraşdırılmış tətbiqlər, manifest, icazələr, komponentlər | `nibras-apk apps`, `appinfo`, `exported` | ✅ |
+| APK Extractor | Quraşdırılmış tətbiqin APK-sını çıxarmaq | `nibras-apk extract <paket>` (split-lər `.apks` kimi) | ✅ |
+| Apktool / jadx | decompile, Java kodu | `decompile`, `java`, `diff` | ✅ |
+
+Lisenziya yoxlamasını yan keçmək, reklam söndürmək və pirat funksiyaları qəsdən əlavə olunmur.
+
+## Görünüş və rəngli yazı
+
+| Müəllim | İş | Nibras-da | Status |
+|---|---|---|---|
+| Termux:Styling | Rəng sxemləri, şriftlər | `theme` (17 mövzu + öz hex), `font` (Nerd Font-lar istəyə görə) | ✅ |
+| lolcat / figlet / toilet | Rəngli və böyük yazı | `color rainbow`, `color gradient`, `banner` | ✅ |
+| bat | Rəngli `cat` | `ccat fayl` | ✅ |
+| oh-my-zsh / starship | Rəngli prompt | `prompt` (powerline, git, two-line, kali, emoji…) | ✅ |
+| Termux | termux.properties: kursor, zəng, kənar, tam ekran, düymələr | `cursor`, `bell`, `margin`, `fullscreen`, `keys` (eyni açarlar) | ✅ |
+| — | Fon şəkli | `wallpaper şəkil.jpg`, `wallpaper opacity 70` | ✅ Nibras-a xas |
+| — | Hamısı bir menyuda | `customize` | ✅ Nibras-a xas |

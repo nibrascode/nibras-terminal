@@ -1,58 +1,88 @@
 #!/bin/sh
-# Bridge from the Linux environment to the phone (clipboard, notifications, battery, torch, dialogs, …).
-# Usage: nibras-api <command> [args]   or   nibras-<command> [args]
-. /usr/local/share/nibras/msg.sh
+# Bridge from the Linux environment to the phone (Termux:API compatible: same flags, same JSON).
+# Usage: nibras-api <command> [args]   or   nibras-<command> [args]   (termux-<command> works too)
+[ -r /usr/local/share/nibras/msg.sh ] && . /usr/local/share/nibras/msg.sh
+command -v nmsg >/dev/null 2>&1 || nmsg() { echo "Nibras Terminal: the app bridge did not answer (is the app running?)"; }
 name=${0##*/}
 if [ "$name" = nibras-api ]; then
   if [ $# -eq 0 ]; then
     echo "nibras-api <command> [args]"
-    ls /usr/local/bin | sed -n 's/^nibras-//p' | tr '\n' ' '; echo
+    ls "${0%/*}" | sed -n 's/^nibras-//p' | tr '\n' ' '; echo
     exit 1
   fi
   name=$1; shift
 fi
 name=${name#termux-}; name=${name#nibras-}
-conf=/etc/nibras/api
+conf=${NIBRAS_API_CONF:-/etc/nibras/api}
+[ -r "$conf" ] || conf=$HOME/.nibras/api
 if [ ! -r "$conf" ]; then nmsg api_down >&2; exit 1; fi
 . "$conf"
-args="$*"
+US=$(printf '\037')
+args=
+for a in "$@"; do args="$args$a$US"; done
+
+# Positional (non-option) argument count, skipping the values of options that take one.
+positional() { # $1 = options with a value, then the arguments
+  vals=" $1 "; shift; n=0; skip=
+  for a in "$@"; do
+    if [ -n "$skip" ]; then skip=; continue; fi
+    case "$a" in
+      --*=*) ;;
+      -*) case "$vals" in *" $a "*) skip=1 ;; esac ;;
+      *) n=$((n+1)) ;;
+    esac
+  done
+  echo $n
+}
+want_stdin=
 case "$name" in
-  clipboard-set|toast|notification|share|tts-speak)
-    if [ -z "$args" ] && [ ! -t 0 ]; then args=$(cat); fi ;;
-  dialog|job-scheduler|storage-get|camera-photo|media-scan)
-    # keep each argument intact (separated by \037)
-    args=$(printf '%s\037' "$@")
-    if [ "$name" != dialog ] && [ "$name" != job-scheduler ]; then
-      args=; for a in "$@"; do case "$a" in -*|[0-9]) args="$args$a$(printf '\037')" ;; /*) args="$args$a$(printf '\037')" ;; *) args="$args$PWD/$a$(printf '\037')" ;; esac; done
-    fi ;;
+  clipboard-set) [ $# -eq 0 ] && want_stdin=1 ;;
+  toast) [ "$(positional "-b -c -g" "$@")" = 0 ] && want_stdin=1 ;;
+  tts-speak) [ "$(positional "-e -l -n -v -p -r -s" "$@")" = 0 ] && want_stdin=1 ;;
+  sms-send) [ "$(positional "-n -s" "$@")" = 0 ] && want_stdin=1 ;;
+  share) [ "$(positional "-a -c -t" "$@")" = 0 ] && want_stdin=1 ;;
+  notification) case " $* " in *" -c "*|*" --content "*|*" --content="*) ;; *) [ ! -t 0 ] && want_stdin=1 ;; esac ;;
+  saf-write) want_stdin=1 ;;
   keystore)
     case "${1:-}" in
       sign) data=$(base64 | tr -d '\n'); args=$(printf '%s\037%s\037%s\037%s\037' sign "${2:-}" "${3:-}" "$data"); decode=1 ;;
       verify) data=$(base64 | tr -d '\n'); sig=$(base64 < "${4:-/dev/null}" | tr -d '\n'); args=$(printf '%s\037%s\037%s\037%s\037%s\037' verify "${2:-}" "${3:-}" "$data" "$sig") ;;
-      *) args=$(printf '%s\037' "$@") ;;
     esac ;;
-  nfc|prayer-alarm)
-    args=$(printf '%s\037' "$@") ;;
-  wallpaper)
-    lock=; [ "${1:-}" = -l ] && { lock="-l "; shift; }
-    args="$lock$(readlink -f "${1:-}" 2>/dev/null || echo "${1:-}")" ;;
-  open|edit|files)
-    # pass absolute guest paths
+  edit|files)
     if [ -n "${1:-}" ]; then args=$(readlink -f "$1" 2>/dev/null || echo "$1"); else args=$PWD; fi ;;
 esac
-payload=$(printf '%s\n%s\n%s' "$name" "${NIBRAS_ENV:-}" "$args" | base64 | tr -d '\n')
+in=
+if [ -n "$want_stdin" ] && [ ! -t 0 ]; then in=$(base64 | tr -d '\n'); fi
+payload=$(printf '%s\n%s\036%s\n%s\035%s' "$name" "${NIBRAS_ENV:-}" "$PWD" "$args" "$in" | base64 | tr -d '\n')
 req="$NIBRAS_API_TOKEN $payload"
-if command -v nc >/dev/null 2>&1; then
-  resp=$(printf '%s\n' "$req" | nc 127.0.0.1 "$NIBRAS_API_PORT" 2>/dev/null)
-elif command -v bash >/dev/null 2>&1; then
-  resp=$(bash -c 'exec 3<>/dev/tcp/127.0.0.1/$1 || exit 1; printf "%s\n" "$2" >&3; cat <&3' _ "$NIBRAS_API_PORT" "$req" 2>/dev/null)
+
+# Reply: first line OK / ERR / B64, then the output (streamed for sensor / location updates).
+reply() {
+  IFS= read -r status || { nmsg api_down >&2; return 1; }
+  case "$status" in
+    OK) if [ -n "${decode:-}" ]; then base64 -d; else cat; fi ;;
+    B64) base64 -d ;;
+    ERR) cat >&2; return 1 ;;
+    *) printf '%s\n' "$status"; cat; return 1 ;;
+  esac
+}
+if command -v nc >/dev/null 2>&1 && nc -h 2>&1 | grep -q -- '-N'; then
+  printf '%s\n' "$req" | nc -N 127.0.0.1 "$NIBRAS_API_PORT" 2>/dev/null | reply
 elif command -v python3 >/dev/null 2>&1; then
-  resp=$(python3 -c 'import socket,sys;s=socket.create_connection(("127.0.0.1",int(sys.argv[1])));s.sendall((sys.argv[2]+"\n").encode());print(s.makefile().read(),end="")' "$NIBRAS_API_PORT" "$req")
+  python3 -c '
+import socket,sys
+s=socket.create_connection(("127.0.0.1",int(sys.argv[1])))
+s.sendall((sys.argv[2]+"\n").encode())
+o=sys.stdout.buffer
+while True:
+    b=s.recv(65536)
+    if not b: break
+    o.write(b); o.flush()
+' "$NIBRAS_API_PORT" "$req" | reply
+elif command -v bash >/dev/null 2>&1; then
+  bash -c 'exec 3<>/dev/tcp/127.0.0.1/$1 || exit 1; printf "%s\n" "$2" >&3; cat <&3' _ "$NIBRAS_API_PORT" "$req" 2>/dev/null | reply
+elif command -v nc >/dev/null 2>&1; then
+  printf '%s\n' "$req" | nc 127.0.0.1 "$NIBRAS_API_PORT" 2>/dev/null | reply
 else
-  echo "nibras-api: nc / bash / python3" >&2; exit 1
+  echo "nibras-api: needs nc, python3 or bash" >&2; exit 1
 fi
-if [ -z "$resp" ]; then nmsg api_down >&2; exit 1; fi
-status=$(printf '%s\n' "$resp" | head -n 1)
-if [ -n "${decode:-}" ] && [ "$status" = OK ]; then printf '%s\n' "$resp" | sed '1d' | base64 -d; exit 0; fi
-printf '%s\n' "$resp" | sed '1d'
-[ "$status" = OK ]

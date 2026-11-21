@@ -18,6 +18,11 @@ object Themes {
         "monokai" to "Monokai",
         "one-dark" to "One Dark",
         "tokyo-night" to "Tokyo Night",
+        "catppuccin" to "Catppuccin Mocha",
+        "catppuccin-latte" to "Catppuccin Latte",
+        "nibras-gold" to "Nibras green & gold",
+        "matrix" to "Matrix",
+        "custom" to "Custom (~/.nibras/colors.properties)",
         "light" to "Light",
         "green" to "Green on black",
     )
@@ -52,6 +57,15 @@ object Themes {
         "light" -> scheme("#ffffff", "#1e1e1e", "#1e1e1e",
             "#000000 #c91b00 #00a600 #a68b00 #0225c7 #b42ab4 #00a6b2 #bfbfbf #686868 #ff6e67 #3fbf3f #c7b000 #6871ff #ff77ff #5fd7d7 #ffffff")
         "green" -> scheme("#000000", "#33ff66", "#33ff66", "")
+        "catppuccin" -> scheme("#1e1e2e", "#cdd6f4", "#f5e0dc",
+            "#45475a #f38ba8 #a6e3a1 #f9e2af #89b4fa #f5c2e7 #94e2d5 #bac2de #585b70 #f38ba8 #a6e3a1 #f9e2af #89b4fa #f5c2e7 #94e2d5 #a6adc8")
+        "catppuccin-latte" -> scheme("#eff1f5", "#4c4f69", "#dc8a78",
+            "#5c5f77 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #acb0be #6c6f85 #d20f39 #40a02b #df8e1d #1e66f5 #ea76cb #179299 #bcc0cc")
+        "nibras-gold" -> scheme("#06120c", "#e8f5e9", "#d6b36a",
+            "#0d1f16 #e05d5d #3ddc84 #d6b36a #4fa3e0 #c792ea #4dd0c4 #cfd8dc #2e4a3c #ff7b7b #69f0ae #f2d48f #82c4ff #e1acff #84ffff #ffffff")
+        "matrix" -> scheme("#000800", "#00ff41", "#00ff41",
+            "#001a00 #008f11 #00ff41 #33ff33 #00b32c #39ff14 #66ff66 #a0ffa0 #003b00 #00c21f #5bff5b #8cff8c #00e03a #6bff6b #b3ffb3 #e0ffe0")
+        "custom" -> Properties()
         else -> scheme("#000000", "#e6e6e6", "#d6b36a", "")
     }
 
@@ -74,8 +88,11 @@ object Themes {
         return rows.takeIf { it.isNotEmpty() }
     }
 
+    /** Background picture: ~/.nibras/background.jpg|png|webp (set with the `wallpaper` command). */
+    fun backgroundImage(home: File?): File? = listOf("jpg", "png", "webp", "jpeg").firstNotNullOfOrNull { userFile(home, "background.$it") }
+
     /** ~/.nibras/<name>, falling back to ~/.termux/<name> for Termux users. */
-    private fun userFile(home: File?, name: String): File? {
+    fun userFile(home: File?, name: String): File? {
         if (home == null) return null
         return listOf(File(home, ".nibras/$name"), File(home, ".termux/$name")).firstOrNull { it.isFile }
     }

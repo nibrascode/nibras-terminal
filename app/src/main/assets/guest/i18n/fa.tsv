@@ -1,0 +1,12 @@
+nmsg.installing	در حال نصب %s…
+nmsg.no_pm	در این محیط مدیر بسته یافت نشد
+nmsg.unknown_cmd	فرمان ناشناخته: %s
+nmsg.need_tool	%s لازم است، در حال نصب…
+nmsg.need_fail	نصب %s ممکن نشد
+nmsg.api_down	پل برنامه پاسخ نمی‌دهد (Nibras Terminal باز است؟)
+nmsg.shell_now	نشست‌های جدید از %s استفاده می‌کنند
+nmsg.running	در حال اجرا
+nmsg.not_running	اجرا نمی‌شود
+nmsg.desk_wait	در حال راه‌اندازی دسکتاپ…
+nmsg.desk_stopped	دسکتاپ متوقف شد
+nmsg.lang_now	زبان اکنون: %s

@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit
 class ApiBridge(private val context: Context, private val host: Host) {
     interface Host {
         fun reloadSettings()
+        fun applyLanguage() {}
         fun newSession(env: String?, command: List<String>?)
         fun setWakeLock(on: Boolean): Boolean
         /** Shows a runtime permission prompt if an activity is visible. */
@@ -69,24 +70,49 @@ class ApiBridge(private val context: Context, private val host: Host) {
         socket.use { s ->
             s.soTimeout = 60_000
             val line = s.getInputStream().bufferedReader().readLine() ?: return
-            val reply = runCatching { dispatch(line) }.getOrElse { "ERR\n${it.message ?: it.javaClass.simpleName}" }
-            s.getOutputStream().apply {
-                write((reply.trimEnd('\n') + "\n").toByteArray())
-                flush()
+            val out = java.io.BufferedOutputStream(s.getOutputStream())
+            val reply = runCatching { dispatch(line, out) }.getOrElse { "ERR\n${it.message ?: it.javaClass.simpleName}" }
+            runCatching {
+                if (reply != null) out.write((reply.trimEnd('\n') + "\n").toByteArray())
+                out.flush()
             }
         }
     }
 
-    private fun dispatch(line: String): String {
+    /** Returns the reply, or null when a streaming command already wrote it to [out]. */
+    private fun dispatch(line: String, out: java.io.OutputStream): String? {
         val given = line.substringBefore(' ')
         if (!MessageDigest.isEqual(given.toByteArray(), token.toByteArray())) return "ERR\nbad token"
         val decoded = String(Base64.decode(line.substringAfter(' ', ""), Base64.DEFAULT))
         val parts = decoded.split('\n', limit = 3)
         val name = parts.getOrNull(0)?.trim().orEmpty()
-        val env = parts.getOrNull(1)?.trim().orEmpty()
-        val raw = parts.getOrNull(2).orEmpty()
-        val args = raw.trim()
+        // Header line 2: "<env>\u001e<cwd>"; body: "<args joined by \u001f>\u001d<base64 stdin>"
+        val envField = parts.getOrNull(1).orEmpty()
+        val env = envField.substringBefore('\u001e').trim()
+        val pwd = envField.substringAfter('\u001e', "/root").trim().ifBlank { "/root" }
+        val body = parts.getOrNull(2).orEmpty()
+        val raw = body.substringBefore('\u001d')
+        val stdin = body.substringAfter('\u001d', "").takeIf { it.isNotEmpty() }?.let { Base64.decode(it, Base64.DEFAULT) }
+        val args = if (raw.contains('\u001f')) words(raw).joinToString(" ") else raw.trim()
+        if (name in com.nibras.terminal.TermuxApi.NAMES) {
+            com.nibras.terminal.TermuxApi.run(com.nibras.terminal.TermuxApi.Call(context, words(raw), stdin, envId(env), pwd,
+                { p -> main.post { host.requestPermission(p) } }, out), name)
+            return null
+        }
         return when (name) {
+            "lang" -> {
+                val code = args.trim().substringBefore(' ').lowercase()
+                when {
+                    code.isEmpty() || code == "list" -> "OK\n" + com.nibras.terminal.core.Lang.names.entries.joinToString("\n") { (k, v) ->
+                        (if (k == com.nibras.terminal.core.Lang.current(context)) "* " else "  ") + "$k  $v" }
+                    code == "auto" || code == "system" || code in com.nibras.terminal.core.Lang.names -> {
+                        com.nibras.terminal.core.Lang.set(context, if (code == "auto" || code == "system") "" else code)
+                        main.post { host.reloadSettings(); host.applyLanguage() }
+                        "OK\n" + com.nibras.terminal.core.Lang.current(context)
+                    }
+                    else -> "ERR\nunknown language: $code (lang list)"
+                }
+            }
             "reload-settings" -> { main.post { host.reloadSettings() }; "OK\nsettings reloaded" }
             "new-session" -> {
                 main.post { host.newSession(null, if (args.isBlank()) null else listOf("/bin/sh", "-c", args)) }
@@ -98,47 +124,20 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 if (Rootfs.hasSharedStorage(context)) "OK\n/sdcard → ~/storage/shared"
                 else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
             }
-            "open" -> open(env, args)
             "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
+            "res-edit" -> ui { com.nibras.terminal.ResEditorActivity.open(context, envId(env), args.ifBlank { pwd }.let { if (it.startsWith("/")) it else "$pwd/$it" }) }
             "files" -> ui { com.nibras.terminal.FilesActivity.open(context, envId(env), args.ifBlank { null }) }
             "desktop-view" -> ui { com.nibras.terminal.DesktopActivity.open(context, env.ifBlank { null }) }
             "hosts" -> ui { context.startActivity(Intent(context, com.nibras.terminal.HostsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            "dialog" -> com.nibras.terminal.PromptActivity.ask(context, "dialog", words(raw)).let { "OK\n$it" }
-            "storage-get" -> {
-                val out = words(raw).firstOrNull() ?: return "ERR\nusage: nibras-storage-get <output file>"
-                val target = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), out) ?: return "ERR\nbad path: $out"
-                com.nibras.terminal.PromptActivity.ask(context, "storage-get", emptyList(), target).let { "OK\n$it" }
-            }
-            "camera-photo" -> {
-                val out = words(raw).lastOrNull { !it.startsWith("-") && it.toIntOrNull() == null } ?: return "ERR\nusage: nibras-camera-photo <file.jpg>"
-                val target = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), out) ?: return "ERR\nbad path: $out"
-                "OK\n" + com.nibras.terminal.PromptActivity.ask(context, "camera-photo", emptyList(), target)
-            }
             "speech-to-text" -> org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "speech-to-text", emptyList())).optString("text").let { "OK\n$it" }
-            "telephony-call" -> ui { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + args.trim())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            "media-scan" -> {
-                val files = words(raw).mapNotNull { com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), it)?.absolutePath }
-                android.media.MediaScannerConnection.scanFile(context, files.toTypedArray(), null, null); "OK\n${files.size} file(s)"
-            }
-            "infrared-transmit" -> "OK\n" + com.nibras.terminal.ExtraPhone.infrared(context, args)
             "telephony-cellinfo" -> {
                 val perm = android.Manifest.permission.ACCESS_FINE_LOCATION
                 if (context.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) { main.post { host.requestPermission(perm) }; "ERR\n" + context.getString(R.string.permission_needed, "ACCESS_FINE_LOCATION") }
                 else "OK\n" + com.nibras.terminal.ExtraPhone.cellInfo(context)
             }
-            "job-scheduler" -> "OK\n" + com.nibras.terminal.ScriptJobService.handle(context, words(raw), envId(env))
+            "job-scheduler" -> "OK\n" + com.nibras.terminal.ScriptJobService.handle(context, words(raw), envId(env), pwd)
             "audio-info" -> "OK\n" + com.nibras.terminal.ExtraPhone.audioInfo(context)
             "telephony-deviceinfo" -> "OK\n" + com.nibras.terminal.ExtraPhone.telephony(context)
-            "wifi-scaninfo" -> {
-                val perm = android.Manifest.permission.ACCESS_FINE_LOCATION
-                if (context.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) { main.post { host.requestPermission(perm) }; "ERR\n" + context.getString(R.string.permission_needed, "ACCESS_FINE_LOCATION") }
-                else "OK\n" + com.nibras.terminal.ExtraPhone.wifiScan(context)
-            }
-            "wallpaper" -> {
-                val lock = args.startsWith("-l ")
-                val path = args.removePrefix("-l ").trim()
-                "OK\n" + com.nibras.terminal.ExtraPhone.wallpaper(context, com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), path), lock)
-            }
             "usb" -> {
                 val w = words(raw)
                 val dev = w.lastOrNull { it.startsWith("/dev/") || Regex("[0-9a-fA-F]{4}:[0-9a-fA-F]{4}").matches(it) }
@@ -162,6 +161,38 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 "OK\n${Rootfs.name(id)}: download started in the Environments screen"
             }
             "keystore" -> com.nibras.terminal.KeystoreBridge.run(words(raw))
+            "am" -> "OK\n" + AmCommand.run(context, words(raw))
+            "env-list" -> "OK\n" + Rootfs.all.joinToString("\n") { e ->
+                val ready = Rootfs.isReady(context, e.id)
+                "%-8s %s%s".format(e.id.removePrefix("rootfs-"), if (ready) "installed" else "available", if (Rootfs.pick(context, null) == e.id) " (default)" else "")
+            }
+            "env-open" -> {
+                val w = words(raw)
+                val id = w.firstOrNull()?.let { if (it.startsWith("rootfs-")) it else "rootfs-$it" } ?: return "ERR\nusage: proot-distro login <name>"
+                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: ${w.first()}"
+                if (!Rootfs.isReady(context, id)) return "ERR\n${Rootfs.name(id)} is not installed: proot-distro install ${id.removePrefix("rootfs-")}"
+                val cmd = w.drop(1).joinToString(" ").trim()
+                main.post { host.newSession(id, if (cmd.isEmpty()) null else listOf("/bin/sh", "-c", cmd)) }
+                "OK\n${Rootfs.name(id)}: opened in a new session"
+            }
+            "install-apk" -> {
+                val f = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), args.let { if (it.startsWith("/")) it else "$pwd/$it" })
+                if (f == null || !f.isFile) return "ERR\nno such APK: $args"
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    ui { context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    return "ERR\nAllow \"Install unknown apps\" for Nibras Terminal (screen opened), then run again"
+                }
+                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", f)
+                ui { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                "OK\nAndroid installer opened for ${f.name}"
+            }
+            "apps" -> com.nibras.terminal.AppTools.apps(context, words(raw)) { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") }
+            "install-apks" -> {
+                val fs = words(raw).map { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") ?: return "ERR\nbad path: $p" }
+                if (fs.isEmpty()) "ERR\nusage: nibras-apk install-split <base.apk split*.apk | app.apks | app.xapk | app.apkm>" else com.nibras.terminal.AppTools.installSplits(context, fs)
+            }
+            "environments" -> ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "nfc" -> {
                 val r = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "nfc", words(raw)))
                 (if (r.optInt("code") == -1) "OK\n" else "ERR\n") + r.optString("text")
@@ -194,35 +225,6 @@ class ApiBridge(private val context: Context, private val host: Host) {
         val onMain = name in setOf("toast", "tts-speak", "media-player", "share", "open-url", "clipboard-get", "clipboard-set", "notification")
         val result = if (onMain) onMainThread { PhoneBridge.run(context, line) } else PhoneBridge.run(context, line)
         return if (result == null) "ERR\nunknown command: $name" else "OK\n$result"
-    }
-
-    private fun open(env: String, guestPath: String): String {
-        if (guestPath.isBlank()) return "ERR\nusage: termux-open <file|url>"
-        if (guestPath.startsWith("http://") || guestPath.startsWith("https://")) {
-            onMainThread {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(guestPath)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }
-            return "OK"
-        }
-        val id = Rootfs.all.firstOrNull { it.name.equals(env, ignoreCase = true) }?.id ?: Rootfs.pick(context, null)
-        val file = hostPath(id, guestPath) ?: return "ERR\nfile not found: $guestPath"
-        val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
-        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension.lowercase()) ?: "*/*"
-        val view = Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        onMainThread { context.startActivity(Intent.createChooser(view, file.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        return "OK\n${file.name}"
-    }
-
-    private fun hostPath(id: String, guestPath: String): File? {
-        val path = if (guestPath.startsWith("/")) guestPath else "/root/$guestPath"
-        val file = if (path == "/sdcard" || path.startsWith("/sdcard/")) {
-            File(Environment.getExternalStorageDirectory(), path.removePrefix("/sdcard"))
-        } else {
-            val root = Rootfs.dir(context, id).toPath().toAbsolutePath().normalize()
-            runCatching { resolveInside(root, path, followLast = true).toFile() }.getOrNull()
-        }
-        return file?.takeIf { it.isFile }
     }
 
     private fun <T> onMainThread(block: () -> T): T? {

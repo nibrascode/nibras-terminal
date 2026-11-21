@@ -1,121 +1,148 @@
 <p align="center">
-  <img src="docs/icon.png" alt="Nibras Terminal icon" width="160">
+  <img src="docs/icon.png" alt="Nibras Terminal icon" width="140">
+</p>
+
+<h1 align="center">Nibras Terminal</h1>
+
+<p align="center"><b>A full Linux terminal for Android, in 19 languages.</b><br>
+Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · code editor with LSP · APK studio · SSH · media tools</p>
+
+<p align="center">
+  <a href="docs/guide/en.md"><img src="https://img.shields.io/badge/%F0%9F%87%AC%F0%9F%87%A7_English-2ea44f?style=for-the-badge" alt="English"></a>
+  <a href="docs/guide/az.md"><img src="https://img.shields.io/badge/%F0%9F%87%A6%F0%9F%87%BF_Az%C9%99rbaycanca-0a7bbb?style=for-the-badge" alt="Azərbaycanca"></a>
+  <a href="docs/guide/tr.md"><img src="https://img.shields.io/badge/%F0%9F%87%B9%F0%9F%87%B7_T%C3%BCrk%C3%A7e-e05d44?style=for-the-badge" alt="Türkçe"></a>
+  <a href="docs/guide/ru.md"><img src="https://img.shields.io/badge/%F0%9F%87%B7%F0%9F%87%BA_%D0%A0%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9-8a2be2?style=for-the-badge" alt="Русский"></a>
+  <a href="docs/guide/ar.md"><img src="https://img.shields.io/badge/%F0%9F%87%B8%F0%9F%87%A6_%D8%A7%D9%84%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9-d4a017?style=for-the-badge" alt="العربية"></a>
+  <a href="docs/guide/fa.md"><img src="https://img.shields.io/badge/%F0%9F%87%AE%F0%9F%87%B7_%D9%81%D8%A7%D8%B1%D8%B3%DB%8C-c71585?style=for-the-badge" alt="فارسی"></a>
+  <a href="docs/guide/ur.md"><img src="https://img.shields.io/badge/%F0%9F%87%B5%F0%9F%87%B0_%D8%A7%D8%B1%D8%AF%D9%88-1f8f6a?style=for-the-badge" alt="اردو"></a>
+  <a href="docs/guide/fr.md"><img src="https://img.shields.io/badge/%F0%9F%87%AB%F0%9F%87%B7_Fran%C3%A7ais-0066cc?style=for-the-badge" alt="Français"></a>
+  <a href="docs/guide/de.md"><img src="https://img.shields.io/badge/%F0%9F%87%A9%F0%9F%87%AA_Deutsch-555555?style=for-the-badge" alt="Deutsch"></a>
+  <a href="docs/guide/es.md"><img src="https://img.shields.io/badge/%F0%9F%87%AA%F0%9F%87%B8_Espa%C3%B1ol-e67e22?style=for-the-badge" alt="Español"></a>
+  <a href="docs/guide/pt.md"><img src="https://img.shields.io/badge/%F0%9F%87%A7%F0%9F%87%B7_Portugu%C3%AAs-16a085?style=for-the-badge" alt="Português"></a>
+  <a href="docs/guide/it.md"><img src="https://img.shields.io/badge/%F0%9F%87%AE%F0%9F%87%B9_Italiano-27ae60?style=for-the-badge" alt="Italiano"></a>
+  <a href="docs/guide/id.md"><img src="https://img.shields.io/badge/%F0%9F%87%AE%F0%9F%87%A9_Bahasa_Indonesia-c0392b?style=for-the-badge" alt="Bahasa Indonesia"></a>
+  <a href="docs/guide/ms.md"><img src="https://img.shields.io/badge/%F0%9F%87%B2%F0%9F%87%BE_Bahasa_Melayu-2980b9?style=for-the-badge" alt="Bahasa Melayu"></a>
+  <a href="docs/guide/zh.md"><img src="https://img.shields.io/badge/%F0%9F%87%A8%F0%9F%87%B3_%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-d35400?style=for-the-badge" alt="简体中文"></a>
+  <a href="docs/guide/ja.md"><img src="https://img.shields.io/badge/%F0%9F%87%AF%F0%9F%87%B5_%E6%97%A5%E6%9C%AC%E8%AA%9E-e74c3c?style=for-the-badge" alt="日本語"></a>
+  <a href="docs/guide/ko.md"><img src="https://img.shields.io/badge/%F0%9F%87%B0%F0%9F%87%B7_%ED%95%9C%EA%B5%AD%EC%96%B4-3949ab?style=for-the-badge" alt="한국어"></a>
+  <a href="docs/guide/hi.md"><img src="https://img.shields.io/badge/%F0%9F%87%AE%F0%9F%87%B3_%E0%A4%B9%E0%A4%BF%E0%A4%A8%E0%A5%8D%E0%A4%A6%E0%A5%80-ff9933?style=for-the-badge" alt="हिन्दी"></a>
+  <a href="docs/guide/bn.md"><img src="https://img.shields.io/badge/%F0%9F%87%A7%F0%9F%87%A9_%E0%A6%AC%E0%A6%BE%E0%A6%82%E0%A6%B2%E0%A6%BE-006a4e?style=for-the-badge" alt="বাংলা"></a>
 </p>
 
 <p align="center">
-  <img src="documentation/nibras-banner.png" alt="Nibras Terminal" width="100%">
+  <img src="https://img.shields.io/badge/version-0.2.x-1f6feb?style=flat-square" alt="version 0.2.x">
+  <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
+  <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/languages-19-ff69b4?style=flat-square" alt="19 languages">
 </p>
 
 <p align="center">
-  <a href="https://nibrascode.github.io/nibras-terminal/"><b>Terminalı aç</b></a>
-  &nbsp;·&nbsp; Android 8+ &nbsp;·&nbsp; arm64
+  <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/debug-apk.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/debug-apk.yml/badge.svg?branch=main" alt="Android package"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/launch-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/launch-test.yml/badge.svg?branch=main" alt="Launch test"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/android-build-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/android-build-test.yml/badge.svg?branch=main" alt="Android build test"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/proot-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/proot-test.yml/badge.svg?branch=main" alt="PRoot test"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/distro-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/distro-test.yml/badge.svg?branch=main" alt="Distro test"></a>
 </p>
 
-Nibras Terminal telefon üçün Linux terminalıdır. Vebdə brauzerdən açılır, telefonda isə öz APK-sı kimi quraşır. İkisi eyni addır, amma eyni mühərrik deyil: veb əmri telefon shell-ində, telefon əmri vebdə işlək sayılmır.
+<p align="center">
+  <img src="docs/social-preview.png" alt="Nibras Terminal preview" width="100%">
+</p>
 
-Üç yol, eyni iş:
+---
 
-| Yol | Nə edir |
-| --- | --- |
-| Əmr | `nibras install alpine`, `python3 main.py`, `git status` |
-| Düymə | Eyni əmri seçimdən işlədir. Düymə ayrıca sehr deyil |
-| Xana | Token, şifrə və layihə adı əmr sətrinə yazılmır |
+## ✨ What is it?
 
-Tam istifadə qaydası, süni zəka üçün də: [`AGENTS.md`](AGENTS.md)
+Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** without any setup, adds other Linux distributions when you ask, and ships a code editor, a file manager, an SSH client, APK build and edit tools, and media tools. The APK stays small (~20 MB) because heavy tools are installed on demand with `install <pack>`.
 
-## Veb terminal
+📖 **Read the full guide in your language:** [🌐 Guides in your language](#-guides-in-your-language)
 
-Ünvan: [nibrascode.github.io/nibras-terminal](https://nibrascode.github.io/nibras-terminal/)
+## 🚀 Quick start
 
-Əvvəl bir mühit seçilir. Eyni anda yalnız biri saxlanır.
+1. Download the latest APK from **Actions → Android package → artifact**.
+2. Install it and allow "Install unknown apps".
+3. Pick your language on the first launch (English is the default).
+4. Start typing:
 
+```sh
+help                 # short list of commands
+nibras               # menu of all Nibras tools
+install              # every pack, with a description
+install python       # add a pack
+run hello.py         # run code in 30+ languages
+install debian       # add Debian
+customize            # look & feel menu
 ```
-nibras install alpine
-nibras install debian
-nibras install ubuntu
-```
 
-Debian və Ubuntu böyükdür, təsdiq xanası açılır. Sonra alət seçilir: `python`, `node`, `php`, `git`, `build`. Seçilməyən alət işləmir. `python3`, `node`, `php`, `git` və `gcc` yalnız öz paketi seçildikdən sonra açılır.
+## 🧰 Features
 
-Shell adi Linux əmrlərini qəbul edir: `ls`, `cd`, `cat`, `mkdir`, `rm`, `cp`, `mv`, `grep`, `find`, `tar`, `zip`, `curl`, `ssh`, `make`, `sqlite3`, `systemctl`. Boru, yönləndirmə, `&&`, `$()` və `set -e` işləyir. Tam siyahı terminalda `help`dir. Siyahıda olmayan əmr mövcud sayılmır.
-
-Dörd dil var: Azərbaycan, Türk, İngilis, Rus. Dil düyməsinə toxunanda yalnız seçilən dil yüklənir. Menyular və tətbiqin öz yazısı həmin dilə keçir. Linux proqramının öz çıxışı tərcümə olunmur.
-
-## Telefon tətbiqi
-
-Paket `com.nibras.terminal`. Kotlin. Minimum Android 8 (API 26). Bir universal APK həm **arm64-v8a**, həm də **armeabi-v7a** (32-bit ARM) üçündür. Tətbiq işə düşəndə hansı ABI ilə qurulduğunu (`Process.is64Bit()`) yoxlayır və uyğun PRoot ilə Alpine-i seçir.
-
-Tətbiq açılan kimi tam ekran qara terminal gəlir. Bu, Termux-un terminal emulyatorudur (`terminal-view` / `terminal-emulator` v0.118.1, Apache-2.0): VT100/xterm, 256 rəng və truecolor, scrollback, iki barmaqla böyütmə, mətn seçimi, URL seçimi. Aşağıdakı nav tabları yoxdur. Sessiyalar, mühitlər və ayarlar soldakı çəkmədə (drawer) durur: ekranın sol kənarından çəkin və ya extra-keys sırasında `☰` düyməsinə basın.
-
-- Bir neçə sessiya. Sessiyanın adını dəyişmək və bağlamaq üçün üzərinə uzun basın. "Yeni sessiya" düyməsinə uzun basanda mühit seçilir: Alpine, Debian, Ubuntu və ya Android shell.
-- Extra-keys: `ESC / - HOME ↑ END PGUP` və `TAB CTRL ALT ← ↓ → PGDN`. CTRL/ALT yapışqandır. Sıranı `~/.nibras/extra-keys` (və ya `~/.termux/extra-keys`) ilə dəyişmək olur. Sıranı sola sürüşdürəndə mətn sahəsi açılır.
-- Səs düymələri Termux kimidir: aşağı səs düyməsi CTRL, yuxarı səs düyməsi isə extra-keys rolunu oynayır. Fiziki klaviaturada Ctrl+Alt qısayolları işləyir.
-- 12 rəng sxemi var. `~/.nibras/colors.properties` və `~/.nibras/font.ttf` fayllarını özünüz qoya bilərsiniz.
-- Ön plan xidməti sessiyaları açıq saxlayır. Bildirişdə "Çıx" və wakelock düymələri var. Açılış skriptləri `~/.nibras/boot/` qovluğundadır. Ana ekran vidceti `~/.shortcuts` skriptlərini işlədir. "Paylaş" menyusundan gələn fayl `~/downloads` qovluğuna düşür.
-- Dil seçimi: AZ, TR, EN, RU.
-
-Alpine 3.24.4 hər iki ABI üçün APK-nın içindədir və ilk açılışda simvolik keçidlər və icra icazələri ilə birlikdə açılır. `pkg install ...` əmri apk və apt üçün Termux üslubunda ön tərəfdir. `/root/storage` telefon yaddaşına bağlıdır (`termux-setup-storage`).
-
-Telefon əmrləri: `termux-*` və `nibras-*` adları eyni körpüyə gedir (lokal soket, təsadüfi token `/etc/nibras/api` faylında). Batareya, lövhə, bildiriş, toast, titrəmə, fənər, işıq, səs, kamera, mikrofon, yer, sensor, barmaq izi, kontakt, zəng, SMS, `termux-open`, `termux-wake-lock` və `termux-setup-storage` var. Kamera, mikrofon, yer, kontakt və SMS icazə istəyir. İcazə verilməyibsə nəticə uydurulmur.
-
-## Nə içindədir
-
-| Seçim | arm64-v8a | armeabi-v7a |
+| | Feature | Commands / where |
 | --- | --- | --- |
-| Alpine 3.24.4 | APK-nın içində | APK-nın içində |
-| Debian stable | yüklənir (payloads-0.1) | yüklənir (payloads-0.2, armhf) |
-| Ubuntu 24.04 | yüklənir | yüklənir (armhf) |
-| Python 3.12 | yüklənir | yüklənir (armv7) |
-| Node | yüklənir | v22 (Node 23+ armv7 üçün yoxdur, `libatomic1` lazımdır) |
-| PRoot | `libproot.so` + loader + loader32 | `libproot.so` + loader |
+| 🐧 | **Linux environments** | Alpine built in; Debian, Ubuntu, Arch, Fedora, Kali on demand; PRoot, no root needed |
+| 📦 | **On-demand packs** | `install`, `install video`, `install apk`, `install python`, `pkg install <name>` |
+| 💻 | **Programming** | `run <file>` for 30+ languages, project detection (Cargo, Go, npm, Gradle, CMake, Make) |
+| 🧠 | **Editor + LSP** | syntax highlight, completion, diagnostics, hover, go-to-definition · `install lsp-python`, `lsp-java`, `lsp-kotlin`, `lsp-xml`, `lsp-ts`, `lsp-c` … |
+| 📱 | **APK studio** | `nibras-apk new/wizard/build/run/sign`, decompile/rebuild, smali, split/APKS install, visual **resource editor** (`nibras-apk res`) |
+| 🗂️ | **File manager** | `files`, archives, sharing, phone storage via `nibras-setup-storage` |
+| 🔐 | **SSH** | hosts, keys, port forwards, jump hosts, Mosh, Telnet, SFTP, `nibras-sshd` |
+| 🎬 | **Media & documents** | `video merge/cut/compress`, `audio`, `image`, `download <url>`, `pdf`, `ocr`, `office` |
+| 🎨 | **Customization** | `theme`, `color`, `font`, `prompt`, `cursor`, `wallpaper`, `keys`, `motd`, `aliases`, `customize`, `reset-look` |
+| 🌍 | **Languages** | 19 UI languages, RTL for Arabic/Persian/Urdu, `lang`, natural phrases like `türkçe yükle` |
+| 🤖 | **Helpers** | `ask`, `explain`, `fix`, `recipes`, `learn`, voice commands, `llm` (offline AI) |
+| 🛡️ | **Security** | fingerprint lock, `vault` (encrypted), `trash`, `snapshot` |
+| ⚙️ | **Automation** | Tasker plugin, RUN_COMMAND intent, `cron`, `~/.nibras/boot`, home-screen widget |
+| 🕌 | **Extras** | `quran`, `hadith`, `prayer`, `games`, `webterm`, split screen, floating window, XFCE desktop |
 
-Bu ABI-də işləməyən paket siyahıda "<abi> üçün mövcud deyil" kimi görünür, yükləmə düyməsi isə olmur.
+Termux compatibility: `termux-*` command names, `~/.termux/termux.properties`, `colors.properties`, `font.ttf` and extra-keys all work.
 
-Siyahı [`catalog/manifest.json`](catalog/manifest.json) faylındadır. Checksum uyğun gəlməyən fayl silinir.
+## 🎨 Colors in one line
 
-## APK və AAB
-
-Paket veb terminaldan qurulur, telefondan yox.
-
+```sh
+theme dracula
+color rainbow "Hello Nibras"
+prompt powerline
+font jetbrains-mono
 ```
-nibras apk build
-nibras apk status
-nibras apk download
-nibras aab build
-nibras aab status
-nibras aab download
-nibras sign
-nibras sign status
-nibras sign download
-```
 
-SDK `35`, `34` və ya `33` seçilir: `nibras apk build 34`, `nibras sign 33`. Java 17-dir. `status` `versionCode` göstərir. `download` zip vermir. Telefon `nibras-terminal-<version>.apk` alır və açanda quraşdırma çıxır. `nibras sign download` həm imzalı APK, həm AAB verir.
+## 🌐 Guides in your language
 
-İlk `nibras sign` release açarını bir dəfə yaradır və saxlayır. Sonrakı qurmalar eyni açarla imzalanır, ona görə Play yeniləməni qəbul edir. Şifrə terminalda görünmür və endirilən faylın içinə qoyulmur. `versionCode` hər qurmada artır, yeni paket köhnənin üstünə quraşır.
+Every guide covers installation, basics, packs, distros, programming, the editor and LSP, files, SSH, APK tools, media, customization, language commands, permissions, troubleshooting and FAQ.
 
-Debug APK və debug AAB Android-in debug açarı ilə imzalanır. Qurucu imzanı yoxlamadan faylı vermir.
+| | Guide | Language | |
+| --- | --- | --- | --- |
+| 🇬🇧 | [**English**](docs/guide/en.md) | English | |
+| 🇦🇿 | [**Azərbaycanca**](docs/guide/az.md) | Azerbaijani | |
+| 🇹🇷 | [**Türkçe**](docs/guide/tr.md) | Turkish | |
+| 🇷🇺 | [**Русский**](docs/guide/ru.md) | Russian | |
+| 🇸🇦 | [**العربية**](docs/guide/ar.md) | Arabic | RTL |
+| 🇮🇷 | [**فارسی**](docs/guide/fa.md) | Persian | RTL |
+| 🇵🇰 | [**اردو**](docs/guide/ur.md) | Urdu | RTL |
+| 🇫🇷 | [**Français**](docs/guide/fr.md) | French | |
+| 🇩🇪 | [**Deutsch**](docs/guide/de.md) | German | |
+| 🇪🇸 | [**Español**](docs/guide/es.md) | Spanish | |
+| 🇧🇷 | [**Português**](docs/guide/pt.md) | Portuguese | |
+| 🇮🇹 | [**Italiano**](docs/guide/it.md) | Italian | |
+| 🇮🇩 | [**Bahasa Indonesia**](docs/guide/id.md) | Indonesian | |
+| 🇲🇾 | [**Bahasa Melayu**](docs/guide/ms.md) | Malay | |
+| 🇨🇳 | [**简体中文**](docs/guide/zh.md) | Chinese (Simplified) | |
+| 🇯🇵 | [**日本語**](docs/guide/ja.md) | Japanese | |
+| 🇰🇷 | [**한국어**](docs/guide/ko.md) | Korean | |
+| 🇮🇳 | [**हिन्दी**](docs/guide/hi.md) | Hindi | |
+| 🇧🇩 | [**বাংলা**](docs/guide/bn.md) | Bengali | |
 
-## Nəyi yazmaq olmaz
+## 🏗️ Under the hood
 
-Token, keystore və imza şifrəsi çıxışa, commit-ə və sənədə yazılmır. Açar hər qurmada yenidən yaradılmır. Alpine ayrıca yükləmə deyil. Debian, Ubuntu, Python və Node APK-nın içində deyil. Vebdəki `nibras apk` telefon shell-inin əmri deyil. Telefonun `nibras-battery-status` əmri veb terminalın əmri deyil.
+- Package `com.nibras.terminal`, Kotlin, minimum Android 8 (API 26), one universal APK for **arm64-v8a** and **armeabi-v7a**.
+- Terminal view: Termux `terminal-view` / `terminal-emulator` (Apache-2.0) with 256 colors and truecolor.
+- Alpine 3.24 is unpacked from the APK on first launch; other systems are downloaded and checksum-verified ([`catalog/manifest.json`](catalog/manifest.json)).
+- Phone APIs (`termux-*` / `nibras-*`): battery, clipboard, notifications, camera, microphone, location, sensors, contacts, SMS and more. Permissions are asked only when a command needs them.
+- Web terminal: [nibrascode.github.io/nibras-terminal](https://nibrascode.github.io/nibras-terminal/) (a separate engine for the browser).
 
-## Android tətbiqi: nə var
+## 📚 More docs
 
-Tətbiq kiçikdir (~20 MB). Alətlər içinə qoyulmur: `install <paket>` yazanda yüklənir.
+- [`docs/TEACHERS.md`](docs/TEACHERS.md) — feature parity checklist against Termux, Android Code Studio, AndroidIDE, MT Manager and other apps.
+- [`AGENTS.md`](AGENTS.md) — full command reference, also for AI agents.
 
-| Bölmə | Əmr / yer |
-| --- | --- |
-| Paketlər | `install` (siyahı), `install video`, `install apk`, `install python` … · soldakı menyuda **Mağaza** |
-| Menyu | `nibras` — bütün alətlər AZ/TR/EN/RU |
-| Media | `video merge a.mp4 b.mp4`, `video cut`, `video compress`, `audio`, `image resize`, `download <url>` |
-| Sənəd | `pdf merge/split/compress/lock`, `ocr şəkil.jpg`, `office qeyd.md qeyd.docx`, `notes` |
-| Şəbəkə | `web .`, `share webdav /sdcard`, `webterm` (kompüter brauzerində terminal), `net speed`, `qr` |
-| Proqramlaşdırma | redaktor (Run düyməsi), `py`, `node`, `install dev`, `nibras apk new/build/decompile/sign` |
-| SSH | SSH hostları (açarlar, port yönləndirmə, jump host, mosh, telnet, SFTP), `nibras-sshd` |
-| Sistem | fayl meneceri, ekranı bölmək, üzən pəncərə, masaüstü (XFCE/noVNC), root shell, `nibras-adb`, `nibras-rish` |
-| Köməkçi | `ask "…"`, `explain <əmr>`, `fix`, `recipes`, `learn`, əmr təklifləri, səslə əmr |
-| Təhlükəsizlik | barmaq izi ilə kilid, `vault` (şifrəli seyf), `trash`, `snapshot` |
-| Avtomatlaşdırma | Tasker plugin, RUN_COMMAND intent, `cron`, `nibras-job-scheduler`, `~/.nibras/boot` |
-| Digər | `llm` (oflayn AI), `quran`, `hadith`, `prayer`, `games`, `record`, `clip`, `plugin` |
+## 📄 License
 
-Hər tətbiqdən götürülənlərin yoxlama siyahısı: [`docs/TEACHERS.md`](docs/TEACHERS.md)
+[MIT](LICENSE) © 2026 nibrascode

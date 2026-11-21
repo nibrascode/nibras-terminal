@@ -283,6 +283,7 @@ object GuestPaths {
             "json" -> "nibras-need jq && jq . $q"
             "sql" -> "nibras-need sqlite3 && sqlite3 < $q"
             "mk" -> "make -f $q"
+            "dart", "jl", "hs", "ex", "exs", "zig", "nim", "ps1", "swift", "scala", "sc", "cs", "f90", "f95", "tcl", "fish", "zsh" -> "nibras-kit run $q"
             else -> if (guestPath.endsWith("Makefile")) "nibras-need make && make" else if (guestPath.endsWith("package.json")) "nibras-need npm && npm install && npm start" else "sh $q"
         }
         // IDE-style footer: exit code and run time (AndroidIDE / Pydroid show this too).

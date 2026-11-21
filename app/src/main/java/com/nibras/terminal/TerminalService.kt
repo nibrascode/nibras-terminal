@@ -47,6 +47,7 @@ class TerminalService : Service(), ApiBridge.Host {
         val sessionClient: TerminalSessionClient
         fun onSessionsChanged()
         fun reloadSettings()
+        fun applyLanguage() {}
         fun requestPermission(permission: String)
         fun requestStorage()
         fun finishUi()
@@ -169,11 +170,12 @@ class TerminalService : Service(), ApiBridge.Host {
     ): TerminalSession {
         val id = Rootfs.pick(this, env)
         if (id != Rootfs.ANDROID) runCatching { Rootfs.refreshSessionFiles(this, id, api.port, api.token) }
+        else runCatching { Rootfs.refreshAndroidApi(this, api.port, api.token) }
         val sessionKey = key ?: java.util.UUID.randomUUID().toString().take(8)
         val extra = mutableListOf("NIBRAS_SESSION=$sessionKey")
-        if (!startDir.isNullOrBlank()) extra += "NIBRAS_START_DIR=$startDir"
+        (startDir?.takeIf { it.isNotBlank() } ?: com.nibras.terminal.ui.TermProps.workingDir)?.let { extra += "NIBRAS_START_DIR=$it" }
         val launch = Rootfs.launch(this, id, command, extra)
-        val session = TerminalSession(launch.exe, launch.cwd, launch.args, launch.env, TRANSCRIPT_ROWS, client)
+        val session = TerminalSession(launch.exe, launch.cwd, launch.args, launch.env, com.nibras.terminal.ui.TermProps.transcriptRows.takeIf { it > 0 } ?: TRANSCRIPT_ROWS, client)
         session.mSessionName = title ?: Rootfs.name(id)
         sessions += session
         envOf[session] = id
@@ -300,6 +302,7 @@ class TerminalService : Service(), ApiBridge.Host {
 
     // ApiBridge.Host
     override fun reloadSettings() { ui?.reloadSettings() }
+    override fun applyLanguage() { ui?.applyLanguage() }
     override fun newSession(env: String?, command: List<String>?) {
         val s = createSession(env, command)
         ui?.showSession(s)

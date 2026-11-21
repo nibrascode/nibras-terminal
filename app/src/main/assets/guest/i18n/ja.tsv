@@ -1,0 +1,12 @@
+nmsg.installing	%s をインストール中…
+nmsg.no_pm	この環境にパッケージマネージャーがありません
+nmsg.unknown_cmd	不明なコマンド: %s
+nmsg.need_tool	%s が必要です。インストール中…
+nmsg.need_fail	%s をインストールできませんでした
+nmsg.api_down	アプリのブリッジが応答しません（Nibras Terminal は起動していますか？）
+nmsg.shell_now	新しいセッションは %s を使います
+nmsg.running	実行中
+nmsg.not_running	停止中
+nmsg.desk_wait	デスクトップを起動中…
+nmsg.desk_stopped	デスクトップを停止しました
+nmsg.lang_now	現在の言語: %s

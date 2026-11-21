@@ -93,8 +93,32 @@ class EditorActivity : Activity() {
             "php" to "$COMMON|function|class|public|private|echo|new|this|namespace|use|try|catch|foreach|as|array",
             "rb" to "$COMMON|def|class|module|end|unless|until|begin|rescue|ensure|yield|self|nil|require|puts|attr_accessor",
             "lua" to "$COMMON|function|local|end|repeat|until|nil|not|and|or",
+            "pl" to "$COMMON|my|our|sub|use|package|unless|foreach|last|next|print|say|undef|die|eval",
+            "dart" to "$COMMON|class|import|void|var|final|const|late|async|await|new|this|extends|implements|mixin|enum|switch|default|try|catch|throw|static|required|dynamic|String|int|double|bool|List|Map|Future",
+            "r" to "$COMMON|function|library|require|repeat|NULL|NA|TRUE|FALSE|Inf|NaN|next|print|c|list|data.frame",
+            "jl" to "$COMMON|function|end|module|using|import|export|struct|mutable|begin|let|local|global|const|try|catch|macro|nothing|abstract|type",
+            "hs" to "module|where|import|qualified|as|data|type|newtype|class|instance|deriving|let|in|case|of|do|if|then|else|forall|Maybe|Just|Nothing|IO|main",
+            "ex" to "$COMMON|def|defp|defmodule|do|end|fn|cond|with|receive|after|import|alias|require|use|nil|when|unless|raise|rescue",
+            "zig" to "$COMMON|const|var|fn|pub|struct|enum|union|try|catch|defer|errdefer|comptime|switch|orelse|unreachable|usize|u8|i32|void|anytype|test",
+            "nim" to "$COMMON|proc|func|var|let|const|type|object|import|from|of|elif|echo|result|discard|iterator|template|macro|nil|seq|string|int",
+            "ps1" to "$COMMON|function|param|foreach|switch|try|catch|finally|throw|Write-Host|Get-ChildItem|Set-Location|Where-Object|ForEach-Object|\$true|\$false|\$null",
+            "swift" to "$COMMON|func|let|var|struct|class|enum|protocol|extension|import|guard|switch|default|self|nil|try|catch|throw|async|await",
+            "scala" to "$COMMON|def|val|var|object|class|trait|extends|with|import|package|match|case|yield|implicit|given|using|new|this",
+            "cs" to "$COMMON|class|namespace|using|public|private|static|void|var|new|this|string|int|bool|async|await|foreach|try|catch|throw|interface",
+            "f90" to "program|end|subroutine|function|module|use|implicit|none|integer|real|logical|character|do|if|then|else|call|print|write|read|contains",
+            "xml" to "android:layout_width|android:layout_height|android:id|android:text|android:textSize|android:textColor|android:textStyle|android:gravity|android:layout_gravity|" +
+                "android:orientation|android:padding|android:paddingStart|android:paddingEnd|android:paddingTop|android:paddingBottom|android:layout_margin|android:layout_marginTop|" +
+                "android:layout_marginBottom|android:layout_marginStart|android:layout_marginEnd|android:layout_weight|android:background|android:src|android:contentDescription|" +
+                "android:hint|android:inputType|android:visibility|android:onClick|android:scaleType|android:maxLines|android:ellipsize|android:enabled|android:clickable|" +
+                "android:name|android:exported|android:label|android:icon|android:theme|android:permission|android:value|android:resource|" +
+                "app:layout_constraintTop_toTopOf|app:layout_constraintBottom_toBottomOf|app:layout_constraintStart_toStartOf|app:layout_constraintEnd_toEndOf|" +
+                "app:layout_constraintTop_toBottomOf|app:layout_constraintStart_toEndOf|match_parent|wrap_content|vertical|horizontal|center|center_horizontal|center_vertical|" +
+                "LinearLayout|FrameLayout|RelativeLayout|ScrollView|TextView|Button|ImageView|EditText|CheckBox|Switch|ProgressBar|SeekBar|Spinner|" +
+                "androidx.constraintlayout.widget.ConstraintLayout|androidx.recyclerview.widget.RecyclerView|com.google.android.material.button.MaterialButton|" +
+                "activity|service|receiver|provider|intent-filter|action|category|uses-permission|application|manifest|meta-data|string|color|dimen|style|item",
         )
-        private val ALIAS = mapOf("bash" to "sh", "zsh" to "sh", "ts" to "js", "mjs" to "js", "jsx" to "js", "tsx" to "js", "cpp" to "c", "cc" to "c", "h" to "c", "hpp" to "c", "kts" to "kt")
+        private val ALIAS = mapOf("bash" to "sh", "zsh" to "sh", "ts" to "js", "mjs" to "js", "jsx" to "js", "tsx" to "js", "cpp" to "c", "cc" to "c", "h" to "c", "hpp" to "c", "kts" to "kt",
+            "fish" to "sh", "exs" to "ex", "pyw" to "py", "sc" to "scala", "pm" to "pl", "psm1" to "ps1", "cxx" to "c", "f95" to "f90", "f" to "f90")
         private val STRINGS = Regex("\"(\\\\.|[^\"\\\\\\n])*\"|'(\\\\.|[^'\\\\\\n])*'|`[^`]*`")
         private val NUMBERS = Regex("\\b(0x[0-9a-fA-F]+|\\d+(\\.\\d+)?)\\b")
         private val TAGS = Regex("</?[A-Za-z][\\w:-]*|/?>")
@@ -123,6 +147,19 @@ class EditorActivity : Activity() {
                 "for" to "for i in 0..$0 {\n    \n}"),
             "html" to mapOf("html5" to "<!DOCTYPE html>\n<html lang=\"az\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>$0</title>\n</head>\n<body>\n    \n</body>\n</html>",
                 "div" to "<div>$0</div>", "script" to "<script>\n    $0\n</script>", "style" to "<style>\n    $0\n</style>", "a" to "<a href=\"$0\"></a>", "img" to "<img src=\"$0\" alt=\"\">"),
+            "xml" to mapOf(
+                "linear" to "<LinearLayout\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"wrap_content\"\n    android:orientation=\"vertical\">\n    $0\n</LinearLayout>",
+                "text" to "<TextView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:text=\"\" />",
+                "button" to "<Button\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:text=\"\" />",
+                "image" to "<ImageView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:src=\"@drawable/\" />",
+                "edit" to "<EditText\n    android:id=\"@+id/$0\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"wrap_content\"\n    android:hint=\"\" />",
+                "frame" to "<FrameLayout\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</FrameLayout>",
+                "scroll" to "<ScrollView\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</ScrollView>",
+                "constraint" to "<androidx.constraintlayout.widget.ConstraintLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</androidx.constraintlayout.widget.ConstraintLayout>",
+                "recycler" to "<androidx.recyclerview.widget.RecyclerView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\" />",
+                "activity" to "<activity android:name=\".$0\" android:exported=\"false\" />",
+                "permission" to "<uses-permission android:name=\"android.permission.$0\" />",
+                "string" to "<string name=\"$0\"></string>"),
             "php" to mapOf("php" to "<?php\n$0\n", "function" to "function $0() {\n    \n}", "foreach" to "foreach ($0 as \$item) {\n    \n}", "echo" to "echo $0;"),
         )
         private val WORD = Regex("[A-Za-z_][A-Za-z0-9_]{2,}")
@@ -151,11 +188,15 @@ class EditorActivity : Activity() {
     private var lastSnap = 0L
     private var pendingInsert = -1
     private val main = Handler(Looper.getMainLooper())
-    private val highlighter = Runnable { highlight() }
+    private val highlighter = Runnable { highlight(); markDiags() }
     private val prefs by lazy { getSharedPreferences("editor", MODE_PRIVATE) }
     private lateinit var suggestRow: LinearLayout
     private lateinit var suggestScroll: HorizontalScrollView
     private var fileWords: Map<String, Int> = emptyMap()
+    private var lsp: LspClient? = null
+    private var lspState = "" // "", "starting", "ready", "missing"
+    private var diags: List<LspClient.Diag> = emptyList()
+    private val lspSync = Runnable { lsp?.takeIf { it.ready }?.didChange(guest, editor.text.toString()) }
     private var wordsAt = 0L
     private fun pref(k: String, d: Boolean) = prefs.getBoolean(k, d)
     private fun setPref(k: String, v: Boolean) = prefs.edit().putBoolean(k, v).apply()
@@ -229,10 +270,143 @@ class EditorActivity : Activity() {
                 if (at >= 0 && at < s.length) smartInsert(s, at)
                 if (at >= 0) suggest() else hideSuggest()
                 updateStatus(); main.removeCallbacks(highlighter); main.postDelayed(highlighter, 350)
+                if (lsp?.ready == true) { main.removeCallbacks(lspSync); main.postDelayed(lspSync, 500) }
             }
         })
         editor.viewTreeObserver.addOnGlobalLayoutListener { updateStatus() }
+        editor.setOnLongClickListener { if (lsp?.ready == true && editor.selectionStart == editor.selectionEnd) { hoverAtCursor(); true } else false }
+        startLsp()
     }
+
+    // ── LSP (completion, diagnostics, hover, go-to-definition from real language servers) ──
+
+    private fun projectRoot(): String {
+        val markers = listOf("settings.gradle", "settings.gradle.kts", ".git", "package.json", "tsconfig.json", "pyproject.toml", "setup.py", "Cargo.toml", "go.mod", "compile_commands.json", "CMakeLists.txt", "pom.xml")
+        var d = guest.substringBeforeLast('/').ifEmpty { "/" }
+        while (d.length > 1) {
+            if (markers.any { HostPaths.toHost(this, envId, "$d/$it")?.exists() == true }) return d
+            d = d.substringBeforeLast('/').ifEmpty { "/" }
+        }
+        return guest.substringBeforeLast('/').ifEmpty { "/" }
+    }
+
+    private fun startLsp() {
+        if (!pref("lsp", true) || lsp != null) return
+        val server = LspClient.serverFor(ext, guest) ?: return
+        lspState = "starting"; updateStatus()
+        Thread {
+            val ok = Headless.run(this, envId, server.check, timeoutSec = 30).exitCode == 0
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                if (!ok) { lspState = "missing"; updateStatus(); return@runOnUiThread }
+                val c = LspClient(this, envId, server, projectRoot(), onDiagnostics = { path, items -> runOnUiThread { if (path == guest) { diags = items; markDiags(); updateStatus() } } })
+                lsp = c
+                runCatching { c.start { runOnUiThread { lspState = "ready"; c.didOpen(guest, editor.text.toString()); updateStatus() } } }
+                    .onFailure { lspState = "missing"; lsp = null; updateStatus() }
+            }
+        }.start()
+    }
+
+    private fun lineCol(off: Int): Pair<Int, Int> {
+        val t = editor.text; val o = off.coerceIn(0, t.length)
+        var line = 0; var ls = 0
+        for (i in 0 until o) if (t[i] == '\n') { line++; ls = i + 1 }
+        return line to (o - ls)
+    }
+
+    private fun offsetOf(text: CharSequence, line: Int, col: Int): Int {
+        var l = 0; var i = 0
+        while (l < line && i < text.length) { if (text[i] == '\n') l++; i++ }
+        return (i + col).coerceAtMost(text.length)
+    }
+
+    private fun markDiags() {
+        val t = editor.text
+        t.getSpans(0, t.length, android.text.style.UnderlineSpan::class.java).forEach { t.removeSpan(it) }
+        diags.take(300).forEach { d ->
+            val a = offsetOf(t, d.line, d.col); var b = offsetOf(t, d.endLine, d.endCol)
+            if (b <= a) b = (a + 1).coerceAtMost(t.length)
+            if (a < b) {
+                t.setSpan(android.text.style.UnderlineSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                t.setSpan(BackgroundColorSpan(if (d.severity <= 1) 0x55FF3B30 else 0x40FFCC00), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+    }
+
+    private fun lspComplete(start: Int, prefix: String, base: LinkedHashMap<String, String?>) {
+        val c = lsp?.takeIf { it.ready } ?: return
+        main.removeCallbacks(lspSync); c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.completion(guest, line, col) { items ->
+            runOnUiThread {
+                if (editor.selectionStart < start || items.isEmpty()) return@runOnUiThread
+                val now = prefixAt().second
+                val list = items.filter { now.isEmpty() || it.label.startsWith(now, true) || it.insert.startsWith(now, true) }.take(25)
+                if (list.isEmpty()) return@runOnUiThread
+                suggestRow.removeAllViews()
+                list.forEach { it ->
+                    suggestRow.addView(TextView(this).apply {
+                        text = "◆ " + it.label.take(40); textSize = 15f; typeface = Typeface.MONOSPACE; setTextColor(0xFF7FDBFF.toInt())
+                        setPadding(Ui.dp(context, 12), Ui.dp(context, 6), Ui.dp(context, 12), Ui.dp(context, 6))
+                        setOnClickListener { _ -> complete(prefixAt().first, it.insert.replace(Regex("\\$\\{\\d+:?([^}]*)}|\\$\\d+"), "$1"), null) }
+                        setOnLongClickListener { _ -> if (it.detail.isNotBlank()) Toast.makeText(context, it.detail, Toast.LENGTH_LONG).show(); true }
+                    })
+                }
+                base.entries.take(8).forEach { (label, body) ->
+                    suggestRow.addView(TextView(this).apply {
+                        text = label; textSize = 15f; typeface = Typeface.MONOSPACE; setTextColor(if (body != null) Ui.GOLD else Ui.INK)
+                        setPadding(Ui.dp(context, 12), Ui.dp(context, 6), Ui.dp(context, 12), Ui.dp(context, 6))
+                        setOnClickListener { complete(prefixAt().first, label.removePrefix("⚡"), body) }
+                    })
+                }
+                suggestScroll.visibility = View.VISIBLE; suggestScroll.scrollTo(0, 0)
+            }
+        }
+    }
+
+    private fun hoverAtCursor() {
+        val c = lsp?.takeIf { it.ready } ?: return lspMissing()
+        c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.hover(guest, line, col) { text -> runOnUiThread {
+            AlertDialog.Builder(this).setTitle("ℹ ${c.server.id}").setMessage(text.ifBlank { "—" }.take(6000))
+                .setPositiveButton(R.string.ok, null).setNeutralButton(getString(R.string.editor_definition)) { _, _ -> goToDefinition() }.show()
+        } }
+    }
+
+    private fun goToDefinition() {
+        val c = lsp?.takeIf { it.ready } ?: return lspMissing()
+        c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.definition(guest, line, col) { loc -> runOnUiThread {
+            if (loc == null) { Toast.makeText(this, "—", Toast.LENGTH_SHORT).show(); return@runOnUiThread }
+            if (loc.path == guest) { editor.requestFocus(); editor.setSelection(offsetOf(editor.text, loc.line, loc.col)); return@runOnUiThread }
+            val host = HostPaths.toHost(this, envId, loc.path)
+            val text = runCatching { host?.readText() }.getOrNull()
+            if (text != null) prefs.edit().putInt("pos:${loc.path}", offsetOf(text, loc.line, loc.col)).apply()
+            open(this, envId, loc.path)
+        } }
+    }
+
+    private fun problems() {
+        if (diags.isEmpty()) { Toast.makeText(this, if (lspState == "ready") "✓ 0" else getString(R.string.editor_lsp_off), Toast.LENGTH_SHORT).show(); return }
+        val items = diags.sortedBy { it.line }.map { (if (it.severity <= 1) "⛔ " else if (it.severity == 2) "⚠ " else "ℹ ") + "${it.line + 1}:${it.col + 1}  ${it.message.lineSequence().first()}" }
+        AlertDialog.Builder(this).setTitle("🩺 ${diags.size}").setItems(items.toTypedArray()) { _, w ->
+            val d = diags.sortedBy { it.line }[w]; editor.requestFocus(); editor.setSelection(offsetOf(editor.text, d.line, d.col))
+        }.show()
+    }
+
+    private fun lspMissing() {
+        val server = LspClient.serverFor(ext, guest)
+        if (server == null) { Toast.makeText(this, getString(R.string.editor_lsp_none, ext), Toast.LENGTH_LONG).show(); return }
+        AlertDialog.Builder(this).setTitle("🧠 LSP · ${server.id}").setMessage(getString(R.string.editor_lsp_install, server.pack))
+            .setPositiveButton(R.string.ok) { _, _ -> Launcher.run(this, envId, "install ${server.pack}", "install ${server.pack}", keepShell = true); lsp = null; lspState = "" }
+            .setNegativeButton(R.string.cancel, null).show()
+    }
+
+    override fun onResume() { super.onResume(); if (::editor.isInitialized && lspState == "" ) startLsp() }
+
+    override fun onDestroy() { lsp?.stop(); lsp = null; super.onDestroy() }
 
     private fun load(): Boolean {
         val f = file
@@ -289,19 +463,25 @@ class EditorActivity : Activity() {
     private fun suggest() {
         if (!pref("autocomplete", true)) return hideSuggest()
         val (start, prefix) = prefixAt()
+        if ((prefix.isEmpty() || prefix[0].isDigit()) && lsp?.ready == true) {
+            val at = editor.selectionStart
+            if (at > 0 && lsp?.triggers?.contains(editor.text[at - 1].toString()) == true) { lspComplete(at, "", LinkedHashMap()); return }
+        }
         if (prefix.isEmpty() || prefix[0].isDigit()) return hideSuggest()
         val now = System.currentTimeMillis()
         if (now - wordsAt > 2000) {
             wordsAt = now
             fileWords = if (editor.text.length < 300_000) WORD.findAll(editor.text).groupingBy { it.value }.eachCount() else emptyMap()
         }
-        val snippets = (SNIPPETS[ext] ?: if (ext in setOf("htm", "xml", "vue")) SNIPPETS["html"] else null).orEmpty()
+        val snippets = (SNIPPETS[ext] ?: if (ext in setOf("htm", "vue", "svg")) SNIPPETS["html"] else null).orEmpty()
         val kws = (LANGS[ext] ?: if (ext.isEmpty()) LANGS["sh"] else null)?.split('|').orEmpty()
         val out = LinkedHashMap<String, String?>() // label → snippet body (null = plain word)
         snippets.filterKeys { it.startsWith(prefix, true) }.forEach { (k, v) -> out["⚡$k"] = v }
         kws.filter { it.startsWith(prefix, true) && it != prefix }.forEach { out.putIfAbsent(it, null) }
         fileWords.entries.filter { it.key.startsWith(prefix, true) && it.key != prefix && !(it.key.length == prefix.length + 0) }
             .sortedByDescending { it.value }.take(20).forEach { out.putIfAbsent(it.key, null) }
+        val trig = editor.selectionStart.let { it > 0 && lsp?.triggers?.contains(editor.text[it - 1].toString()) == true }
+        if (lsp?.ready == true && (prefix.isNotEmpty() || trig)) lspComplete(start, prefix, out)
         if (prefix.length < 2 && out.keys.none { it.startsWith("⚡") }) return hideSuggest()
         if (out.isEmpty()) return hideSuggest()
         suggestRow.removeAllViews()
@@ -369,7 +549,14 @@ class EditorActivity : Activity() {
         val line = before.count { it == '\n' } + 1
         val col = pos - (before.lastIndexOf('\n') + 1) + 1
         val lines = editor.text.count { it == '\n' } + 1
-        status.text = (if (dirty) "● " else "") + "${getString(R.string.editor_line)} $line:$col / $lines · ${ext.ifEmpty { "txt" }} · ${if (indentUnit == "\t") "TAB" else "${indentUnit.length}sp"} · UTF-8"
+        status.text = (if (dirty) "● " else "") + "${getString(R.string.editor_line)} $line:$col / $lines · ${ext.ifEmpty { "txt" }} · ${if (indentUnit == "\t") "TAB" else "${indentUnit.length}sp"} · UTF-8" + lspBadge()
+    }
+
+    private fun lspBadge(): String = when (lspState) {
+        "ready" -> " · 🧠 " + (lsp?.server?.id ?: "") + diags.count { it.severity <= 1 }.let { e -> val w = diags.size - e; (if (e > 0) " ⛔$e" else "") + (if (w > 0) " ⚠$w" else "") }
+        "starting" -> " · 🧠…"
+        "missing" -> " · 🧠✗"
+        else -> ""
     }
 
     private fun highlight() {
@@ -459,7 +646,7 @@ class EditorActivity : Activity() {
             val tmp = File(f.parentFile, ".${f.name}.nibras-tmp")
             tmp.writeText(text)
             if (!tmp.renameTo(f)) { f.writeText(text); tmp.delete() }
-            saved = text; updateStatus()
+            saved = text; updateStatus(); lsp?.takeIf { it.ready }?.let { it.didChange(guest, text); it.didSave(guest) }
             Toast.makeText(this, R.string.editor_saved, Toast.LENGTH_SHORT).show(); true
         }.getOrElse { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show(); false }
     }
@@ -568,6 +755,9 @@ class EditorActivity : Activity() {
         acts += getString(R.string.editor_dup_line) to { snapshot(); val r = lineBounds(); val s = editor.text.substring(r.first, r.last + 1); editor.text.insert(r.last + 1, "\n$s") }
         acts += getString(R.string.editor_del_line) to { snapshot(); val r = lineBounds(); editor.text.delete(r.first, (r.last + 2).coerceAtMost(editor.text.length)) }
         acts += getString(R.string.editor_select_all) to { editor.selectAll() }
+        formatter()?.let { cmd -> acts += "✨ " + getString(R.string.editor_format) + " (${cmd.substringBefore(' ').substringAfterLast('/')})" to { formatWith(cmd) } }
+        if (isLayout()) acts += "📱 " + getString(R.string.editor_layout_preview) to { layoutPreview() }
+        Regex("^(.*?)/(res|app/src/main/res)/").find(guest)?.let { m -> acts += "🎨 " + getString(R.string.res_title) to { ResEditorActivity.open(this, envId, m.groupValues[1]) } }
         if (ext == "json") acts += "{ } " + getString(R.string.editor_format) to {
             runCatching { val t = editor.text.toString().trim(); snapshot(); editor.setText(if (t.startsWith("[")) org.json.JSONArray(t).toString(2) else org.json.JSONObject(t).toString(2)) }
                 .onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }
@@ -579,6 +769,10 @@ class EditorActivity : Activity() {
         acts += (if (pref("autoclose", true)) "☑ " else "☐ ") + getString(R.string.editor_auto_close) to { setPref("autoclose", !pref("autoclose", true)) }
         acts += (if (pref("autocomplete", true)) "☑ " else "☐ ") + getString(R.string.editor_autocomplete) to { setPref("autocomplete", !pref("autocomplete", true)); hideSuggest() }
         acts += "🩺 " + getString(R.string.editor_lint) to { if (save()) lint() }
+        acts += "🧠 " + getString(R.string.editor_problems) + " (LSP)" to { if (lsp?.ready == true) problems() else lspMissing() }
+        acts += "ℹ " + getString(R.string.editor_hover) to { hoverAtCursor() }
+        acts += "➜ " + getString(R.string.editor_definition) to { goToDefinition() }
+        acts += (if (pref("lsp", true)) "☑ " else "☐ ") + "LSP" to { setPref("lsp", !pref("lsp", true)); if (pref("lsp", true)) { lspState = ""; startLsp() } else { lsp?.stop(); lsp = null; lspState = ""; diags = emptyList(); markDiags(); updateStatus() } }
         acts += (if (pref("highlight", true)) "☑ " else "☐ ") + getString(R.string.editor_highlight) to { setPref("highlight", !pref("highlight", true)); highlight() }
         acts += (if (pref("autosave", false)) "☑ " else "☐ ") + getString(R.string.editor_autosave) to { setPref("autosave", !pref("autosave", false)) }
         acts += (if (pref("trim", false)) "☑ " else "☐ ") + getString(R.string.editor_trim) to { setPref("trim", !pref("trim", false)) }
@@ -606,9 +800,59 @@ class EditorActivity : Activity() {
             "yml", "yaml" -> "nibras-need python3 && python3 -c 'import sys,yaml;yaml.safe_load(open(sys.argv[1]));print(\"OK\")' $q"
             "php" -> "nibras-need php && php -l $q"
             "rb" -> "nibras-need ruby && ruby -wc $q"
+            "java" -> "nibras-apk jdk >/dev/null; cp=; for j in /opt/android-sdk/platforms/*/android.jar; do [ -f \"\$j\" ] && cp=\"-cp \$j\"; done; " +
+                "root=\$(d=\$PWD; while [ \"\$d\" != / ] && [ ! -e \"\$d/settings.gradle\" ] && [ ! -e \"\$d/settings.gradle.kts\" ]; do d=\$(dirname \"\$d\"); done; echo \$d); " +
+                "if [ \"\$root\" != / ]; then echo \"Android project: full diagnostics with Gradle\"; nibras-apk build \"\$root\" compileDebugSources; else javac -Xlint:all -d /tmp/nibras-lint \$cp $q; fi"
+            "kt" -> "root=\$(d=\$PWD; while [ \"\$d\" != / ] && [ ! -e \"\$d/settings.gradle\" ] && [ ! -e \"\$d/settings.gradle.kts\" ]; do d=\$(dirname \"\$d\"); done; echo \$d); " +
+                "if [ \"\$root\" != / ]; then nibras-apk build \"\$root\" compileDebugKotlin; else (nibras-need kotlinc || nibras-need kotlin) && kotlinc -nowarn -d /tmp/nibras-lint $q; fi"
+            "xml", "svg", "html", "htm" -> "(nibras-need xmllint || nibras-need libxml2-utils || nibras-need libxml2) >/dev/null 2>&1; xmllint --noout $q && echo OK"
             else -> "echo 'lint: no checker for .$ext (install lsp adds more)'"
         }
         Launcher.run(this, envId, "cd ${shQuote(guest.substringBeforeLast('/').ifEmpty { "/" })} && $cmd; echo; echo '── lint done ──'", "lint", keepShell = true)
+    }
+
+    /** Formatter per language (ACS / Acode "Format"); runs in the environment, then reloads the file. */
+    private fun formatter(): String? {
+        val q = shQuote(guest)
+        return when (ext) {
+            "py" -> "black -q $q || { pip3 install -q black --break-system-packages 2>/dev/null || pip3 install -q black; black -q $q; }"
+            "js", "css", "scss", "md", "markdown", "yml", "yaml", "html", "htm", "vue" -> "nibras-need node >/dev/null && npx --yes prettier@3 --write $q"
+            "sh" -> "(command -v shfmt || nibras-need shfmt) >/dev/null && shfmt -w -i 2 $q"
+            "c" -> "(command -v clang-format || nibras-need clang-format || nibras-need clang) >/dev/null && clang-format -i $q"
+            "go" -> "gofmt -w $q"
+            "rs" -> "rustfmt $q"
+            "java" -> "nibras-apk jdk >/dev/null; j=/opt/nibras-apk/google-java-format.jar; [ -f \$j ] || curl -fsSL -o \$j https://github.com/google/google-java-format/releases/download/v1.24.0/google-java-format-1.24.0-all-deps.jar; java -jar \$j --aosp -r $q"
+            "kt" -> "nibras-apk jdk >/dev/null; j=/opt/nibras-apk/ktfmt.jar; [ -f \$j ] || curl -fsSL -o \$j https://repo1.maven.org/maven2/com/facebook/ktfmt/0.53/ktfmt-0.53-jar-with-dependencies.jar; java -jar \$j --kotlinlang-style $q"
+            "xml", "svg" -> "(command -v xmllint || nibras-need xmllint || nibras-need libxml2-utils || nibras-need libxml2) >/dev/null; t=\$(mktemp); XMLLINT_INDENT='    ' xmllint --format $q > \$t && cat \$t > $q; rm -f \$t"
+            "php" -> "php -l $q"
+            "lua" -> "(command -v stylua || nibras-need stylua) >/dev/null && stylua $q"
+            else -> null
+        }
+    }
+
+    private fun formatWith(cmd: String) {
+        if (!save()) return
+        Toast.makeText(this, getString(R.string.editor_format) + "…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val r = Headless.run(this, envId, "cd ${shQuote(guest.substringBeforeLast('/').ifEmpty { "/" })} && $cmd", timeoutSec = 600)
+            runOnUiThread {
+                if (r.exitCode == 0) { val pos = editor.selectionStart; load(); editor.setSelection(pos.coerceIn(0, editor.text.length)); Toast.makeText(this, "✓", Toast.LENGTH_SHORT).show() }
+                else AlertDialog.Builder(this).setTitle(R.string.editor_format).setMessage((r.stderr + r.stdout + (r.error ?: "")).takeLast(3000).ifBlank { "exit ${r.exitCode}" }).setPositiveButton(R.string.ok, null).show()
+            }
+        }.start()
+    }
+
+    private fun isLayout() = ext == "xml" && (guest.contains("/res/layout") || editor.text.contains("android:layout_width"))
+
+    /** Compact layout preview (ACS layout editor style): renders common Android views from the XML. */
+    private fun layoutPreview() {
+        val root = runCatching { LayoutPreview.render(this, editor.text.toString(), file?.parentFile) }.getOrElse {
+            Toast.makeText(this, "XML: ${it.message}", Toast.LENGTH_LONG).show(); return
+        }
+        val frame = android.widget.FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.WHITE); addView(root) }
+        val scroll = android.widget.ScrollView(this).apply { addView(frame) }
+        AlertDialog.Builder(this).setTitle(R.string.editor_layout_preview).setView(scroll).setPositiveButton(R.string.ok, null).show()
+            .window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     }
 
     private fun fontBy(d: Float) {

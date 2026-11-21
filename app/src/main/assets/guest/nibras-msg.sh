@@ -1,8 +1,15 @@
 # Nibras Terminal: localized messages for nibras-* commands (sourced). Usage: nmsg <key> [printf args]
 NIBRAS_LANG=$(cat /etc/nibras/lang 2>/dev/null || echo en)
+# Other languages: /usr/local/share/nibras/i18n/<lang>.tsv (English text or nmsg.<key> → translation).
+nibras_i18n() {
+  _t=/usr/local/share/nibras/i18n/$NIBRAS_LANG.tsv
+  [ -r "$_t" ] && awk -F '\t' -v k="$1" '$1 == k { print $2; exit }' "$_t"
+}
 nmsg() {
-  _k=$1; shift
-  case "$NIBRAS_LANG:$_k" in
+  _k=$1; shift; _f=
+  case "$NIBRAS_LANG" in en|az|tr|ru) ;; *) _f=$(nibras_i18n "nmsg.$_k") ;; esac
+  [ -n "$_f" ] || case "$NIBRAS_LANG:$_k" in
+    az:lang_now) _f='Dil indi: %s' ;; tr:lang_now) _f='Dil şimdi: %s' ;; ru:lang_now) _f='Язык теперь: %s' ;; *:lang_now) _f='Language is now: %s' ;;
     az:installing) _f='%s quraşdırılır…' ;; tr:installing) _f='%s kuruluyor…' ;; ru:installing) _f='Установка %s…' ;; *:installing) _f='Installing %s…' ;;
     az:no_pm) _f='Bu mühitdə paket meneceri tapılmadı' ;; tr:no_pm) _f='Bu ortamda paket yöneticisi bulunamadı' ;; ru:no_pm) _f='В этой среде нет менеджера пакетов' ;; *:no_pm) _f='No package manager found in this environment' ;;
     az:unknown_cmd) _f='naməlum əmr: %s' ;; tr:unknown_cmd) _f='bilinmeyen komut: %s' ;; ru:unknown_cmd) _f='неизвестная команда: %s' ;; *:unknown_cmd) _f='unknown command: %s' ;;

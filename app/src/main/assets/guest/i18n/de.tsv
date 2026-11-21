@@ -1,0 +1,12 @@
+nmsg.installing	%s wird installiert…
+nmsg.no_pm	Kein Paketmanager in dieser Umgebung
+nmsg.unknown_cmd	unbekannter Befehl: %s
+nmsg.need_tool	%s wird benötigt, wird installiert…
+nmsg.need_fail	%s konnte nicht installiert werden
+nmsg.api_down	Die App-Brücke antwortet nicht (läuft Nibras Terminal?)
+nmsg.shell_now	Neue Sitzungen verwenden %s
+nmsg.running	läuft
+nmsg.not_running	läuft nicht
+nmsg.desk_wait	Desktop wird gestartet…
+nmsg.desk_stopped	Desktop gestoppt
+nmsg.lang_now	Sprache jetzt: %s

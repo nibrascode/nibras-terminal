@@ -1,0 +1,139 @@
+Arch Linux (ARM) environment · arm64 + armv7	بيئة Arch Linux (ARM) · arm64 + armv7
+Fedora 44 environment · arm64 only	بيئة Fedora 44 · arm64 فقط
+Kali Linux (NetHunter rootfs) · arm64 + armhf	Kali Linux (نظام NetHunter) · arm64 + armhf
+Debian environment	بيئة Debian
+Ubuntu 24.04 environment	بيئة Ubuntu 24.04
+Language servers + helix/neovim (real LSP), linters	خوادم اللغات + helix/neovim (LSP حقيقي) ومدققات الشيفرة
+Video: merge, cut, convert, compress (ffmpeg)	الفيديو: دمج، قص، تحويل، ضغط (ffmpeg)
+Audio: convert, cut, normalize, record	الصوت: تحويل، قص، موازنة، تسجيل
+Images: resize, convert, compress (ImageMagick)	الصور: تغيير الحجم، تحويل، ضغط (ImageMagick)
+PDF: merge, split, compress, to text/images	PDF: دمج، تقسيم، ضغط، تحويل إلى نص/صور
+Downloads: videos/music (yt-dlp), fast files (aria2)	التنزيلات: فيديو/موسيقى (yt-dlp)، ملفات بسرعة (aria2)
+Web: instant web server (python/node), PHP	الويب: خادم ويب فوري (python/node)، PHP
+Git with easy clone / save / push	Git مع استنساخ / حفظ / رفع بسهولة
+Python 3 + pip + venv (Pydroid)	Python 3 + pip + venv (مثل Pydroid)
+Node.js + npm	Node.js + npm
+C/C++/Go/Rust compilers, make, cmake (Cxxdroid, AIDE)	مترجمات C/C++/Go/Rust و make و cmake (مثل Cxxdroid و AIDE)
+APK studio: build, decompile, sign (apktool, jadx, SDK)	استوديو APK: بناء، فك، توقيع (apktool، jadx، SDK)
+Backups: tar/rsync/rclone to phone or cloud	النسخ الاحتياطي: tar/rsync/rclone إلى الهاتف أو السحابة
+Network: scan, ping, speed test, DNS, ports	الشبكة: فحص، ping، اختبار السرعة، DNS، المنافذ
+OCR: text from photos/PDF (AZ/TR/EN/RU/AR)	التعرف على النص: من الصور/PDF (AZ/TR/EN/RU/AR)
+Share folders: WebDAV, FTP, HTTP, DLNA + QR	مشاركة المجلدات: WebDAV، FTP، HTTP، DLNA + رمز QR
+This terminal in a PC browser over Wi-Fi (ttyd)	هذه الطرفية في متصفح الحاسوب عبر Wi-Fi (ttyd)
+Linux desktop XFCE (inside the app)	سطح مكتب لينكس XFCE (داخل التطبيق)
+Offline AI chat on the phone (llama.cpp)	دردشة ذكاء اصطناعي دون إنترنت على الهاتف (llama.cpp)
+Quran & hadith in the terminal (AZ/TR/EN/RU)	القرآن والحديث في الطرفية (AZ/TR/EN/RU)
+Prayer times and reminders	مواقيت الصلاة والتذكير
+Classic terminal games	ألعاب طرفية كلاسيكية
+Learn Linux: lessons and quizzes	تعلّم لينكس: دروس واختبارات
+Record the terminal session and replay/share it	سجّل جلسة الطرفية وأعد تشغيلها/شاركها
+Encrypted vault for private files (age)	خزنة مشفرة للملفات الخاصة (age)
+Markdown notes in the terminal	ملاحظات Markdown في الطرفية
+System monitor (htop, btop)	مراقب النظام (htop، btop)
+Security tools (nmap, hydra, sqlmap…) for your own systems	أدوات أمنية (nmap، hydra، sqlmap…) لأنظمتك أنت فقط
+Android SDK + Gradle + JDK 17 for on-phone app builds (ACS style)	Android SDK + Gradle + JDK 17 لبناء التطبيقات على الهاتف (مثل ACS)
+Java JDK (17 or 21): install jdk 21	Java JDK (17 أو 21): install jdk 21
+Gradle 8.11 (new enough for Android Gradle Plugin 8)	Gradle 8.11 (يكفي لـ Android Gradle Plugin 8)
+C/C++ for Android: clang, cmake, ninja (+ notes)	C/C++ لأندرويد: clang و cmake و ninja (+ ملاحظات)
+Java + Kotlin + Maven	Java + Kotlin + Maven
+PHP + Composer	PHP + Composer
+Ruby + gems + bundler	Ruby + gems + bundler
+Perl + cpanminus	Perl + cpanminus
+Lua + LuaRocks	Lua + LuaRocks
+Zsh + Oh My Zsh (+ autosuggestions, highlighting)	Zsh + Oh My Zsh (+ الاقتراحات التلقائية والتلوين)
+fish shell (friendly, autosuggestions)	صدفة fish (سهلة، اقتراحات تلقائية)
+vim, neovim, nano, micro, emacs	vim و neovim و nano و micro و emacs
+tmux + screen (split terminals, detach)	tmux + screen (تقسيم الطرفيات والفصل)
+VS Code in the browser (code-server)	VS Code في المتصفح (code-server)
+Jupyter Notebook / Lab	Jupyter Notebook / Lab
+adb + fastboot (control phones / this phone over Wi-Fi)	adb + fastboot (التحكم بالهواتف / بهذا الهاتف عبر Wi-Fi)
+Metasploit Framework (in the Kali environment)	Metasploit Framework (في بيئة Kali)
+Linux desktop (XFCE over VNC, opens in the app)	سطح مكتب لينكس (XFCE عبر VNC، يفتح داخل التطبيق)
+Documents: pandoc, Markdown → PDF/DOCX	المستندات: pandoc، Markdown ← PDF/DOCX
+Fedora has no 32-bit ARM build since Fedora 37; use Debian, Arch or Kali.	لا يوجد إصدار ARM ‏32‑بت من Fedora منذ الإصدار 37؛ استخدم Debian أو Arch أو Kali.
+Start: code-server --auth none --bind-addr 127.0.0.1:8080  → open http://127.0.0.1:8080	للتشغيل: code-server --auth none --bind-addr 127.0.0.1:8080  ← افتح http://127.0.0.1:8080
+Start: jupyter lab --ip 127.0.0.1 --no-browser --allow-root	للتشغيل: jupyter lab --ip 127.0.0.1 --no-browser --allow-root
+Metasploit is packaged by Kali: install kali, then in Kali run: install metasploit	Metasploit متوفر في Kali: ‏install kali ثم داخل Kali: ‏install metasploit
+Downloading yt-dlp…	جارٍ تنزيل yt-dlp…
+Packs (install <name>):	الحزم (install <name>):
+Any other Linux package: pkg install <name>	أي حزمة لينكس أخرى: pkg install <name>
+tools	أدوات
+Number or name (Enter = exit):	الرقم أو الاسم (Enter = خروج):
+join videos	دمج مقاطع الفيديو
+cut a part (start end)	قص جزء (البداية النهاية)
+change format	تغيير الصيغة
+make smaller	تصغير الحجم
+extract audio	استخراج الصوت
+scale to height	تغيير الارتفاع
+burn subtitles	دمج الترجمة في الفيديو
+Different formats — re-encoding…	صيغ مختلفة — إعادة الترميز…
+What do you want to do?	ماذا تريد أن تفعل؟
+Files (space separated, * works):	الملفات (مفصولة بمسافة، * تعمل):
+best video	أفضل فيديو
+file	ملف
+video/music from YouTube & 1000+ sites, or any file	فيديو/موسيقى من YouTube وأكثر من 1000 موقع، أو أي ملف
+max height	أقصى ارتفاع
+fast, resumable (aria2)	سريع وقابل للاستئناف (aria2)
+update yt-dlp	تحديث yt-dlp
+via Android download manager	عبر مدير التنزيلات في أندرويد
+Download only content you have the right to.	نزّل فقط المحتوى الذي تملك حق تنزيله.
+instant web server	خادم ويب فوري
+whole Linux environment	بيئة لينكس كاملة
+Saving the environment…	جارٍ حفظ البيئة…
+Done. Open a new session.	تم. افتح جلسة جديدة.
+Windows needs port 445 (root only); Android/Linux/macOS file managers accept smb://ip:port.	ويندوز يحتاج المنفذ 445 (بصلاحية الجذر فقط)؛ مديرو الملفات في أندرويد/لينكس/ماك يقبلون smb://ip:port.
+Open on your computer (same Wi-Fi):	افتح على حاسوبك (نفس شبكة Wi-Fi):
+Building llama.cpp (10–40 min on a phone)…	جارٍ بناء llama.cpp (10–40 دقيقة على الهاتف)…
+Downloading a small multilingual model (~400 MB)…	جارٍ تنزيل نموذج صغير متعدد اللغات (~400 ميغابايت)…
+Games:	الألعاب:
+I picked a number 1–100.	اخترت رقمًا من 1 إلى 100.
+Not quite — try again (q = quit)	ليس تمامًا — حاول مرة أخرى (q = خروج)
+Learn Linux step by step. Type the command for each task.	تعلّم لينكس خطوة بخطوة. اكتب الأمر لكل مهمة.
+check Wi-Fi / mobile data, then: net ping 1.1.1.1	تحقق من Wi-Fi / بيانات الجوال، ثم: net ping 1.1.1.1
+port is busy: use another port, or find it: netstat -tlnp	المنفذ مشغول: استخدم منفذًا آخر، أو اعرف من يشغله: netstat -tlnp
+another package install is running; wait, or: rm -f /var/lib/dpkg/lock* /var/lib/pacman/db.lck	يوجد تثبيت حزم آخر قيد التشغيل؛ انتظر، أو: rm -f /var/lib/dpkg/lock* /var/lib/pacman/db.lck
+out of memory: close apps or use a smaller model / -j1	نفدت الذاكرة: أغلق التطبيقات أو استخدم نموذجًا أصغر / ‎-j1
+It worked this time (exit 0).	نجح هذه المرة (exit 0).
+Trash emptied	أُفرغت السلة
+Copied	نُسخ
+Delete the original folder? (yes)	حذف المجلد الأصلي؟ (yes)
+Recording… type exit to stop	جارٍ التسجيل… اكتب exit للإيقاف
+record with asciinema first	سجّل أولًا باستخدام asciinema
+(cron menu = buttons)	(cron menu = أزرار)
+Every 5 minutes,Every hour,Every day 09:00,Every Monday 09:00,Custom	كل 5 دقائق,كل ساعة,كل يوم 09:00,كل اثنين 09:00,مخصص
+Command	الأمر
+for jobs even when the app is closed:	للمهام حتى عندما يكون التطبيق مغلقًا:
+Installed. Plugins are your own scripts — install only from people you trust.	ثُبّتت. الإضافات سكربتات خاصة بك — ثبّت فقط ممن تثق بهم.
+(install fzf for interactive search: pkg install fzf)	(ثبّت fzf للبحث التفاعلي: pkg install fzf)
+nmsg.installing	جارٍ تثبيت %s…
+nmsg.no_pm	لا يوجد مدير حزم في هذه البيئة
+nmsg.unknown_cmd	أمر غير معروف: %s
+nmsg.set_password	عيّن أولًا كلمة مرور للمستخدم root:
+nmsg.sshd_on	خادم SSH يعمل على المنفذ %s. من جهاز آخر: ssh -p %s root@%s
+nmsg.sshd_off	أُوقف خادم SSH
+nmsg.shell_now	الجلسات الجديدة ستستخدم %s
+nmsg.shell_cur	الصدفة الحالية: %s
+nmsg.desk_running	سطح المكتب يعمل. يفتح داخل التطبيق؛ لـ VNC خارجي: 127.0.0.1:5901
+nmsg.desk_stopped	أُوقف سطح المكتب
+nmsg.desk_wait	جارٍ تشغيل سطح المكتب…
+nmsg.desk_fail	لم يبدأ سطح المكتب. السجل: %s
+nmsg.not_running	لا يعمل
+nmsg.running	يعمل
+nmsg.adb_pair	الإعدادات ← خيارات المطور ← تصحيح الأخطاء اللاسلكي ← «إقران الجهاز برمز». اكتب المنفذ والرمز المكون من 6 أرقام.
+nmsg.adb_port	اكتب المنفذ الظاهر تحت «عنوان IP والمنفذ» في شاشة التصحيح اللاسلكي:
+nmsg.adb_none	لا يوجد جهاز متصل. أولًا: nibras-adb pair ثم nibras-adb connect
+nmsg.api_down	جسر التطبيق لا يستجيب (هل Nibras Terminal مفتوح؟)
+nmsg.need_tool	يلزم %s، جارٍ التثبيت…
+nmsg.need_fail	تعذّر تثبيت %s
+nmsg.lang_now	اللغة الآن: %s
+TypeScript + tsx (run .ts directly)	TypeScript + tsx (تشغيل ‎.ts مباشرة)
+Dart SDK (Debian/Ubuntu environments)	Dart SDK (بيئات Debian/Ubuntu)
+R language (Rscript)	لغة R ‏(Rscript)
+Julia (arm64, Debian/Ubuntu)	Julia (arm64، Debian/Ubuntu)
+Haskell (GHC, runghc)	Haskell (GHC، runghc)
+Elixir + Erlang	Elixir + Erlang
+Zig compiler 0.13	مترجم Zig 0.13
+Nim compiler	مترجم Nim
+PowerShell 7 (pwsh, Debian/Ubuntu)	PowerShell 7 (pwsh، Debian/Ubuntu)
+run <file> [args] — python, js/ts, java, kotlin, c/c++, go, rust, php, ruby, perl, lua, dart, r, julia, haskell, elixir, zig, nim, bash, powershell…	run <ملف> [وسائط] — يتعرف على لغة الملف ويشغّله: python، js/ts، java، kotlin، c/c++، go، rust، php، ruby، perl، lua، dart، r، julia، haskell، elixir، zig، nim، bash، powershell…
+No project file found (Cargo.toml, go.mod, package.json, Makefile…)	لم يُعثر على ملف مشروع (Cargo.toml، go.mod، package.json، Makefile…)

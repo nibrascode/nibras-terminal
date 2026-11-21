@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Build
+import java.io.File
 import java.util.Locale
 
 /** The ABI whose native libraries Android actually installed for this process. */
@@ -59,12 +60,37 @@ class Prefs(context: Context) {
 }
 
 object Lang {
-    val supported = listOf("", "az", "tr", "en", "ru")
+    /** Every built-in language: code to native name. English is the default and the fallback. */
+    val names = linkedMapOf(
+        "en" to "English", "az" to "Azərbaycanca", "ar" to "العربية", "tr" to "Türkçe", "ru" to "Русский",
+        "fa" to "فارسی", "ur" to "اردو", "id" to "Bahasa Indonesia", "ms" to "Bahasa Melayu", "fr" to "Français",
+        "de" to "Deutsch", "es" to "Español", "pt" to "Português", "it" to "Italiano", "zh" to "中文",
+        "ja" to "日本語", "ko" to "한국어", "hi" to "हिन्दी", "bn" to "বাংলা",
+    )
+    val supported = listOf("") + names.keys
+    val rtl = setOf("ar", "fa", "ur")
 
-    /** Effective UI language code (az / tr / ru / en). */
+    /** Device language if we ship it, otherwise English. */
+    fun device(context: Context): String =
+        android.content.res.Resources.getSystem().configuration.locales[0].language.let { if (it in names) it else "en" }
+
+    /** Effective UI language code. */
     fun current(context: Context): String {
-        val code = Prefs(context).language.ifBlank { context.resources.configuration.locales[0].language }
-        return if (code in listOf("az", "tr", "ru")) code else "en"
+        val code = Prefs(context).language.ifBlank { device(context) }
+        return if (code in names) code else "en"
+    }
+
+    fun chosen(context: Context) = Prefs(context).let { it.sp.getBoolean("languageChosen", false) || it.language.isNotBlank() }
+
+    fun set(context: Context, code: String) {
+        Prefs(context).language = code
+        Prefs(context).sp.edit().putBoolean("languageChosen", true).apply()
+        // Linux environments read /etc/nibras/lang for nibras-* command messages.
+        runCatching {
+            File(context.filesDir, "unpacked").listFiles()?.forEach { r ->
+                File(r, "etc/nibras").takeIf { it.isDirectory }?.let { File(it, "lang").writeText(current(context) + "\n") }
+            }
+        }
     }
 
     fun wrap(base: Context): Context {
@@ -74,6 +100,7 @@ object Lang {
         Locale.setDefault(locale)
         val config = Configuration(base.resources.configuration)
         config.setLocale(locale)
+        config.setLayoutDirection(locale)
         return base.createConfigurationContext(config)
     }
 }

@@ -1,0 +1,12 @@
+nmsg.installing	%s انسٹال ہو رہا ہے…
+nmsg.no_pm	اس ماحول میں پیکیج مینیجر نہیں ملا
+nmsg.unknown_cmd	نامعلوم کمانڈ: %s
+nmsg.need_tool	%s درکار ہے، انسٹال ہو رہا ہے…
+nmsg.need_fail	%s انسٹال نہیں ہو سکا
+nmsg.api_down	ایپ برج جواب نہیں دے رہا (کیا Nibras Terminal کھلا ہے؟)
+nmsg.shell_now	نئے سیشن %s استعمال کریں گے
+nmsg.running	چل رہا ہے
+nmsg.not_running	نہیں چل رہا
+nmsg.desk_wait	ڈیسک ٹاپ شروع ہو رہا ہے…
+nmsg.desk_stopped	ڈیسک ٹاپ بند ہو گیا
+nmsg.lang_now	اب زبان: %s
