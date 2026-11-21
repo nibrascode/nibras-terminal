@@ -27,4 +27,4 @@ data class InstallRecord(
     val extracted: Boolean,
 )
 
-enum class Tab { Home, Downloads, Session, Files }
+enum class Tab { Session, Files, Downloads, Home }

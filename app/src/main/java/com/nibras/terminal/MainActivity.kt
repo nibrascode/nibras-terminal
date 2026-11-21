@@ -40,10 +40,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -105,10 +111,10 @@ private fun NibrasApp(state: UiState, model: TerminalViewModel) {
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            NavItem("Ev", state.tab == Tab.Home) { model.select(Tab.Home) }
-            NavItem("Yüklə", state.tab == Tab.Downloads) { model.select(Tab.Downloads) }
-            NavItem("Sessiya", state.tab == Tab.Session) { model.select(Tab.Session) }
+            NavItem("Terminal", state.tab == Tab.Session) { model.select(Tab.Session) }
             NavItem("Fayl", state.tab == Tab.Files) { model.select(Tab.Files) }
+            NavItem("Yüklə", state.tab == Tab.Downloads) { model.select(Tab.Downloads) }
+            NavItem("Ev", state.tab == Tab.Home) { model.select(Tab.Home) }
         }
     }
 }
@@ -210,56 +216,69 @@ private fun DownloadsTab(state: UiState, model: TerminalViewModel) {
 
 @Composable
 private fun SessionTab(state: UiState, model: TerminalViewModel) {
-    val env = state.installed.keys.filter { id ->
-        id.startsWith("rootfs-") && state.installed[id]?.extracted == true
-    }
-    var line by remember { mutableStateOf("") }
+    var field by remember { mutableStateOf(TextFieldValue("")) }
     var history by remember { mutableStateOf(listOf<String>()) }
     var cursor by remember { mutableStateOf(-1) }
+    var ctrl by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
+    val focus = remember { FocusRequester() }
+    val clipboard = LocalClipboardManager.current
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     LaunchedEffect(state.sessionLog) { scroll.scrollTo(scroll.maxValue) }
     fun submit() {
-        val text = line.trim()
+        val text = field.text.trim()
         if (text.isEmpty() || state.busyId != null) return
         if (text == "clear") {
-            line = ""
+            field = TextFieldValue("")
             model.clearLog()
             return
         }
-        val phone = text.startsWith("nibras-") || text.startsWith("termux-")
-        if (env.isEmpty() && !phone) return
         history = history + text
         cursor = -1
-        line = ""
+        field = TextFieldValue("")
         model.run(text)
     }
     Column(Modifier.fillMaxSize().background(Color.Black).imePadding()) {
-        Text(
-            state.sessionLog.ifBlank { if (env.isEmpty()) "Nibras\ntelefon əmri: nibras-info" else "Nibras\n${env.first()}  ~ $" },
-            color = Color(0xFFD7D7D7),
-            fontFamily = FontFamily.Monospace,
-            fontSize = 13.sp,
-            lineHeight = 18.sp,
-            modifier = Modifier.weight(1f).verticalScroll(scroll).padding(horizontal = 10.dp, vertical = 8.dp),
-        )
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            listOf("ESC", "/", "-", "~", "|", "↑").forEach { key ->
+        SelectionContainer(Modifier.weight(1f)) {
+            Text(
+                state.sessionLog,
+                color = Color(0xFFD7D7D7),
+                fontFamily = FontFamily.Monospace,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+        }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
+            listOf("ESC", "CTRL", "ALT", "TAB", "←", "→", "↑", "PASTE").forEach { key ->
                 TextButton(
                     onClick = {
+                        val value = field
                         when (key) {
                             "↑" -> {
                                 if (history.isEmpty()) return@TextButton
                                 val next = if (cursor < 0) history.lastIndex else (cursor - 1).coerceAtLeast(0)
                                 cursor = next
-                                line = history[next]
+                                field = TextFieldValue(history[next], TextRange(history[next].length))
                             }
-                            "ESC" -> line = ""
-                            else -> line += key
+                            "←" -> {
+                                val at = (value.selection.start - 1).coerceAtLeast(0)
+                                field = value.copy(selection = TextRange(at))
+                            }
+                            "→" -> {
+                                val at = (value.selection.start + 1).coerceAtMost(value.text.length)
+                                field = value.copy(selection = TextRange(at))
+                            }
+                            "ESC" -> field = TextFieldValue("")
+                            "CTRL" -> ctrl = !ctrl
+                            "ALT" -> field = insertAt(value, "\u001b")
+                            "TAB" -> field = insertAt(value, "\t")
+                            "PASTE" -> clipboard.getText()?.text?.let { field = insertAt(value, it) }
                         }
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(key, color = Color(0xFFCFCFCF), fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    Text(key, color = if (key == "CTRL" && ctrl) Gold else Color(0xFFCFCFCF), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
                 }
             }
         }
@@ -270,17 +289,31 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
             Text("~ $", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
             Spacer(Modifier.width(8.dp))
             BasicTextField(
-                value = line,
-                onValueChange = { line = it; cursor = -1 },
+                value = field,
+                onValueChange = { next ->
+                    field = if (ctrl && next.text.length == field.text.length + 1) {
+                        val added = next.text.last()
+                        ctrl = false
+                        if (added in 'a'..'z' || added in 'A'..'Z') {
+                            val code = (added.lowercaseChar().code - 'a'.code + 1).toChar()
+                            TextFieldValue(field.text + code, TextRange(field.text.length + 1))
+                        } else {
+                            next
+                        }
+                    } else {
+                        next
+                    }
+                    cursor = -1
+                },
                 enabled = state.busyId == null,
                 singleLine = true,
                 textStyle = TextStyle(color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 14.sp),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { submit() }),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).focusRequester(focus),
                 decorationBox = { inner ->
                     Box {
-                        if (line.isEmpty()) Text(if (state.busyId == "session") "işləyir" else "əmr", color = Color(0xFF666666), fontFamily = FontFamily.Monospace, fontSize = 14.sp)
+                        if (field.text.isEmpty()) Text(if (state.busyId == "session") "işləyir" else "əmr", color = Color(0xFF666666), fontFamily = FontFamily.Monospace, fontSize = 14.sp)
                         inner()
                     }
                 },
@@ -290,6 +323,12 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
             }
         }
     }
+}
+
+private fun insertAt(value: TextFieldValue, extra: String): TextFieldValue {
+    val at = value.selection.start.coerceIn(0, value.text.length)
+    val text = value.text.substring(0, at) + extra + value.text.substring(at)
+    return TextFieldValue(text, TextRange(at + extra.length))
 }
 
 @Composable

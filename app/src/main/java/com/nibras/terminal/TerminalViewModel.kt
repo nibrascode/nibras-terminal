@@ -23,13 +23,13 @@ import java.io.File
 data class UiState(
     val components: List<Component> = emptyList(),
     val installed: Map<String, InstallRecord> = emptyMap(),
-    val tab: Tab = Tab.Home,
+    val tab: Tab = Tab.Session,
     val busyId: String? = null,
     val progress: Float = 0f,
     val notice: String? = null,
     val editorId: String? = null,
     val editorText: String = "",
-    val sessionLog: String = "",
+    val sessionLog: String = "Welcome to Nibras Terminal.",
     val permissionAsk: String? = null,
     val permissionNonce: Int = 0,
     val pendingCommand: String? = null,
@@ -44,10 +44,17 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         val bundled = runCatching { catalogStore.bundled() }.getOrDefault(emptyList())
-        val installed = runCatching { seedSmallPayloads(app, bundled, installStore.read()) }.getOrDefault(installStore.read())
-        installStore.write(installed)
+        val installed = runCatching { installStore.read() }.getOrDefault(emptyMap())
         _state.update { it.copy(components = bundled, installed = installed) }
-        refresh()
+        viewModelScope.launch {
+            val seeded = withContext(Dispatchers.IO) {
+                runCatching { seedSmallPayloads(getApplication(), bundled, installStore.read()) }.getOrDefault(installed)
+            }
+            installStore.write(seeded)
+            val ready = seeded["rootfs-alpine"]?.extracted == true
+            _state.update { it.copy(installed = seeded, notice = if (ready) "Alpine hazırdır" else null) }
+            refresh()
+        }
     }
 
     fun select(tab: Tab) {
@@ -206,7 +213,9 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _state.update { it.copy(busyId = "session", notice = null) }
             val text = withContext(Dispatchers.IO) {
-                PhoneBridge.run(app, line) ?: runCatching { execInProot(line) }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
+                PhoneBridge.run(app, line) ?: runCatching {
+                    if (rootfsDir() != null) execInProot(line) else execLocal(line)
+                }.getOrElse { error -> error.message ?: "sessiya açılmadı" }
             }
             val previous = _state.value.sessionLog
             val joined = listOf(previous, "$ $line", text).filter { it.isNotBlank() }.joinToString("\n")
@@ -222,14 +231,45 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(notice = "dayandırıldı") }
     }
 
-    private fun execInProot(command: String): String {
+    private fun rootfsDir(): File? {
         val app = getApplication<Application>()
-        val proot = prootBinary(app)
-        val root = listOf("rootfs-alpine", "rootfs-debian", "rootfs-ubuntu").firstNotNullOfOrNull { id ->
+        return listOf("rootfs-alpine", "rootfs-debian", "rootfs-ubuntu").firstNotNullOfOrNull { id ->
             val record = _state.value.installed[id]
             val dir = File(app.filesDir, "unpacked/$id")
             if (record?.extracted == true && dir.isDirectory) dir else null
-        } ?: error("Əvvəl mühit arxivini yüklə və aç")
+        }
+    }
+
+    private fun execLocal(command: String): String {
+        val home = File(getApplication<Application>().filesDir, "home").apply { mkdirs() }
+        val cwd = File(home, ".cwd")
+        val script = File(home, "cmd.sh")
+        val start = cwd.takeIf { it.isFile }?.readText()?.lineSequence()?.firstOrNull()?.trim().orEmpty().ifBlank { home.absolutePath }
+        script.writeText(
+            "cd ${posixQuote(start)} 2>/dev/null || cd ${posixQuote(home.absolutePath)}\n" +
+                command + "\ncode=\$?\npwd > ${posixQuote(cwd.absolutePath)}\nexit \$code\n",
+        )
+        val process = ProcessBuilder("/system/bin/sh", script.absolutePath)
+            .redirectErrorStream(true)
+            .start()
+        running = process
+        return try {
+            val output = process.inputStream.bufferedReader().readText().trim()
+            val code = process.waitFor()
+            if (code == 0) output else listOf(output, "çıxdı $code").filter { it.isNotBlank() }.joinToString("\n")
+        } catch (error: Exception) {
+            error.message ?: "dayandırıldı"
+        } finally {
+            running = null
+        }
+    }
+
+    private fun posixQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
+
+    private fun execInProot(command: String): String {
+        val app = getApplication<Application>()
+        val proot = prootBinary(app)
+        val root = rootfsDir() ?: error("Əvvəl mühit arxivini yüklə və aç")
         val home = File(root, "root").apply { mkdirs() }
         File(home, ".nibras_cmd.sh").writeText(sessionScript(command))
         val tmp = File(app.cacheDir, "proot-tmp").apply { mkdirs() }
