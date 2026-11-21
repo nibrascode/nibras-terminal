@@ -10,7 +10,9 @@
 
 ## 2. انسٹالیشن اور پہلی بار کھولنا
 
-1. APK براہ راست ڈاؤن لوڈ کریں: https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
+1. APK براہ راست ڈاؤن لوڈ کریں: https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk
+کیمرہ، مائیکروفون، ایس ایم ایس، رابطے اور مقام صرف وہی کمانڈ چلانے پر مانگے جاتے ہیں، ایپ کھلتے وقت نہیں۔
+خودکار اپڈیٹ (Obtainium): https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nibrascode/nibras-terminal
 2. فائل کھولیں اور جب اینڈرائیڈ پوچھے تو "نامعلوم ایپس انسٹال کریں" کی اجازت دیں۔
 3. پہلی بار کھولنے پر نبراس ٹرمینل زبان منتخب کرنے کی اسکرین دکھاتا ہے۔ ہر زبان اپنے نام سے لکھی ہوتی ہے اور آپ کے فون کی زبان پہلے سے منتخب ہوتی ہے۔ اگر آپ کے فون کی زبان دستیاب نہ ہو تو انگریزی استعمال ہوتی ہے۔
 4. اندرونی Alpine Linux ماحول خود بخود تیار ہو جاتا ہے اور ٹرمینل کھل جاتا ہے۔

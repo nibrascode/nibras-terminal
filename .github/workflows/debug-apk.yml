@@ -25,7 +25,7 @@ on:
           - aab
           - sign
 
-run-name: ${{ inputs.kind || 'apk' }} ${{ inputs.sdk || '35' }}
+run-name: ${{ inputs.kind || 'sign' }} ${{ inputs.sdk || '35' }}
 
 jobs:
   package:
@@ -34,7 +34,7 @@ jobs:
       contents: write
     env:
       SDK: ${{ github.event.inputs.sdk || '35' }}
-      KIND: ${{ github.event.inputs.kind || 'apk' }}
+      KIND: ${{ github.event.inputs.kind || 'sign' }}
       NIBRAS_KEYSTORE_B64: ${{ secrets.NIBRAS_KEYSTORE_B64 }}
       NIBRAS_STORE_PASSWORD: ${{ secrets.NIBRAS_STORE_PASSWORD }}
       NIBRAS_KEY_PASSWORD: ${{ secrets.NIBRAS_KEY_PASSWORD }}
@@ -91,7 +91,8 @@ jobs:
           PY
       - name: Build
         run: |
-          CODE=1.0.0  # fixed versionName (app/build.gradle.kts); not tied to the run number
+          CODE=$(sed -n 's/.*nibrasVersionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)
+          test -n "$CODE"
           GRADLE=(./gradlew --no-daemon -Psdk="$SDK")
           if [ "$KIND" = "sign" ]; then
             set -a
@@ -138,18 +139,30 @@ jobs:
             "$TOOL" verify dist/app-debug.apk
           fi
       - name: Public APK
-        if: env.KIND == 'apk'
+        if: env.KIND == 'sign'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp dist/app-debug.apk dist/nibras-terminal-1.0.0.apk
-          sha256sum dist/nibras-terminal-1.0.0.apk | awk '{print $1"  nibras-terminal-1.0.0.apk"}' > dist/SHA256SUMS
-          if ! gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" --title "Nibras Terminal 1.0.0" --notes "Android APK. Allow Install unknown apps. Debug signature."
+          VER=$(sed -n 's/.*nibrasVersionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts)
+          test -n "$VER"
+          cp dist/app-release.apk dist/nibras-terminal.apk
+          (cd dist && sha256sum nibras-terminal.apk > SHA256SUMS)
+          NOTES=$(printf '%s\n' \
+            "Nibras Terminal $VER" \
+            "" \
+            "Android 8 or newer. Allow Install unknown apps." \
+            "Direct file: https://github.com/nibrascode/nibras-terminal/releases/download/v${VER}/nibras-terminal.apk" \
+            "" \
+            "Camera, microphone, SMS, contacts and location are asked only when you run that command, not when the app opens." \
+            "If the older debug APK is installed, uninstall it once. Later updates use this same release key." \
+            "" \
+            "Automatic updates: https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nibrascode/nibras-terminal")
+          if ! gh release view "v$VER" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "v$VER" --repo "$GITHUB_REPOSITORY" --title "Nibras Terminal $VER" --notes "$NOTES"
           fi
-          gh release upload v1.0.0 dist/nibras-terminal-1.0.0.apk dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "v$VER" dist/nibras-terminal.apk dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
 
       - uses: actions/upload-artifact@v4
         with:
-          name: nibras-${{ github.event.inputs.kind || 'apk' }}-${{ github.event.inputs.sdk || '35' }}
+          name: nibras-${{ github.event.inputs.kind || 'sign' }}-${{ github.event.inputs.sdk || '35' }}
           path: dist/

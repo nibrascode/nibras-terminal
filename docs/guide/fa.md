@@ -10,7 +10,9 @@
 
 ## ۲. نصب و اولین اجرا
 
-1. فایل APK را مستقیم دانلود کنید: https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
+1. فایل APK را مستقیم دانلود کنید: https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk
+دوربین، میکروفون، پیامک، مخاطبان و مکان فقط هنگام اجرای همان فرمان پرسیده می‌شوند، نه هنگام باز شدن برنامه.
+به‌روزرسانی خودکار (Obtainium): https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nibrascode/nibras-terminal
 2. فایل را باز کنید و وقتی اندروید درخواست کرد، اجازهٔ «نصب برنامه‌های ناشناس» را بدهید.
 3. در اولین اجرا، نبراس ترمینال صفحهٔ انتخاب زبان را نشان می‌دهد. هر زبان با نام خودش نوشته شده و زبان گوشی شما از قبل انتخاب شده است. اگر زبان گوشی شما موجود نباشد، انگلیسی استفاده می‌شود.
 4. محیط داخلی Alpine Linux به‌طور خودکار آماده می‌شود و ترمینال باز می‌شود.

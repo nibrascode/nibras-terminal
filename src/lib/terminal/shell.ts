@@ -2726,7 +2726,7 @@ function apkCmd(session: Session, verb: string | undefined, kind: "apk" | "aab" 
     return ok(session, lines.join("\n"));
   }
   if (action === "endir" && kind === "apk") {
-    const url = "https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk";
+    const url = "https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk";
     return { ...ok(session, `APK\n${url}`), publicApk: url };
   }
   if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, `nibras ${kind} build | status | download`);

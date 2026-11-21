@@ -83,7 +83,7 @@ nibras sign status
 nibras sign download
 ```
 
-SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. İlk `nibras sign` açarı bir dəfə yaradır və saxlayır. Sonrakı imzalar eyni açardandır. Şifrə heç yerdə göstərilmir. `versionCode` hər qurmada artır, ona görə yeni paket köhnənin üstünə quraşır.
+SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. İlk `nibras sign` açarı bir dəfə yaradır və saxlayır. Sonrakı imzalar eyni açardandır. Şifrə heç yerdə göstərilmir. `versionName` və `versionCode` yalnız sahib dəyişəndə artır. İndi `1.0.1` / `10001`. Eyni release açarı saxlanır, ona görə növbəti paket köhnənin üstünə quraşır. Köhnə debug APK varsa, bir dəfə silinir.
 
 Digər `nibras` əmrləri: `token`, `layihe`, `serve`, `md`, `stop`, `disk`, `zibil`, `qaytar`. Siyahıdan kənar fel yoxdur.
 

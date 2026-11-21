@@ -166,7 +166,7 @@ export async function runApk(
     if (sent.status === 401) throw new Error("Token qəbul edilmədi.");
     if (sent.status !== 204) throw new Error(await githubError(sent));
     const doing = kind === "sign" ? "Signing the release APK and AAB." : kind === "aab" ? "Building the AAB." : "Building the APK.";
-    return { text: `${doing}\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\nversionCode increases on every build.\n${command} status` };
+    return { text: `${doing}\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\nversionName changes only when the owner edits it.\n${command} status` };
   }
   const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=10`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");

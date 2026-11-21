@@ -59,7 +59,7 @@ Welcome to Nibras Terminal!
 
 Community:  https://github.com/nibrascode/nibras-terminal
 
-Phone APK:  https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
+Phone APK:  https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk
 
 Setup Nibras:
 - Help: help

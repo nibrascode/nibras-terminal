@@ -38,7 +38,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <a href="https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.0-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.1-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
 </p>
 
 <p align="center">
@@ -65,8 +65,14 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 
 ## 🚀 Quick start
 
-1. Download the APK: [nibras-terminal-1.0.0.apk](https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk) (Android 8 or newer, about 20 MB).
+1. Download the APK: [nibras-terminal-1.0.0.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.1).
 2. Open the file on the phone and allow "Install unknown apps".
+
+The file is signed with one release key that stays the same. If you installed the older debug APK, uninstall it once, then install this one. Later updates install on top.
+
+Camera, microphone, SMS, contacts and location are asked only when you run that command, not when the app opens.
+
+Automatic updates: [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nibrascode/nibras-terminal). Add the project once; new versions arrive by themselves.
 3. Pick your language on the first launch (English is the default).
 4. Start typing:
 

@@ -10,7 +10,9 @@
 
 ## ٢. التثبيت والتشغيل الأول
 
-1. نزّل ملف APK مباشرة: https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
+1. نزّل ملف APK مباشرة: https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk
+الكاميرا والميكروفون والرسائل وجهات الاتصال والموقع تُطلب فقط عند تشغيل ذلك الأمر، لا عند فتح التطبيق.
+التحديث التلقائي عبر Obtainium: https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/nibrascode/nibras-terminal
 2. افتح الملف واسمح بخيار «تثبيت التطبيقات غير المعروفة» عندما يطلبه أندرويد.
 3. عند التشغيل الأول يعرض نبراس تيرمينال شاشة لاختيار اللغة. تظهر كل لغة باسمها الأصلي، وتكون لغة هاتفك محددة مسبقًا. وإذا لم تتوفر لغة هاتفك تُستخدم الإنجليزية.
 4. تُجهَّز بيئة Alpine Linux المدمجة تلقائيًا، ثم تُفتح الطرفية.
