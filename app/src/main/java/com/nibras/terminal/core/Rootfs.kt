@@ -231,6 +231,7 @@ object Rootfs {
         runCatching { exe(File(bin, "nibras-rish"), guest(context, "nibras-rish")) }
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
         runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
+        writeAndroidRc(context)
     }
 
     /** Phone commands (nibras-* / termux-*) in the plain Android shell too, using toybox nc + base64. */
@@ -245,6 +246,30 @@ object Rootfs {
             val link = File(bin, "$prefix$cmd").toPath()
             runCatching { Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("nibras-api")) }
         }
+        writeAndroidRc(context)
+    }
+
+    /**
+     * Android 10+ forbids exec() of files in app data for apps targeting API 29+, so in the plain
+     * Android shell every script in ~/bin is exposed as a shell function that runs it through sh.
+     * mksh loads this for interactive shells via ENV; scripts can `. "$ENV"`.
+     */
+    fun writeAndroidRc(context: Context) {
+        val home = File(context.filesDir, "home")
+        val bin = File(home, "bin")
+        val names = (API_COMMANDS.flatMap { listOf("termux-$it", "nibras-$it") } + (bin.list()?.toList() ?: emptyList())).distinct()
+            .filter { n -> n.all { it.isLetterOrDigit() || it == '-' || it == '_' || it == '.' } }
+        val rc = buildString {
+            append("# Nibras Terminal: commands for the Android shell (generated)\n")
+            append("NB=\"\$HOME/bin\"\n")
+            for (n in names) {
+                val target = if (n.startsWith("termux-") || (n.startsWith("nibras-") && n.removePrefix("nibras-") in API_COMMANDS)) "nibras-api" else n
+                // nibras-api reads its command name from $0, so pass it explicitly when run through sh
+                if (target == "nibras-api" && n != "nibras-api") append("$n() { sh \"\$NB/nibras-api\" ${n.removePrefix("termux-").removePrefix("nibras-")} \"\$@\"; }\n")
+                else append("$n() { sh \"\$NB/$n\" \"\$@\"; }\n")
+            }
+        }
+        runCatching { writeReplacing(File(home, ".nibras/android-rc").apply { parentFile?.mkdirs() }, rc) }
     }
 
     fun launch(context: Context, id: String, command: List<String>? = null, extraEnv: List<String> = emptyList()): Launch {
@@ -255,12 +280,12 @@ object Rootfs {
         if (id == ANDROID || !isReady(context, id)) {
             runCatching { prepareAndroidHome(context) }
             val start = extraEnv.firstOrNull { it.startsWith("NIBRAS_START_DIR=") }?.substringAfter('=')?.takeIf { File(it).isDirectory }
-            val args = if (command != null) arrayOf("sh", "-c", command.joinToString(" ") { quote(it) })
+            val args = if (command != null) arrayOf("sh", "-c", ". \"\$ENV\" 2>/dev/null; " + command.joinToString(" ") { quote(it) })
                 else arrayOf("sh", "-c", "cat \"\$HOME/.nibras-motd\" 2>/dev/null; exec /system/bin/sh -i")
             return Launch(
                 "/system/bin/sh", args,
                 (listOf("HOME=${home.absolutePath}", "TMPDIR=${tmp.absolutePath}", term, lang, "COLORTERM=truecolor",
-                    "PATH=${home.absolutePath}/bin:/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data", "NIBRAS_ENV=android") + extraEnv).toTypedArray(),
+                    "PATH=${home.absolutePath}/bin:/system/bin:/system/xbin", "ANDROID_ROOT=/system", "ANDROID_DATA=/data", "NIBRAS_ENV=android", "ENV=${home.absolutePath}/.nibras/android-rc") + extraEnv).toTypedArray(),
                 start ?: home.absolutePath,
             )
         }
