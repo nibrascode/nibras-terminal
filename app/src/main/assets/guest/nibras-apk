@@ -509,8 +509,9 @@ G
     need apktool; in="${1:?app.apk}"; np="${2:?new.package.name}"; label="${3:-}"
     w="${in%.apk}-clone"; apktool d -f -s "$in" -o "$w" >/dev/null
     old=$(grep -o 'package="[^"]*"' "$w/AndroidManifest.xml" | head -1 | cut -d'"' -f2)
-    sed -i "s/^\(  renameManifestPackage:\).*/\1 $np/" "$w/apktool.yml"; grep -q renameManifestPackage: "$w/apktool.yml" || printf 'packageInfo:\n  renameManifestPackage: %s\n' "$np" >> "$w/apktool.yml"
-    sed -i "s/android:authorities=\"$old/android:authorities=\"$np/g; s/\"$old\.permission\./\"$np.permission./g" "$w/AndroidManifest.xml"
+    # absolute component names first, then the manifest package itself (works on every apktool version)
+    sed -i "s/android:name=\"\./android:name=\"$old./g; s/\(<manifest[^>]*package=\"\)$old\"/\1$np\"/" "$w/AndroidManifest.xml"
+    sed -i "s/android:authorities=\"$old/android:authorities=\"$np/g; s/\"$old\.permission\./\"$np.permission./g; /<\(uses-\)\{0,1\}permission /s/android:name=\"$old\./android:name=\"$np./" "$w/AndroidManifest.xml"
     if [ -n "$label" ]; then sed -i "s#\(<application[^>]*android:label=\"\)[^\"]*#\1$label#" "$w/AndroidManifest.xml"; fi
     out="${in%.apk}-$np.apk"; apktool b "$w" -o "$out" >/dev/null && "$0" signdebug "$out" && echo "✓ $out ($old → $np). Apps that check their own signature or package may refuse to run." ;;
   translate) # add a language to an app/project: copies values/strings.xml → values-<lang>/strings.xml, then the table editor
