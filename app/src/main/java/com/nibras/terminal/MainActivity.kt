@@ -40,7 +40,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -227,8 +234,8 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     LaunchedEffect(state.sessionLog) { scroll.scrollTo(scroll.maxValue) }
-    fun submit() {
-        val text = field.text.trim()
+    fun submit(raw: String = field.text) {
+        val text = raw.replace("\n", "").trim()
         if (text.isEmpty() || state.busyId != null) return
         if (text == "clear") {
             field = TextFieldValue("")
@@ -287,11 +294,16 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
                     softWrap = false,
                 )
             }
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        }
+        Row(Modifier.fillMaxWidth().background(Color.Black).padding(horizontal = 10.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("root@nibras:~# ", color = Color(0xFFF2F2F2), fontFamily = FontFamily.Monospace, fontSize = 13.sp)
                 BasicTextField(
                     value = field,
                     onValueChange = { next ->
+                        if ('\n' in next.text) {
+                            submit(next.text)
+                            return@BasicTextField
+                        }
                         field = if (ctrl && next.text.length == field.text.length + 1) {
                             val added = next.text.last()
                             ctrl = false
@@ -312,15 +324,37 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
                     enabled = state.busyId == null,
                     singleLine = true,
                     textStyle = TextStyle(color = Color(0xFFF2F2F2), fontFamily = FontFamily.Monospace, fontSize = 13.sp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { submit() }),
-                    modifier = Modifier.weight(1f).focusRequester(focus),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Send,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onSend = { submit() },
+                        onDone = { submit() },
+                        onGo = { submit() },
+                        onSearch = { submit() },
+                    ),
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focus)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && (event.key == Key.Enter || event.key == Key.NumPadEnter)) {
+                                submit()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                 )
                 if (field.text.isEmpty()) {
                     Box(Modifier.width(7.dp).height(14.dp).background(Color(0xFFD7D7D7)))
                 }
+                TextButton(onClick = { if (state.busyId == null) submit() else model.stop() }) {
+                    Text(if (state.busyId == "session") "Dur" else "↵", color = Color(0xFFD6B36A), fontFamily = FontFamily.Monospace)
+                }
             }
-        }
         listOf(
             listOf("ESC", "/", "-", "HOME", "UP", "END", "PGUP"),
             listOf("TAB", "CTRL", "ALT", "LEFT", "DOWN", "RIGHT", "PGDN"),

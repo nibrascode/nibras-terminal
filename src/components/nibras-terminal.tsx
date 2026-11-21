@@ -946,6 +946,11 @@ export function NibrasTerminal() {
         return;
       }
     }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submit(draft);
+      return;
+    }
     if (event.key === "Escape") {
       setHunt("");
       return;
@@ -1244,6 +1249,7 @@ export function NibrasTerminal() {
                         autoCorrect="off"
                         spellCheck={false}
                         onChange={(event) => setDraft(event.target.value)}
+                        enterKeyHint="send"
                         onKeyDown={onKey}
                       />
                     </div>
