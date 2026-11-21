@@ -71,6 +71,7 @@ class PromptActivity : Activity() {
                 runCatching { startActivityForResult(i, REQ_CAM) }.onFailure { answer(1, it.message ?: "no camera app") }
                 return
             }
+            "nfc" -> { startNfc(args); return }
             "speech-to-text" -> {
                 val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
                     .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -138,6 +139,77 @@ class PromptActivity : Activity() {
             }.isSuccess
             runOnUiThread { answer(if (ok) -1 else 1, if (ok) target.name else "copy failed") }
         }.start()
+    }
+
+    // ---------------------------------------------------------------- NFC (termux-nfc)
+    private var nfcArgs: List<String> = emptyList()
+    private var nfcDialog: AlertDialog? = null
+
+    private fun startNfc(args: List<String>) {
+        val adapter = android.nfc.NfcAdapter.getDefaultAdapter(this)
+        if (adapter == null) { answer(1, "this phone has no NFC"); return }
+        if (!adapter.isEnabled) {
+            runCatching { startActivity(Intent(android.provider.Settings.ACTION_NFC_SETTINGS)) }
+            answer(1, "NFC is off, turn it on and run again"); return
+        }
+        nfcArgs = args
+        val writing = "-w" in args
+        nfcDialog = AlertDialog.Builder(this).setTitle("NFC")
+            .setMessage(getString(if (writing) R.string.nfc_write_hint else R.string.nfc_read_hint))
+            .setNegativeButton(R.string.cancel) { _, _ -> answer(-2, "") }.setOnCancelListener { answer(-2, "") }.show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (nfcArgs.isEmpty() && intent.getStringExtra("kind") != "nfc") return
+        val adapter = android.nfc.NfcAdapter.getDefaultAdapter(this) ?: return
+        val flags = android.nfc.NfcAdapter.FLAG_READER_NFC_A or android.nfc.NfcAdapter.FLAG_READER_NFC_B or android.nfc.NfcAdapter.FLAG_READER_NFC_F or
+            android.nfc.NfcAdapter.FLAG_READER_NFC_V or android.nfc.NfcAdapter.FLAG_READER_NFC_BARCODE
+        runCatching { adapter.enableReaderMode(this, { tag -> onTag(tag) }, flags, null) }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        runCatching { android.nfc.NfcAdapter.getDefaultAdapter(this)?.disableReaderMode(this) }
+    }
+
+    private fun onTag(tag: android.nfc.Tag) {
+        val args = nfcArgs
+        fun opt(n: String) = args.indexOf(n).takeIf { it >= 0 }?.let { args.getOrNull(it + 1) }
+        val result = runCatching {
+            if ("-w" in args) {
+                val record = opt("-u")?.let { android.nfc.NdefRecord.createUri(it) }
+                    ?: android.nfc.NdefRecord.createTextRecord(null, opt("-t") ?: args.lastOrNull { !it.startsWith("-") } ?: "")
+                val msg = android.nfc.NdefMessage(arrayOf(record))
+                val ndef = android.nfc.tech.Ndef.get(tag)
+                if (ndef != null) ndef.use { it.connect(); if (!it.isWritable) error("tag is read-only"); it.writeNdefMessage(msg) }
+                else android.nfc.tech.NdefFormatable.get(tag)?.use { it.connect(); it.format(msg) } ?: error("tag does not support NDEF")
+                JSONObject().put("written", true).put("bytes", msg.byteArrayLength)
+            } else {
+                val o = JSONObject().put("id", tag.id.joinToString("") { "%02x".format(it) }).put("tech", org.json.JSONArray(tag.techList.map { it.substringAfterLast('.') }))
+                android.nfc.tech.Ndef.get(tag)?.use { ndef ->
+                    ndef.connect()
+                    o.put("type", ndef.type).put("max_size", ndef.maxSize).put("writable", ndef.isWritable)
+                    val recs = org.json.JSONArray()
+                    ndef.ndefMessage?.records?.forEach { r ->
+                        val rec = JSONObject().put("tnf", r.tnf).put("type", String(r.type))
+                        r.toUri()?.let { rec.put("uri", it.toString()) }
+                        if (r.tnf == android.nfc.NdefRecord.TNF_WELL_KNOWN && String(r.type) == "T") {
+                            val p = r.payload; val lang = p[0].toInt() and 0x3F
+                            rec.put("lang", String(p, 1, lang)).put("text", String(p, 1 + lang, p.size - 1 - lang, if (p[0].toInt() and 0x80 != 0) Charsets.UTF_16 else Charsets.UTF_8))
+                        }
+                        if (opt("-r") == "full") rec.put("payload_hex", r.payload.joinToString("") { "%02x".format(it) })
+                        recs.put(rec)
+                    }
+                    o.put("records", recs)
+                }
+                o
+            }
+        }
+        runOnUiThread {
+            nfcDialog?.dismiss()
+            result.onSuccess { answer(-1, it.toString(2)) }.onFailure { answer(1, it.message ?: "NFC error") }
+        }
     }
 
     override fun onDestroy() {

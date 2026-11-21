@@ -338,9 +338,14 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         tools3.addView(button(getString(R.string.tool_store)) { drawer.closeDrawers(); startActivity(Intent(this, StoreActivity::class.java)) }, LinearLayout.LayoutParams(lp))
         tools3.addView(button(getString(R.string.tool_float)) { drawer.closeDrawers(); FloatService.start(this) }, LinearLayout.LayoutParams(lp))
         tools3.addView(button("🎤 " + getString(R.string.tool_voice)) { drawer.closeDrawers(); voiceInput() }, LinearLayout.LayoutParams(lp))
+        val tools4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        tools4.addView(button("🎬 " + getString(R.string.tools_media)) { drawer.closeDrawers(); startActivity(Intent(this, MediaActivity::class.java)) }, LinearLayout.LayoutParams(lp))
+        tools4.addView(button("🔌 USB") { drawer.closeDrawers(); Launcher.run(this, null, "nibras-usb -l; echo; nibras-usb serial", "USB", keepShell = true) }, LinearLayout.LayoutParams(lp))
+        tools4.addView(button("📶 NFC") { drawer.closeDrawers(); Launcher.run(this, null, "nibras-nfc -r short", "NFC", keepShell = true) }, LinearLayout.LayoutParams(lp))
         panel.addView(tools1)
         panel.addView(tools2)
         panel.addView(tools3)
+        panel.addView(tools4)
         panel.addView(row1)
         panel.addView(row2)
         panel.addView(row3)
@@ -434,6 +439,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
                 "files" -> FilesActivity.open(this, currentEnv(), null)
                 "editor" -> EditorActivity.open(this, Rootfs.ANDROID, java.io.File(filesDir, "snippets.txt").absolutePath)
                 "split" -> toggleSplit()
+                "media" -> startActivity(Intent(this, MediaActivity::class.java))
+                "packages" -> startActivity(Intent(this, PackagesActivity::class.java))
                 "clipboard" -> clipboardHistory()
                 "monitor" -> { prefs.sp.edit().putBoolean("monitor", true).apply(); startMonitor() }
             }

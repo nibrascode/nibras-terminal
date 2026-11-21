@@ -22,6 +22,7 @@ import java.io.File
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != "android.intent.action.QUICKBOOT_POWERON") return
+        PrayerAlarms.schedule(context)
         val home = Rootfs.homeOf(context)
         val has = listOf(File(home, ".nibras/boot"), File(home, ".termux/boot")).any { (it.listFiles()?.isNotEmpty()) == true }
         if (!has) return

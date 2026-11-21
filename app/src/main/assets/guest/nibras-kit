@@ -24,6 +24,12 @@ ip_addr() { ip -4 addr 2>/dev/null | awk '/inet /&&$2!~/^127/{sub(/\/.*/,"",$2);
 # ---------------------------------------------------------------- packs (install <pack>)
 pack_desc() {
   case "$1" in
+    arch) say "Arch Linux (ARM) environment · arm64 + armv7" "Arch Linux (ARM) mühiti · arm64 + armv7" "Arch Linux (ARM) ortamı · arm64 + armv7" "Среда Arch Linux (ARM) · arm64 + armv7" ;;
+    fedora) say "Fedora 44 environment · arm64 only" "Fedora 44 mühiti · yalnız arm64" "Fedora 44 ortamı · yalnız arm64" "Среда Fedora 44 · только arm64" ;;
+    kali) say "Kali Linux (NetHunter rootfs) · arm64 + armhf" "Kali Linux (NetHunter rootfs) · arm64 + armhf" "Kali Linux (NetHunter rootfs) · arm64 + armhf" "Kali Linux (NetHunter rootfs) · arm64 + armhf" ;;
+    debian) say "Debian environment" "Debian mühiti" "Debian ortamı" "Среда Debian" ;;
+    ubuntu) say "Ubuntu 24.04 environment" "Ubuntu 24.04 mühiti" "Ubuntu 24.04 ortamı" "Среда Ubuntu 24.04" ;;
+    lsp) say "Language servers + helix/neovim (real LSP), linters" "Dil serverləri + helix/neovim (əsl LSP), linterlər" "Dil sunucuları + helix/neovim (gerçek LSP), linter" "Языковые серверы + helix/neovim (LSP), линтеры" ;;
     video) say "Video: merge, cut, convert, compress (ffmpeg)" "Video: birləşdir, kəs, çevir, sıx (ffmpeg)" "Video: birleştir, kes, dönüştür, sıkıştır (ffmpeg)" "Видео: склеить, обрезать, сжать (ffmpeg)" ;;
     audio) say "Audio: convert, cut, normalize, record" "Səs: çevir, kəs, səviyyələ, yaz" "Ses: dönüştür, kes, normalleştir, kaydet" "Аудио: конвертация, обрезка, нормализация" ;;
     image) say "Images: resize, convert, compress (ImageMagick)" "Şəkil: ölçü, format, sıxma (ImageMagick)" "Resim: boyut, format, sıkıştırma (ImageMagick)" "Изображения: размер, формат, сжатие" ;;
@@ -55,11 +61,17 @@ pack_desc() {
     *) return 1 ;;
   esac
 }
-PACKS="video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
+PACKS="arch fedora kali debian ubuntu lsp video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
 
 install_pack() {
   p=$1
   case "$p" in
+    arch|fedora|kali|debian|ubuntu)
+      case "$p:$(uname -m)" in
+        fedora:armv7l|fedora:armv8l|fedora:arm) die "$(say "Fedora has no 32-bit ARM build since Fedora 37; use Debian, Arch or Kali." "Fedora-nın 37-dən sonra 32-bit ARM versiyası yoxdur; Debian, Arch ya da Kali seç." "Fedora 37'den beri 32-bit ARM sürümü yok; Debian, Arch veya Kali seç." "У Fedora нет 32-битной ARM-сборки с версии 37; выберите Debian, Arch или Kali.")" ;;
+      esac
+      nibras-api env-install "$p"; return ;;
+    lsp) lsp_install ;;
     video) need ffmpeg ;;
     audio) need ffmpeg sox ;;
     image) need magick 2>/dev/null || need convert ;;
@@ -91,6 +103,22 @@ install_pack() {
     office) need pandoc ;;
     *) die "$(say "Unknown pack: $p" "Naməlum paket: $p" "Bilinmeyen paket: $p" "Неизвестный пакет: $p")" ;;
   esac && printf '\033[32m✓ %s\033[0m\n' "$(say "Ready: $p" "Hazırdır: $p" "Hazır: $p" "Готово: $p")"
+}
+
+lsp_install() {
+  # Language servers for terminal editors with real LSP (helix / neovim): Python, Bash, C/C++, JS/TS, JSON/HTML/CSS, YAML, Go, Rust.
+  nibras-need hx >/dev/null 2>&1 || nibras-need helix >/dev/null 2>&1 || need nvim
+  need python3 pip3 node npm
+  pip3 install -q python-lsp-server pyflakes --break-system-packages 2>/dev/null || pip3 install -q python-lsp-server pyflakes
+  npm install -g --silent bash-language-server typescript typescript-language-server vscode-langservers-extracted yaml-language-server >/dev/null 2>&1 || true
+  nibras-need clangd >/dev/null 2>&1 || nibras-need clang >/dev/null 2>&1 || true
+  nibras-need shellcheck >/dev/null 2>&1 || true
+  has go && go install golang.org/x/tools/gopls@latest >/dev/null 2>&1 || true
+  has rustup && rustup component add rust-analyzer >/dev/null 2>&1 || true
+  say "LSP ready: open files with  hx <file>  (helix, LSP built in) or nvim; the Nibras editor has 🩺 Check code." \
+      "LSP hazırdır: faylı  hx <fayl>  (helix, LSP daxili) ya da nvim ilə aç; Nibras redaktorunda 🩺 Kodu yoxla var." \
+      "LSP hazır: dosyayı  hx <dosya>  (helix) veya nvim ile aç; Nibras editöründe 🩺 Kodu denetle var." \
+      "LSP готов: открывайте  hx <файл>  (helix) или nvim; в редакторе Nibras есть 🩺 Проверить код."
 }
 
 install_ytdlp() {
@@ -138,6 +166,7 @@ cmd_video() {
   a=${1:-}; [ $# -gt 0 ] && shift
   case "$a" in
     ""|menu) video_menu; return ;;
+    gui|ui) exec nibras-api media-builder video ;;
     help|-h) cat <<EOF
 video merge a.mp4 b.mp4 … [out.mp4]   $(say "join videos" "videoları birləşdir" "videoları birleştir" "склеить")
 video cut in.mp4 00:01:00 00:02:30     $(say "cut a part (start end)" "hissə kəs (başlanğıc son)" "parça kes" "вырезать")
@@ -260,6 +289,7 @@ cmd_pdf() {
 cmd_download() {
   a=${1:-}
   case "$a" in
+    gui|ui) exec nibras-api media-builder download ;;
     ""|menu) u=$(ask_in "URL:"); [ -n "$u" ] || return 0
       echo " 1) $(say "best video" "ən yaxşı video" "en iyi video" "лучшее видео")  2) mp3  3) 720p  4) $(say "file" "fayl" "dosya" "файл")"
       c=$(ask_in ">"); case "$c" in 2) cmd_download audio "$u" ;; 3) cmd_download video "$u" 720 ;; 4) cmd_download file "$u" ;; *) cmd_download video "$u" ;; esac; return ;;
@@ -369,7 +399,18 @@ cmd_net() {
 }
 cmd_share() {
   a=${1:-help}; [ $# -gt 0 ] && shift
-  [ "$a" = help ] && { echo "share webdav|ftp|http|dlna [folder] [port]  ·  share file <file>"; return; }
+  [ "$a" = help ] && { echo "share webdav|ftp|http|dlna|sftp|smb [folder] [port]  ·  share file <file>"; return; }
+  if [ "$a" = smb ]; then
+    # Samba. Android blocks ports below 1024 without root, so the default port is 4445 (root phones: 445).
+    need smbd 2>/dev/null || nibras-need samba; d=${1:-/sdcard}; ip=$(ip_addr); port=${2:-4445}; [ "$(id -u)" = 0 ] && [ -e /system/xbin/su ] && port=${2:-445}
+    pw=$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n'); conf=/tmp/nibras-smb.conf
+    printf '[global]\n server role = standalone server\n smb ports = %s\n map to guest = never\n disable netbios = yes\n server min protocol = SMB2\n pid directory = /tmp\n lock directory = /tmp\n state directory = /tmp\n cache directory = /tmp\n private dir = /tmp\n[nibras]\n path = %s\n read only = no\n force user = root\n' "$port" "$d" > "$conf"
+    (echo "$pw"; echo "$pw") | smbpasswd -c "$conf" -s -a root >/dev/null 2>&1
+    echo "smb://$ip:$port/nibras   user: root   password: $pw"
+    say "Windows needs port 445 (root only); Android/Linux/macOS file managers accept smb://ip:port." "Windows 445-ci port istəyir (yalnız root); Android/Linux/macOS fayl menecerləri smb://ip:port qəbul edir." "Windows 445 portu ister (sadece root); Android/Linux/macOS smb://ip:port kabul eder." "Windows нужен порт 445 (только root); Android/Linux/macOS принимают smb://ip:port."
+    has qrencode && qrencode -t ansiutf8 "smb://$ip:$port/nibras"
+    exec smbd -F --no-process-group -s "$conf" --debug-stdout
+  fi
   need rclone; ip=$(ip_addr)
   case "$a" in
     file) need python3; f=$(readlink -f "$1"); port=8765; url="http://$ip:$port/$(basename "$f")"; echo "$url"; has qrencode || nibras-need qrencode; qrencode -t ansiutf8 "$url"
@@ -379,7 +420,7 @@ cmd_share() {
   url="$a://$ip:$port"; [ "$a" = webdav ] && url="http://$ip:$port"; [ "$a" = http ] && url="http://$ip:$port"
   echo "$url   user: nibras   password: $pw"; has qrencode && qrencode -t ansiutf8 "$url"
   case "$a" in
-    webdav|http|ftp) exec rclone serve "$a" "$d" --addr "0.0.0.0:$port" --user nibras --pass "$pw" ;;
+    webdav|http|ftp|sftp) exec rclone serve "$a" "$d" --addr "0.0.0.0:$port" --user nibras --pass "$pw" ;;
     dlna) exec rclone serve dlna "$d" --addr "0.0.0.0:$port" --name "Nibras" ;;
     *) die "share help" ;;
   esac
@@ -457,18 +498,21 @@ cmd_prayer() {
   need curl jq; conf=$HOME/.config/nibras/prayer; mkdir -p "${conf%/*}"
   a=${1:-today}
   case "$a" in
-    help) echo "prayer · prayer city Baku [Azerbaijan] · prayer remind on|off"; return ;;
-    city) shift; printf 'CITY=%s\nCOUNTRY=%s\n' "$1" "${2:-}" > "$conf"; a=today ;;
+    help) echo "prayer · prayer city Baku [Azerbaijan] [method] · prayer remind on|off|status|test|before 10"; return ;;
+    city) shift; printf 'CITY=%s\nCOUNTRY=%s\nMETHOD=%s\n' "$1" "${2:-}" "${3:-13}" > "$conf"; a=today ;;
   esac
   [ -f "$conf" ] && . "$conf"; CITY=${CITY:-Baku}; COUNTRY=${COUNTRY:-Azerbaijan}
   case "$a" in
     remind)
-      if [ "${2:-on}" = off ]; then crontab -l 2>/dev/null | grep -v nibras-prayer | crontab -; echo off; return; fi
-      j=$(curl -fsS "https://api.aladhan.com/v1/timingsByCity?city=$CITY&country=$COUNTRY") || die net
-      ( crontab -l 2>/dev/null | grep -v nibras-prayer
-        for p in Fajr Dhuhr Asr Maghrib Isha; do t=$(echo "$j" | jq -r ".data.timings.$p" | cut -c1-5); echo "${t#*:} ${t%:*} * * * nibras-notification -t '$p' -c '$p $t' # nibras-prayer"; done
-        echo "1 0 * * * nibras-kit prayer remind on >/dev/null 2>&1 # nibras-prayer" ) | crontab -
-      cron_start; say "Reminders on (while the app runs)." "Xatırlatmalar açıqdır (tətbiq işləyəndə)." "Hatırlatmalar açık." "Напоминания включены." ;;
+      # Android alarms: fire even when Nibras is closed (opt-in). method: 13 = Diyanet, 3 = MWL, 4 = Umm al-Qura, 2 = ISNA, 5 = Egypt, 7 = Tehran
+      crontab -l 2>/dev/null | grep -q nibras-prayer && crontab -l 2>/dev/null | grep -v nibras-prayer | crontab -
+      case "${2:-on}" in
+        off) nibras-api prayer-alarm off ;;
+        status) nibras-api prayer-alarm status ;;
+        test) nibras-api prayer-alarm test ;;
+        before) nibras-api prayer-alarm before "${3:-10}" ;;
+        *) nibras-api prayer-alarm on "$CITY" "$COUNTRY" "${METHOD:-13}" ;;
+      esac ;;
     *) curl -fsS "https://api.aladhan.com/v1/timingsByCity?city=$CITY&country=$COUNTRY" | jq -r --arg c "$CITY" '.data|"\($c) · \(.date.readable) · \(.date.hijri.date)", (.timings|to_entries[]|select(.key|test("Fajr|Sunrise|Dhuhr|Asr|Maghrib|Isha"))|"  \(.key)\t\(.value)")' ;;
   esac
 }
@@ -569,8 +613,41 @@ cmd_explain() {
   if has tldr; then tldr -L "$lang" "$c" 2>/dev/null || tldr "$c" 2>/dev/null && return; fi
   if has "$c"; then "$c" --help 2>&1 | head -40; else say "Unknown command. install? → install $c" "Naməlum əmr. Qurmaq: pkg install $c" "Bilinmeyen komut: pkg install $c" "Неизвестная команда: pkg install $c"; fi
 }
-cmd_fix() { # suggest a fix for a missing / mistyped command
-  c=${1:-}; [ -n "$c" ] || { echo "fix <command>"; return; }
+# Error → fix suggestions (Nibras-only). Reads the error text and proposes the command that fixes it.
+fix_suggest() {
+  e=$1; cmdline=$2
+  hint() { printf '  \033[1;32m→ %s\033[0m\n' "$1"; }
+  m=$(printf '%s' "$e" | sed -n "s/.*No module named '\([A-Za-z0-9_.-]*\)'.*/\1/p" | head -1); [ -n "$m" ] && hint "pip3 install ${m%%.*}"
+  m=$(printf '%s' "$e" | sed -n "s/.*Cannot find module '\([^']*\)'.*/\1/p" | head -1); [ -n "$m" ] && case "$m" in .*|/*) ;; *) hint "npm install $m" ;; esac
+  m=$(printf '%s' "$e" | sed -n 's/.*fatal error: \([A-Za-z0-9_./+-]*\.h\).*/\1/p' | head -1); [ -n "$m" ] && hint "pkg search ${m%.h}   (dev package: -dev / -devel / -headers)"
+  printf '%s' "$e" | grep -q "externally-managed-environment" && hint "python3 -m venv .venv && . .venv/bin/activate   ($(say or or veya или) pip3 install --break-system-packages …)"
+  printf '%s' "$e" | grep -qi "permission denied" && { f=$(printf '%s' "$cmdline" | awk '{print $1}'); [ -f "$f" ] && hint "chmod +x $f"; printf '%s' "$e" | grep -q "/sdcard\|/storage" && hint "nibras-setup-storage"; }
+  printf '%s' "$e" | grep -qiE "could not resolve|temporary failure in name resolution|network is unreachable" && hint "$(say "check Wi-Fi / mobile data, then: net ping 1.1.1.1" "Wi-Fi / mobil interneti yoxla, sonra: net ping 1.1.1.1" "Wi-Fi / mobil veriyi kontrol et: net ping 1.1.1.1" "проверьте сеть: net ping 1.1.1.1")"
+  printf '%s' "$e" | grep -qi "no space left" && hint "pkg clean; trash empty; du -sh ~/* | sort -h | tail"
+  printf '%s' "$e" | grep -qi "address already in use" && hint "$(say "port is busy: use another port, or find it: netstat -tlnp" "port məşğuldur: başqa port seç, ya da tap: netstat -tlnp" "port meşgul: netstat -tlnp" "порт занят: netstat -tlnp")"
+  printf '%s' "$e" | grep -qi "not a git repository" && hint "git init"
+  printf '%s' "$e" | grep -qiE "could not get lock|unable to lock|database is locked" && hint "$(say "another package install is running; wait, or: rm -f /var/lib/dpkg/lock* /var/lib/pacman/db.lck" "başqa quraşdırma gedir; gözlə, ya da: rm -f /var/lib/dpkg/lock* /var/lib/pacman/db.lck" "başka kurulum sürüyor; bekle" "идёт другая установка; подождите")"
+  printf '%s' "$e" | grep -qiE "unable to locate package|target not found|no match for argument|no such package" && hint "pkg search $(printf '%s' "$cmdline" | awk '{print $NF}')"
+  printf '%s' "$e" | grep -qiE "command not found|not found$" && { m=$(printf '%s' "$e" | sed -n 's/.*: \([A-Za-z0-9_.+-]*\): \{0,1\}\(command \)\{0,1\}not found.*/\1/p' | head -1); [ -n "$m" ] && hint "pkg install $m"; }
+  printf '%s' "$e" | grep -qi "SSL\|certificate" && hint "pkg install ca-certificates"
+  printf '%s' "$e" | grep -qi "killed" && hint "$(say "out of memory: close apps or use a smaller model / -j1" "yaddaş bitdi: tətbiqləri bağla ya da -j1" "bellek bitti: -j1" "нехватка памяти: -j1")"
+  true
+}
+
+cmd_fix() { # suggest a fix for a missing / mistyped command, or for the error of a command
+  case "${1:-}" in
+    "")
+      h=${HISTFILE:-$HOME/.ash_history}; [ -f "$h" ] || h=$HOME/.bash_history
+      last=$(grep -v '^fix$\|^nibras-kit fix' "$h" 2>/dev/null | tail -1)
+      [ -n "$last" ] || { echo "fix <command> · fix -- <command line> · <command> 2>&1 | fix -"; return; }
+      say "Re-running to read the error: $last" "Xətanı oxumaq üçün yenidən işlədirəm: $last" "Hatayı okumak için tekrar: $last" "Повтор для анализа ошибки: $last"
+      set -- -- "$last" ;;
+  esac
+  if [ "$1" = - ]; then e=$(cat); fix_suggest "$e" ""; return 0; fi
+  if [ "$1" = -- ]; then shift; line="$*"; e=$(sh -c "$line" 2>&1 >/dev/null </dev/null); rc=$?
+    [ $rc -eq 0 ] && { say "It worked this time (exit 0)." "Bu dəfə işlədi (exit 0)." "Bu sefer çalıştı." "Сработало (exit 0)."; return 0; }
+    printf '%s\n' "$e" | tail -5; fix_suggest "$e" "$line"; return $rc; fi
+  c=${1:-}
   printf '\033[33m%s\033[0m\n' "$(say "Command not found: $c" "Əmr tapılmadı: $c" "Komut bulunamadı: $c" "Команда не найдена: $c")"
   if pack_desc "$c" >/dev/null 2>&1; then echo "  → install $c"; return 127; fi
   best=$(for d in $(echo "$PATH" | tr ':' ' '); do ls "$d" 2>/dev/null; done | sort -u | awk -v w="$c" '
@@ -637,20 +714,38 @@ cmd_record() {
       say "Recording… type exit to stop" "Yazılır… dayandırmaq üçün exit yaz" "Kaydediliyor… durdurmak için exit" "Запись… exit для остановки"
       if has asciinema; then asciinema rec "$f.cast"; else need script; script -q -t 2>"$f.time" "$f.log"; fi; echo "→ $f" ;;
     play) f=$2; case "$f" in *.cast) asciinema play "$f" ;; *) scriptreplay "${f%.log}.time" "${f%.log}.log" ;; esac ;;
+    gif|video|mp4)
+      f=${2:-$(ls -t "$d"/*.cast 2>/dev/null | head -1)}; [ -f "$f" ] || die "record gif <file.cast>  ($(say "record with asciinema first" "əvvəlcə asciinema ilə yaz" "önce asciinema ile kaydet" "сначала запишите через asciinema"))"
+      install_agg; g=${f%.cast}.gif
+      agg --font-size 20 --theme monokai "$f" "$g" || die agg
+      if [ "$1" = gif ]; then echo "→ $g"; else need ffmpeg; ffmpeg -hide_banner -y -i "$g" -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" "${f%.cast}.mp4" && echo "→ ${f%.cast}.mp4"; fi
+      nibras-media-scan "$d" >/dev/null 2>&1 ;;
     list) ls -lh "$d" ;;
-    *) echo "record [start|play file|list]" ;;
+    *) echo "record [start|play file|list|gif [file.cast]|video [file.cast]]" ;;
   esac
+}
+install_agg() {
+  has agg && return 0
+  nibras-need agg >/dev/null 2>&1 && return 0
+  case "$(uname -m)" in aarch64|arm64) t=aarch64-unknown-linux-gnu ;; armv7l|armv8l|arm*) t=arm-unknown-linux-gnueabihf ;; x86_64) t=x86_64-unknown-linux-musl ;; *) die "agg: $(uname -m)" ;; esac
+  is_alpine && apk add gcompat libgcc >/dev/null 2>&1
+  curl -fL -o /usr/local/bin/agg "https://github.com/asciinema/agg/releases/latest/download/agg-$t" && chmod +x /usr/local/bin/agg || die "agg download"
 }
 cron_start() { pgrep crond >/dev/null 2>&1 || { has crond && crond 2>/dev/null; } || { has cron && cron 2>/dev/null; } || true; }
 cmd_cron() {
   has crontab || need crontab
   case "${1:-list}" in
-    list) crontab -l 2>/dev/null | nl -ba ;;
+    list) crontab -l 2>/dev/null | nl -ba; [ -t 1 ] && say "(cron menu = buttons)" "(cron menu = düymələrlə)" "(cron menu = düğmelerle)" "(cron menu = кнопками)" ;;
     add) shift; when=$1; shift
       case "$when" in hourly) when="0 * * * *" ;; daily) when="0 9 * * *" ;; every5) when="*/5 * * * *" ;; weekly) when="0 9 * * 1" ;; esac
       (crontab -l 2>/dev/null; echo "$when $*") | crontab -; cron_start; echo "✓ $when $*" ;;
     rm|remove) crontab -l 2>/dev/null | sed "${2}d" | crontab - ;;
-    menu|"") ;;
+    menu|ui)
+      w=$(nibras-dialog radio -t "cron" -v "$(say "Every 5 minutes,Every hour,Every day 09:00,Every Monday 09:00,Custom" "Hər 5 dəqiqə,Hər saat,Hər gün 09:00,Hər bazar ertəsi 09:00,Öz vaxtım" "Her 5 dakika,Her saat,Her gün 09:00,Her pazartesi 09:00,Özel" "Каждые 5 минут,Каждый час,Каждый день 09:00,Каждый понедельник 09:00,Своё")" 2>/dev/null | sed -n 's/.*"index": *\([0-9]*\).*/\1/p')
+      case "$w" in 0) when="*/5 * * * *" ;; 1) when="0 * * * *" ;; 2) when="0 9 * * *" ;; 3) when="0 9 * * 1" ;;
+        4) when=$(nibras-dialog text -t "m h d M w" -i "30 7 * * *" 2>/dev/null | sed -n 's/.*"text": *"\([^"]*\)".*/\1/p') ;; *) return 0 ;; esac
+      c=$(nibras-dialog text -t "$(say "Command" "Əmr" "Komut" "Команда")" -i "backup ~/projects" 2>/dev/null | sed -n 's/.*"text": *"\([^"]*\)".*/\1/p')
+      [ -n "$when" ] && [ -n "$c" ] && cmd_cron add "$when" "$c"; cmd_cron list ;;
     *) echo "cron list · cron add hourly|daily|weekly|every5|\"m h d M w\" <command> · cron rm N   ($(say "for jobs even when the app is closed:" "tətbiq bağlı olanda da işləmək üçün:" "uygulama kapalıyken de:" "даже при закрытом приложении:") nibras-job-scheduler)" ;;
   esac
 }
@@ -724,6 +819,7 @@ case "$me" in
   security) install_pack security ;;
   office) need pandoc; [ $# -ge 2 ] && exec pandoc "$1" -o "$2"; echo "office in.md out.docx|out.pdf|out.html" ;;
   apk) exec nibras-apk "$@" ;;
+  media|builder) exec nibras-api media-builder "${1:-video}" ;;
   dev|desktop) cmd_install "$me" ;;
   *) printf '%s?\n' "$me"; cmd_menu ;;
 esac

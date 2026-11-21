@@ -1,0 +1,65 @@
+name: Distro test
+
+# Boots the downloadable Arch / Fedora / Kali root filesystems (catalog, payloads-0.3) under the
+# app's own PRoot inside Termux's Android docker image and installs a package with pkg.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "wip/**"]
+    paths:
+      - "app/src/main/assets/catalog.json"
+      - "app/src/main/assets/guest/pkg"
+      - "app/src/main/assets/guest/nibras-need"
+      - ".github/workflows/distro-test.yml"
+
+jobs:
+  distro:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { id: rootfs-arch, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-arch, abi: armeabi-v7a, image: arm, pkg: tree }
+          - { id: rootfs-fedora, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-kali, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-kali, abi: armeabi-v7a, image: arm, pkg: tree }
+    name: ${{ matrix.id }} ${{ matrix.abi }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download + verify
+        run: |
+          read url sha <<EOF2
+          $(python3 -c "import json;c=[c for c in json.load(open('app/src/main/assets/catalog.json'))['components'] if c['id']=='${{ matrix.id }}' and c['abi']=='${{ matrix.abi }}'][0];print(c['url'],c['sha256'])")
+          EOF2
+          curl -fL -o rootfs.tar.xz "$url"
+          echo "$sha  rootfs.tar.xz" | sha256sum -c
+      - name: Prepare test tree
+        run: |
+          mkdir -p t/lib t/rootfs t/tmp
+          cp app/src/main/jniLibs/${{ matrix.abi }}/*.so t/lib/
+          sudo tar -xJf rootfs.tar.xz -C t/rootfs --exclude='./dev/*' --numeric-owner 2>/dev/null || true
+          sudo mkdir -p t/rootfs/usr/local/bin t/rootfs/usr/local/share/nibras t/rootfs/root t/rootfs/tmp
+          for f in pkg nibras-need; do sudo install -m755 app/src/main/assets/guest/$f t/rootfs/usr/local/bin/$f; done
+          sudo cp app/src/main/assets/guest/nibras-msg.sh t/rootfs/usr/local/share/nibras/msg.sh
+          sudo rm -f t/rootfs/etc/resolv.conf; printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' | sudo tee t/rootfs/etc/resolv.conf >/dev/null
+          if [ -f t/rootfs/etc/pacman.conf ]; then
+            sudo sed -i 's/^\[options\]/[options]\nDisableSandbox\nDisableDownloadTimeout/; s/^CheckSpace/#CheckSpace/' t/rootfs/etc/pacman.conf
+          fi
+          cat > t/test.sh <<'SH'
+          set -e
+          L=/t/lib
+          export LD_LIBRARY_PATH=$L PROOT_TMP_DIR=/t/tmp PROOT_LOADER=$L/libproot-loader.so
+          [ -f $L/libproot-loader32.so ] && export PROOT_LOADER_32=$L/libproot-loader32.so
+          P="$L/libproot.so --kill-on-exit --link2symlink --sysvipc -L -0 -r /t/rootfs -w /root -b /dev -b /proc -b /sys -b /dev/urandom:/dev/random -b /proc/self/fd:/dev/fd"
+          E="/usr/bin/env -i HOME=/root TERM=xterm-256color LANG=C.UTF-8 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          $P $E /bin/sh -c 'grep -E "^(PRETTY_NAME|VERSION_ID)=" /etc/os-release; uname -m'
+          $P $E /bin/sh -c "pkg install $1 >/tmp/pkg.log 2>&1 || { tail -40 /tmp/pkg.log; exit 1; }; command -v $1 && $1 --version | head -1"
+          echo "DISTRO_TEST_OK"
+          SH
+          sudo chmod -R a+rwX t
+      - name: Run in termux-docker
+        run: |
+          set -o pipefail
+          docker run --rm --privileged -v "$PWD/t:/t" termux/termux-docker:${{ matrix.image }} /system/bin/sh /t/test.sh ${{ matrix.pkg }} 2>&1 | tee distro.log
+          grep -q DISTRO_TEST_OK distro.log

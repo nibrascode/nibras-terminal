@@ -139,6 +139,36 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 val path = args.removePrefix("-l ").trim()
                 "OK\n" + com.nibras.terminal.ExtraPhone.wallpaper(context, com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), path), lock)
             }
+            "usb" -> {
+                val w = words(raw)
+                val dev = w.lastOrNull { it.startsWith("/dev/") || Regex("[0-9a-fA-F]{4}:[0-9a-fA-F]{4}").matches(it) }
+                when {
+                    w.isEmpty() || "-l" in w -> "OK\n" + com.nibras.terminal.UsbBridge.list(context)
+                    "-r" in w && "-e" !in w -> com.nibras.terminal.UsbBridge.request(context, dev)
+                    "--fd" in w || "-e" in w -> com.nibras.terminal.UsbBridge.fd(context, dev)
+                    else -> "ERR\nnibras-usb -l | -r [device] | -e <command> [device] | serial [device] [baud]"
+                }
+            }
+            "usb-serial" -> {
+                val w = words(raw)
+                val baud = w.firstOrNull { it.toIntOrNull() != null }?.toInt() ?: 115200
+                com.nibras.terminal.UsbBridge.serial(context, w.firstOrNull { it.toIntOrNull() == null }, baud)
+            }
+            "env-install" -> {
+                val id = args.trim().let { if (it.startsWith("rootfs-")) it else "rootfs-$it" }
+                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: $args"
+                if (Rootfs.isReady(context, id)) return "OK\n${Rootfs.name(id)} is installed: nibras-shell ${Rootfs.name(id).lowercase()}"
+                ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).putExtra("install", id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                "OK\n${Rootfs.name(id)}: download started in the Environments screen"
+            }
+            "keystore" -> com.nibras.terminal.KeystoreBridge.run(words(raw))
+            "nfc" -> {
+                val r = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "nfc", words(raw)))
+                (if (r.optInt("code") == -1) "OK\n" else "ERR\n") + r.optString("text")
+            }
+            "prayer-alarm" -> com.nibras.terminal.PrayerAlarms.command(context, words(raw))
+            "media-builder" -> ui { context.startActivity(Intent(context, com.nibras.terminal.MediaActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("tab", args.ifBlank { "video" })) }
             else -> phone(name, args)
         }
     }

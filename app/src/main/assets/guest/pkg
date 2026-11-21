@@ -1,5 +1,5 @@
 #!/bin/sh
-# Nibras package manager front-end for apk (Alpine) and apt (Debian/Ubuntu).
+# Nibras package manager front-end for apk (Alpine), apt (Debian/Ubuntu/Kali), pacman (Arch) and dnf (Fedora).
 usage() {
   cat <<'U'
 Usage: pkg <command> [packages]
@@ -45,6 +45,45 @@ elif command -v apt-get >/dev/null 2>&1; then
     list-all|la) need_update && apt-get update >/dev/null; exec apt-cache pkgnames ;;
     files) exec dpkg -L "$@" ;;
     clean|cl) exec apt-get clean ;;
+    help|-h|--help) usage ;;
+    *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
+  esac
+elif command -v pacman >/dev/null 2>&1; then
+  # First run: Arch images ship without an initialised keyring, so pacman cannot verify packages.
+  if [ ! -s /etc/pacman.d/gnupg/pubring.gpg ] && [ ! -s /etc/pacman.d/gnupg/pubring.kbx ]; then
+    echo "Nibras: preparing the pacman keyring (once)…" >&2
+    pacman-key --init >/dev/null 2>&1
+    for k in /usr/share/pacman/keyrings/*.gpg; do
+      [ -e "$k" ] && pacman-key --populate "$(basename "$k" .gpg)" >/dev/null 2>&1
+    done
+    pkill -f gpg-agent 2>/dev/null; true
+  fi
+  case "$cmd" in
+    install|i|add|in) [ -d /var/lib/pacman/sync ] && ls /var/lib/pacman/sync/*.db >/dev/null 2>&1 || pacman -Sy --noconfirm; exec pacman -S --needed --noconfirm "$@" ;;
+    uninstall|remove|rm|del|un) exec pacman -R --noconfirm "$@" ;;
+    update|up) exec pacman -Sy ;;
+    upgrade|ug) exec pacman -Syu --noconfirm ;;
+    search|se|s) exec pacman -Ss "$@" ;;
+    show|info|sh) exec pacman -Si "$@" ;;
+    list-installed|list|li) exec pacman -Q ;;
+    list-all|la) exec pacman -Sl ;;
+    files) exec pacman -Ql "$@" ;;
+    clean|cl) exec pacman -Scc --noconfirm ;;
+    help|-h|--help) usage ;;
+    *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
+  esac
+elif command -v dnf >/dev/null 2>&1; then
+  case "$cmd" in
+    install|i|add|in) exec dnf install -y "$@" ;;
+    uninstall|remove|rm|del|un) exec dnf remove -y "$@" ;;
+    update|up) exec dnf makecache ;;
+    upgrade|ug) exec dnf upgrade -y "$@" ;;
+    search|se|s) exec dnf search "$@" ;;
+    show|info|sh) exec dnf info "$@" ;;
+    list-installed|list|li) exec dnf list --installed ;;
+    list-all|la) exec dnf list --available ;;
+    files) exec rpm -ql "$@" ;;
+    clean|cl) exec dnf clean all ;;
     help|-h|--help) usage ;;
     *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
   esac

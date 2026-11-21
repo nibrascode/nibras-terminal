@@ -252,4 +252,22 @@
     <string name="hosts_import_config">Import ~/.ssh/config</string>
     <string name="hosts_export_config">Export as ssh config</string>
     <string name="hosts_none">No saved hosts</string>
+    <string name="media_title">Video / audio / download builder</string>
+    <string name="media_operation">Operation</string>
+    <string name="media_input">Input files</string>
+    <string name="media_pick">Pick</string>
+    <string name="media_options">Options</string>
+    <string name="media_output">Output name (saved to Download/Nibras)</string>
+    <string name="media_quality">Quality / format</string>
+    <string name="media_subs">Subtitles</string>
+    <string name="media_thumb">Embed thumbnail</string>
+    <string name="media_limit">Limit speed (2 MB/s)</string>
+    <string name="media_rights">Download only content you have the right to.</string>
+    <string name="media_need_input">Pick input file(s) to see the command</string>
+    <string name="nfc_read_hint">Hold an NFC tag or card to the back of the phone…</string>
+    <string name="nfc_write_hint">Hold a writable NFC tag to the phone to write…</string>
+    <string name="prayer_time_now">It is prayer time</string>
+    <string name="editor_autocomplete">Auto-complete</string>
+    <string name="editor_lint">Check code (lint)</string>
+    <string name="tools_media">Media</string>
 </resources>

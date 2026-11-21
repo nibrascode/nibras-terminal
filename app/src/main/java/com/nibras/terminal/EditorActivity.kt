@@ -29,6 +29,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.nibras.terminal.core.GuestPaths
 import com.nibras.terminal.core.Lang
+import com.nibras.terminal.core.shQuote
 import com.nibras.terminal.ui.HostPaths
 import com.nibras.terminal.ui.Ui
 import java.io.File
@@ -100,6 +101,31 @@ class EditorActivity : Activity() {
         private val ATTRS = Regex("\\s([\\w:-]+)=")
         private val JSON_KEYS = Regex("\"(\\\\.|[^\"\\\\])*\"(?=\\s*:)")
         private val MD_HEAD = Regex("^#{1,6} .*$|^\\s*([-*+]|\\d+\\.) ", RegexOption.MULTILINE)
+        /** Snippets per language: trigger → body, `$0` marks where the cursor goes (Acode / VS Code style). */
+        private val SNIPPETS = mapOf(
+            "py" to mapOf("def" to "def $0():\n    pass", "class" to "class $0:\n    def __init__(self):\n        pass", "for" to "for i in range($0):\n    ",
+                "while" to "while $0:\n    ", "if" to "if $0:\n    ", "try" to "try:\n    $0\nexcept Exception as e:\n    print(e)",
+                "with" to "with open($0) as f:\n    data = f.read()", "main" to "def main():\n    $0\n\n\nif __name__ == \"__main__\":\n    main()", "print" to "print($0)"),
+            "sh" to mapOf("if" to "if [ $0 ]; then\n    \nfi", "for" to "for x in $0; do\n    \ndone", "while" to "while $0; do\n    \ndone",
+                "case" to "case \"$1\" in\n    $0) ;;\n    *) ;;\nesac", "func" to "name() {\n    $0\n}", "shebang" to "#!/bin/sh\nset -e\n$0", "echo" to "echo \"$0\""),
+            "js" to mapOf("function" to "function $0() {\n    \n}", "arrow" to "const f = ($0) => {\n    \n};", "for" to "for (let i = 0; i < $0; i++) {\n    \n}",
+                "if" to "if ($0) {\n    \n}", "log" to "console.log($0);", "fetch" to "const res = await fetch($0);\nconst data = await res.json();", "try" to "try {\n    $0\n} catch (e) {\n    console.error(e);\n}"),
+            "c" to mapOf("main" to "#include <stdio.h>\n\nint main(void) {\n    $0\n    return 0;\n}", "for" to "for (int i = 0; i < $0; i++) {\n    \n}",
+                "if" to "if ($0) {\n    \n}", "while" to "while ($0) {\n    \n}", "printf" to "printf(\"$0\\n\");", "include" to "#include <$0>",
+                "cout" to "std::cout << $0 << std::endl;", "cppmain" to "#include <iostream>\n\nint main() {\n    $0\n    return 0;\n}"),
+            "kt" to mapOf("main" to "fun main() {\n    $0\n}", "fun" to "fun $0() {\n    \n}", "for" to "for (i in 0 until $0) {\n    \n}", "if" to "if ($0) {\n    \n}",
+                "when" to "when ($0) {\n    else -> {}\n}", "println" to "println($0)", "class" to "class $0 {\n    \n}"),
+            "java" to mapOf("main" to "public static void main(String[] args) {\n    $0\n}", "sout" to "System.out.println($0);", "for" to "for (int i = 0; i < $0; i++) {\n    \n}",
+                "if" to "if ($0) {\n    \n}", "class" to "public class $0 {\n    \n}", "try" to "try {\n    $0\n} catch (Exception e) {\n    e.printStackTrace();\n}"),
+            "go" to mapOf("main" to "package main\n\nimport \"fmt\"\n\nfunc main() {\n    $0\n}", "func" to "func $0() {\n    \n}", "iferr" to "if err != nil {\n    return err\n}",
+                "for" to "for i := 0; i < $0; i++ {\n    \n}", "println" to "fmt.Println($0)"),
+            "rs" to mapOf("main" to "fn main() {\n    $0\n}", "fn" to "fn $0() {\n    \n}", "println" to "println!(\"{}\", $0);", "match" to "match $0 {\n    _ => {}\n}",
+                "for" to "for i in 0..$0 {\n    \n}"),
+            "html" to mapOf("html5" to "<!DOCTYPE html>\n<html lang=\"az\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>$0</title>\n</head>\n<body>\n    \n</body>\n</html>",
+                "div" to "<div>$0</div>", "script" to "<script>\n    $0\n</script>", "style" to "<style>\n    $0\n</style>", "a" to "<a href=\"$0\"></a>", "img" to "<img src=\"$0\" alt=\"\">"),
+            "php" to mapOf("php" to "<?php\n$0\n", "function" to "function $0() {\n    \n}", "foreach" to "foreach ($0 as \$item) {\n    \n}", "echo" to "echo $0;"),
+        )
+        private val WORD = Regex("[A-Za-z_][A-Za-z0-9_]{2,}")
         private val PAIRS = mapOf('(' to ')', '[' to ']', '{' to '}', '"' to '"', '\'' to '\'', '`' to '`')
 
         fun open(context: Context, env: String?, guestPath: String) = context.startActivity(
@@ -127,6 +153,10 @@ class EditorActivity : Activity() {
     private val main = Handler(Looper.getMainLooper())
     private val highlighter = Runnable { highlight() }
     private val prefs by lazy { getSharedPreferences("editor", MODE_PRIVATE) }
+    private lateinit var suggestRow: LinearLayout
+    private lateinit var suggestScroll: HorizontalScrollView
+    private var fileWords: Map<String, Int> = emptyMap()
+    private var wordsAt = 0L
     private fun pref(k: String, d: Boolean) = prefs.getBoolean(k, d)
     private fun setPref(k: String, v: Boolean) = prefs.edit().putBoolean(k, v).apply()
     private val ext get() = guest.substringAfterLast('.', "").lowercase().let { ALIAS[it] ?: it }
@@ -176,6 +206,9 @@ class EditorActivity : Activity() {
             gutter = pref("gutter", true)
         }
         root.addView(editor, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        suggestRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        suggestScroll = HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; setBackgroundColor(0xFF10161D.toInt()); addView(suggestRow); visibility = View.GONE }
+        root.addView(suggestScroll)
         root.addView(symbolBar())
         status = Ui.label(this, guest).apply { setPadding(Ui.dp(context, 12), Ui.dp(context, 2), Ui.dp(context, 12), Ui.dp(context, 2)) }
         root.addView(status)
@@ -194,6 +227,7 @@ class EditorActivity : Activity() {
             override fun afterTextChanged(s: Editable) {
                 val at = pendingInsert; pendingInsert = -1
                 if (at >= 0 && at < s.length) smartInsert(s, at)
+                if (at >= 0) suggest() else hideSuggest()
                 updateStatus(); main.removeCallbacks(highlighter); main.postDelayed(highlighter, 350)
             }
         })
@@ -240,6 +274,64 @@ class EditorActivity : Activity() {
                 }
             }
         } finally { restoring = false }
+    }
+
+    // ---------------------------------------------------------------- auto-complete (keywords + words in file + snippets)
+    private fun prefixAt(): Pair<Int, String> {
+        val t = editor.text; val end = editor.selectionStart.coerceAtLeast(0)
+        var st = end
+        while (st > 0 && (t[st - 1].isLetterOrDigit() || t[st - 1] == '_')) st--
+        return st to t.substring(st, end)
+    }
+
+    private fun hideSuggest() { if (::suggestScroll.isInitialized) suggestScroll.visibility = View.GONE }
+
+    private fun suggest() {
+        if (!pref("autocomplete", true)) return hideSuggest()
+        val (start, prefix) = prefixAt()
+        if (prefix.isEmpty() || prefix[0].isDigit()) return hideSuggest()
+        val now = System.currentTimeMillis()
+        if (now - wordsAt > 2000) {
+            wordsAt = now
+            fileWords = if (editor.text.length < 300_000) WORD.findAll(editor.text).groupingBy { it.value }.eachCount() else emptyMap()
+        }
+        val snippets = (SNIPPETS[ext] ?: if (ext in setOf("htm", "xml", "vue")) SNIPPETS["html"] else null).orEmpty()
+        val kws = (LANGS[ext] ?: if (ext.isEmpty()) LANGS["sh"] else null)?.split('|').orEmpty()
+        val out = LinkedHashMap<String, String?>() // label → snippet body (null = plain word)
+        snippets.filterKeys { it.startsWith(prefix, true) }.forEach { (k, v) -> out["⚡$k"] = v }
+        kws.filter { it.startsWith(prefix, true) && it != prefix }.forEach { out.putIfAbsent(it, null) }
+        fileWords.entries.filter { it.key.startsWith(prefix, true) && it.key != prefix && !(it.key.length == prefix.length + 0) }
+            .sortedByDescending { it.value }.take(20).forEach { out.putIfAbsent(it.key, null) }
+        if (prefix.length < 2 && out.keys.none { it.startsWith("⚡") }) return hideSuggest()
+        if (out.isEmpty()) return hideSuggest()
+        suggestRow.removeAllViews()
+        out.entries.take(15).forEach { (label, body) ->
+            suggestRow.addView(TextView(this).apply {
+                text = label; textSize = 15f; typeface = Typeface.MONOSPACE; setTextColor(if (body != null) Ui.GOLD else Ui.INK)
+                setPadding(Ui.dp(context, 12), Ui.dp(context, 6), Ui.dp(context, 12), Ui.dp(context, 6))
+                setOnClickListener { complete(start, label.removePrefix("⚡"), body) }
+            })
+        }
+        suggestScroll.visibility = View.VISIBLE
+        suggestScroll.scrollTo(0, 0)
+    }
+
+    private fun complete(start: Int, word: String, body: String?) {
+        snapshot()
+        val t = editor.text; val end = editor.selectionStart.coerceAtLeast(start)
+        restoring = true
+        try {
+            if (body == null) { t.replace(start, end, word); editor.setSelection(start + word.length) }
+            else {
+                val lineStart = t.lastIndexOf('\n', start - 1) + 1
+                val ind = t.substring(lineStart, start).takeWhile { it == ' ' || it == '\t' }
+                val text = body.replace("\n", "\n$ind").replace("    ", indentUnit)
+                val cursor = text.indexOf("$0").let { if (it < 0) text.length else it }
+                val clean = text.replace("$0", "")
+                t.replace(start, end, clean); editor.setSelection(start + cursor)
+            }
+        } finally { restoring = false }
+        hideSuggest(); highlight(); updateStatus()
     }
 
     private fun symbolBar(): View {
@@ -485,6 +577,8 @@ class EditorActivity : Activity() {
         acts += (if (pref("gutter", true)) "☑ " else "☐ ") + getString(R.string.editor_line_numbers) to { setPref("gutter", !pref("gutter", true)); editor.gutter = pref("gutter", true); editor.invalidate() }
         acts += (if (pref("indent", true)) "☑ " else "☐ ") + getString(R.string.editor_auto_indent) to { setPref("indent", !pref("indent", true)) }
         acts += (if (pref("autoclose", true)) "☑ " else "☐ ") + getString(R.string.editor_auto_close) to { setPref("autoclose", !pref("autoclose", true)) }
+        acts += (if (pref("autocomplete", true)) "☑ " else "☐ ") + getString(R.string.editor_autocomplete) to { setPref("autocomplete", !pref("autocomplete", true)); hideSuggest() }
+        acts += "🩺 " + getString(R.string.editor_lint) to { if (save()) lint() }
         acts += (if (pref("highlight", true)) "☑ " else "☐ ") + getString(R.string.editor_highlight) to { setPref("highlight", !pref("highlight", true)); highlight() }
         acts += (if (pref("autosave", false)) "☑ " else "☐ ") + getString(R.string.editor_autosave) to { setPref("autosave", !pref("autosave", false)) }
         acts += (if (pref("trim", false)) "☑ " else "☐ ") + getString(R.string.editor_trim) to { setPref("trim", !pref("trim", false)) }
@@ -496,6 +590,25 @@ class EditorActivity : Activity() {
         acts += getString(R.string.files_title) to { FilesActivity.open(this, envId, guest.substringBeforeLast('/')) }
         acts += getString(R.string.editor_reload) to { load() }
         AlertDialog.Builder(this).setItems(acts.map { it.first }.toTypedArray()) { _, w -> acts[w].second() }.show()
+    }
+
+    /** Linter / checker for the file (shellcheck, pyflakes, eslint, gcc -fsyntax-only, gofmt, …), output in a terminal. */
+    private fun lint() {
+        val q = shQuote(guest)
+        val cmd = when (ext) {
+            "sh" -> "nibras-need shellcheck && shellcheck $q"
+            "py" -> "nibras-need python3 && (python3 -m pyflakes $q 2>/dev/null || { pip3 install -q pyflakes --break-system-packages 2>/dev/null || pip3 install -q pyflakes; python3 -m pyflakes $q; })"
+            "js" -> "nibras-need node && npx --yes eslint@8 --no-eslintrc --env es2022,node,browser --parser-options ecmaVersion:latest,sourceType:module $q"
+            "c" -> if (guest.endsWith(".c")) "nibras-need gcc && gcc -fsyntax-only -Wall -Wextra $q" else "nibras-need g++ && g++ -fsyntax-only -Wall -Wextra -std=c++17 $q"
+            "go" -> "nibras-need go && gofmt -l -e $q && go vet $q"
+            "rs" -> "nibras-need rustc && rustc --edition 2021 --emit=metadata -o /tmp/nibras-lint $q"
+            "json" -> "nibras-need jq && jq empty $q && echo OK"
+            "yml", "yaml" -> "nibras-need python3 && python3 -c 'import sys,yaml;yaml.safe_load(open(sys.argv[1]));print(\"OK\")' $q"
+            "php" -> "nibras-need php && php -l $q"
+            "rb" -> "nibras-need ruby && ruby -wc $q"
+            else -> "echo 'lint: no checker for .$ext (install lsp adds more)'"
+        }
+        Launcher.run(this, envId, "cd ${shQuote(guest.substringBeforeLast('/').ifEmpty { "/" })} && $cmd; echo; echo '── lint done ──'", "lint", keepShell = true)
     }
 
     private fun fontBy(d: Float) {

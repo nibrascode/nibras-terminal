@@ -1,0 +1,57 @@
+#!/bin/sh
+# nibras-usb: USB devices from Linux (termux-usb compatible) and a serial console for USB-serial adapters.
+#   nibras-usb -l                         list attached devices (JSON)
+#   nibras-usb -r [device]                ask Android for permission
+#   nibras-usb -e <command> [device]      run <command> <fd> with an open file descriptor (libusb_wrap_sys_device)
+#   nibras-usb serial [device] [baud]     interactive serial console (Ctrl+] quits)  · CDC-ACM, CP210x, FTDI, CH340
+#   nibras-usb serial --port [device] [baud]   only print a local TCP port bridged to the adapter
+# device = /dev/bus/usb/001/002 or vvvv:pppp; may be omitted when one device is attached.
+. /usr/local/share/nibras/msg.sh
+case "${1:-}" in
+  ""|-h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -l) exec nibras-api usb -l ;;
+  -r) shift; exec nibras-api usb -r "$@" ;;
+  -e)
+    cmd=${2:?command}; shift 2
+    command -v python3 >/dev/null 2>&1 || nibras-need python3 || exit 1
+    out=$(nibras-api usb -e "$@") || { echo "$out" >&2; exit 1; }
+    sock=${out%% *}
+    exec python3 - "$sock" "$cmd" <<'PY'
+import os, socket, sys
+s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+s.connect("\0" + sys.argv[1])
+msg, fds, _, _ = socket.recv_fds(s, 16, 1)
+if not fds: sys.exit("nibras-usb: no file descriptor received")
+fd = fds[0]; os.set_inheritable(fd, True)
+os.environ["NIBRAS_USB_FD"] = os.environ["TERMUX_USB_FD"] = str(fd)
+os.execvp("sh", ["sh", "-c", sys.argv[2] + ' "$1"', "sh", str(fd)])
+PY
+    ;;
+  serial)
+    shift; only=; [ "${1:-}" = --port ] && { only=1; shift; }
+    out=$(nibras-api usb-serial "$@") || { echo "$out" >&2; exit 1; }
+    port=${out%% *}
+    [ -n "$only" ] && { echo "$port"; exit 0; }
+    echo "⚡ ${out#* }  ·  Ctrl+] = exit" >&2
+    command -v python3 >/dev/null 2>&1 || nibras-need python3 || exit 1
+    exec python3 - "$port" <<'PY'
+import os, select, socket, sys, termios, tty
+s = socket.create_connection(("127.0.0.1", int(sys.argv[1])))
+fd = sys.stdin.fileno(); old = termios.tcgetattr(fd); tty.setraw(fd)
+try:
+    while True:
+        r, _, _ = select.select([s, fd], [], [])
+        if s in r:
+            d = s.recv(4096)
+            if not d: break
+            os.write(sys.stdout.fileno(), d)
+        if fd in r:
+            d = os.read(fd, 1024)
+            if b"\x1d" in d: break
+            s.sendall(d)
+finally:
+    termios.tcsetattr(fd, termios.TCSADRAIN, old); print("\r\n[serial closed]")
+PY
+    ;;
+  *) exec nibras-api usb "$@" ;;
+esac

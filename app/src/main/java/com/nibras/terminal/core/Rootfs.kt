@@ -24,6 +24,9 @@ object Rootfs {
         Env("rootfs-alpine", "Alpine"),
         Env("rootfs-debian", "Debian"),
         Env("rootfs-ubuntu", "Ubuntu"),
+        Env("rootfs-arch", "Arch"),
+        Env("rootfs-fedora", "Fedora"),
+        Env("rootfs-kali", "Kali"),
         Env("rootfs-custom", "Custom"),
     )
 
@@ -107,6 +110,18 @@ object Rootfs {
             )
         }
 
+        // pacman 7 sandboxes downloads with Landlock and checks free space via mounts; neither works under PRoot.
+        f("etc/pacman.conf").takeIf { it.isFile }?.let { conf ->
+            var t = conf.readText()
+            if (!t.contains("DisableSandbox")) t = t.replace("[options]", "[options]\nDisableSandbox\nDisableDownloadTimeout")
+            t = t.replace(Regex("(?m)^CheckSpace"), "#CheckSpace")
+            writeReplacing(conf, t)
+        }
+        // dnf: no sandboxed downloads / fewer parallel connections on phones
+        f("etc/dnf/dnf.conf").takeIf { it.isFile }?.let { conf ->
+            val t = conf.readText()
+            if (!t.contains("max_parallel_downloads")) writeReplacing(conf, t.trimEnd() + "\nmax_parallel_downloads=4\ninstall_weak_deps=False\n")
+        }
         writeReplacing(f("etc/profile.d/nibras.sh"), guest(context, "profile.sh"))
         exe(f("usr/local/bin/nibras-login"), guest(context, "nibras-login"))
         exe(f("usr/local/bin/pkg"), guest(context, "pkg"))
@@ -115,7 +130,8 @@ object Rootfs {
         exe(f("usr/local/bin/nibras-sshd"), guest(context, "nibras-sshd"))
         exe(f("usr/local/bin/nibras-shell"), guest(context, "nibras-shell"))
         writeReplacing(f("usr/local/share/nibras/msg.sh"), guest(context, "nibras-msg.sh"))
-        for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish")) exe(f("usr/local/bin/$tool"), guest(context, tool))
+        for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish", "nibras-usb")) exe(f("usr/local/bin/$tool"), guest(context, tool))
+        runCatching { Files.deleteIfExists(f("usr/local/bin/termux-usb").toPath()); Files.createSymbolicLink(f("usr/local/bin/termux-usb").toPath(), Paths.get("nibras-usb")) }
         exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/banner /etc/nibras/help 2>/dev/null\n")
         for (cmd in API_COMMANDS) {
             // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.
@@ -334,14 +350,14 @@ object Rootfs {
         "open-url", "open", "info", "media-player", "contact-list", "call-log", "sms-list", "sms-send",
         "reload-settings", "new-session", "edit", "files", "hosts", "dialog", "storage-get", "job-scheduler",
         "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
-        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo",
+        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo", "keystore", "nfc", "prayer-alarm", "media-builder", "env-install",
     )
 
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */
     val KIT_COMMANDS = listOf(
         "video", "audio", "image", "pdf", "download", "web", "py", "backup", "snapshot", "net", "share", "webterm",
         "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "learn", "ask", "explain", "recipes", "fix", "trash",
-        "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office",
+        "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office", "media",
     )
 
     fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"

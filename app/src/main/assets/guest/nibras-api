@@ -25,6 +25,14 @@ case "$name" in
     if [ "$name" != dialog ] && [ "$name" != job-scheduler ]; then
       args=; for a in "$@"; do case "$a" in -*|[0-9]) args="$args$a$(printf '\037')" ;; /*) args="$args$a$(printf '\037')" ;; *) args="$args$PWD/$a$(printf '\037')" ;; esac; done
     fi ;;
+  keystore)
+    case "${1:-}" in
+      sign) data=$(base64 | tr -d '\n'); args=$(printf '%s\037%s\037%s\037%s\037' sign "${2:-}" "${3:-}" "$data"); decode=1 ;;
+      verify) data=$(base64 | tr -d '\n'); sig=$(base64 < "${4:-/dev/null}" | tr -d '\n'); args=$(printf '%s\037%s\037%s\037%s\037%s\037' verify "${2:-}" "${3:-}" "$data" "$sig") ;;
+      *) args=$(printf '%s\037' "$@") ;;
+    esac ;;
+  nfc|prayer-alarm)
+    args=$(printf '%s\037' "$@") ;;
   wallpaper)
     lock=; [ "${1:-}" = -l ] && { lock="-l "; shift; }
     args="$lock$(readlink -f "${1:-}" 2>/dev/null || echo "${1:-}")" ;;
@@ -45,5 +53,6 @@ else
 fi
 if [ -z "$resp" ]; then nmsg api_down >&2; exit 1; fi
 status=$(printf '%s\n' "$resp" | head -n 1)
+if [ -n "${decode:-}" ] && [ "$status" = OK ]; then printf '%s\n' "$resp" | sed '1d' | base64 -d; exit 0; fi
 printf '%s\n' "$resp" | sed '1d'
 [ "$status" = OK ]
