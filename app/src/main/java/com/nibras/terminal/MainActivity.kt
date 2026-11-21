@@ -738,7 +738,20 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }
         background = Themes.apply(prefs.theme, home)
         service?.sessions?.forEach { it.emulator?.mColors?.reset() }
-        content.setBackgroundColor(background)
+        val wall = Themes.backgroundImage(home)?.let { f ->
+            runCatching {
+                val o = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                android.graphics.BitmapFactory.decodeFile(f.path, o)
+                var sample = 1; val max = maxOf(resources.displayMetrics.widthPixels, resources.displayMetrics.heightPixels)
+                while (maxOf(o.outWidth, o.outHeight) / (sample * 2) >= max) sample *= 2
+                android.graphics.BitmapFactory.decodeFile(f.path, android.graphics.BitmapFactory.Options().apply { inSampleSize = sample })
+            }.getOrNull()
+        }
+        if (wall != null) {
+            val img = android.graphics.drawable.BitmapDrawable(resources, wall).apply { gravity = android.view.Gravity.FILL }
+            val shade = android.graphics.drawable.ColorDrawable((com.nibras.terminal.ui.TermProps.backgroundOpacity * 255 / 100 shl 24) or (background and 0xFFFFFF))
+            content.background = android.graphics.drawable.LayerDrawable(arrayOf(img, shade))
+        } else content.setBackgroundColor(background)
         drawer.setBackgroundColor(background)
         window.statusBarColor = background
         window.navigationBarColor = background

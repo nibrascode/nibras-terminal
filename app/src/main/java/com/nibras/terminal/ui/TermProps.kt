@@ -25,6 +25,7 @@ object TermProps {
     var workingDir: String? = null; private set
     var shortcutKeys = mapOf<String, String>(); private set
     var extraKeys: List<List<String>>? = null; private set
+    var backgroundOpacity = 70; private set
 
     fun file(home: File?): File? = home?.let { h ->
         listOf(File(h, ".nibras/nibras.properties"), File(h, ".termux/termux.properties"), File(h, ".config/termux/termux.properties")).firstOrNull { it.isFile }
@@ -38,6 +39,10 @@ object TermProps {
         fun get(k: String) = p.getProperty(k)?.trim()?.takeIf { it.isNotEmpty() }
         fun bool(k: String) = get(k)?.lowercase()?.let { it == "true" || it == "1" || it == "yes" }
         bool("fullscreen")?.let { prefs.fullscreen = it }
+        get("theme")?.let { t -> if (Themes.names.containsKey(t)) prefs.theme = t }
+        get("font-size")?.toIntOrNull()?.let { prefs.fontSize = it.coerceIn(6, 96) }
+        backgroundOpacity = get("background-opacity")?.toIntOrNull()?.coerceIn(0, 100) ?: 70
+        bool("keep-screen-on")?.let { prefs.keepScreenOn = it }
         get("back-key")?.let { prefs.backIsEscape = it == "escape" }
         get("volume-keys")?.let { prefs.volumeKeys = it != "volume" }
         bell = get("bell-character") ?: if (prefs.bellVibrate) "vibrate" else "ignore"

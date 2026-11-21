@@ -178,6 +178,11 @@ object Rootfs {
                 Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
             }
         }
+        exe(f("usr/local/bin/nibras-look"), guest(context, "nibras-look"))
+        for (cmd in LOOK_COMMANDS) runCatching {
+            val long = f("usr/local/bin/nibras-$cmd").toPath(); Files.deleteIfExists(long); Files.createSymbolicLink(long, Paths.get("nibras-look"))
+            val short = File(shortDir, cmd).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-look"))
+        }
         // Language words as commands ("az dili yukle", "türkçe yükle", "تحميل العربية"): last on PATH, never shadow programs.
         for (w in LANG_WORDS) runCatching {
             val short = File(shortDir, w).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
@@ -437,6 +442,11 @@ object Rootfs {
         "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "learn", "ask", "explain", "recipes", "fix", "trash",
         "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office", "media",
         "lang", "run", "rtl",
+    )
+    /** Look & feel commands (nibras-look): colored text, themes, fonts, prompt, banner, keys… */
+    val LOOK_COMMANDS = listOf(
+        "color", "colors", "ccat", "theme", "font", "cursor", "wallpaper", "background", "bell", "margin", "fullscreen",
+        "prompt", "banner", "keys", "motd", "aliases", "reset-look", "customize", "look",
     )
     val LANG_WORDS = listOf(
         "az", "AZ", "en", "EN", "tr", "TR", "ru", "RU", "ar", "AR", "fa", "ur", "ms", "fr", "de", "es", "pt", "it", "zh", "ja", "ko", "hi", "bn",

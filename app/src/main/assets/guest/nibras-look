@@ -1,0 +1,315 @@
+#!/bin/sh
+# nibras-look: make the terminal yours — colored text, themes, fonts, cursor, wallpaper, prompt, banners,
+# extra keys, bell, margins, fullscreen, motd, aliases. Settings live in ~/.nibras/ (Termux-compatible
+# nibras.properties / colors.properties / font.ttf) and apply live.
+#   color <style…> <text>      red green yellow blue magenta cyan white gray orange pink purple gold,
+#                              bright-*, bg-*, #RRGGBB, 0-255, bold dim italic underline blink reverse strike
+#   color rainbow|gradient #a #b <text>   lolcat-style rainbow / two-color gradient (also: cmd | color rainbow)
+#   color list                 16 colors, 256-color palette and a truecolor strip
+#   ccat <file>                syntax-colored cat (bat-like)
+#   theme [list|<name>|preview|custom <bg> <fg> [cursor]]
+#   font [list|<name>|size <n>|reset]        cursor [block|underline|bar] [blink on|off] [color #hex]
+#   wallpaper <image>|color <#hex>|opacity <0-100>|off
+#   prompt [list|<preset>|custom '<PS1>']    banner <text> [color|rainbow]
+#   keys [show|<preset>|edit]  bell [vibrate|beep|ignore]  margin <h> [v]  fullscreen on|off
+#   motd on|off|show|custom "<text>"         aliases [list|add <name> '<cmd>'|rm <name>]
+#   reset-look                 customize (menu with all of the above)
+H=${HOME:-/root}; D="$H/.nibras"; mkdir -p "$D"
+[ -r /usr/local/share/nibras/msg.sh ] && . /usr/local/share/nibras/msg.sh
+L=$(cat /etc/nibras/lang 2>/dev/null || echo en)
+t() { case "$L" in az) printf '%s\n' "$2" ;; tr) printf '%s\n' "$3" ;; ru) printf '%s\n' "$4" ;; *) printf '%s\n' "$1" ;; esac; }
+E=$(printf '\033')
+reload() { nibras-api reload-settings >/dev/null 2>&1 || true; }
+pfile() { for f in "$D/nibras.properties" "$H/.termux/termux.properties" "$H/.config/termux/termux.properties"; do [ -f "$f" ] && { echo "$f"; return; }; done; echo "$D/nibras.properties"; }
+setp() { # key value (empty value removes)
+  f=$(pfile); touch "$f"; grep -v "^[[:space:]]*$1[[:space:]]*[=:]" "$f" > "$f.tmp" 2>/dev/null || true
+  [ -n "$2" ] && printf '%s = %s\n' "$1" "$2" >> "$f.tmp"; mv "$f.tmp" "$f"
+}
+getp() { f=$(pfile); [ -f "$f" ] && sed -n "s/^[[:space:]]*$1[[:space:]]*[=:][[:space:]]*//p" "$f" | tail -1; }
+setc() { # colors.properties key value
+  f="$D/colors.properties"; touch "$f"; grep -v "^$1[[:space:]]*=" "$f" > "$f.tmp" || true
+  [ -n "$2" ] && echo "$1=$2" >> "$f.tmp"; mv "$f.tmp" "$f"
+}
+ok() { printf '%s✓%s %s\n' "$E[1;32m" "$E[0m" "$*"; }
+hex() { case "$1" in \#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) return 0 ;; *) return 1 ;; esac; }
+rgb() { h=${1#\#}; printf '%d;%d;%d' "0x$(echo "$h" | cut -c1-2)" "0x$(echo "$h" | cut -c3-4)" "0x$(echo "$h" | cut -c5-6)"; }
+
+# ---------------------------------------------------------------- color
+sgr() { # one style word → SGR code(s)
+  case "$1" in
+    black) echo 30 ;; red) echo 31 ;; green) echo 32 ;; yellow) echo 33 ;; blue) echo 34 ;; magenta|purple) echo 35 ;; cyan) echo 36 ;; white) echo 37 ;;
+    gray|grey) echo 90 ;; orange) echo "38;5;208" ;; pink) echo "38;5;213" ;; gold) echo "38;2;214;179;106" ;; brown) echo "38;5;130" ;; lime) echo "38;5;118" ;;
+    bright-black) echo 90 ;; bright-red) echo 91 ;; bright-green) echo 92 ;; bright-yellow) echo 93 ;; bright-blue) echo 94 ;; bright-magenta) echo 95 ;; bright-cyan) echo 96 ;; bright-white) echo 97 ;;
+    bg-black) echo 40 ;; bg-red) echo 41 ;; bg-green) echo 42 ;; bg-yellow) echo 43 ;; bg-blue) echo 44 ;; bg-magenta|bg-purple) echo 45 ;; bg-cyan) echo 46 ;; bg-white) echo 47 ;; bg-gray|bg-grey) echo 100 ;;
+    bg-\#*) hex "${1#bg-}" && echo "48;2;$(rgb "${1#bg-}")" ;;
+    bold|b) echo 1 ;; dim) echo 2 ;; italic|i) echo 3 ;; underline|u) echo 4 ;; blink) echo 5 ;; reverse|inverse) echo 7 ;; hidden) echo 8 ;; strike|strikethrough|s) echo 9 ;;
+    \#*) hex "$1" && echo "38;2;$(rgb "$1")" ;;
+    bg[0-9]*) n=${1#bg}; [ "$n" -le 255 ] 2>/dev/null && echo "48;5;$n" ;;
+    [0-9]|[0-9][0-9]|[0-9][0-9][0-9]) [ "$1" -le 255 ] && echo "38;5;$1" ;;
+  esac
+}
+rainbow() { # stdin → per-character rainbow (truecolor), like lolcat; $1 = spread, $2/$3 = gradient colors
+  awk -v spread="${1:-0.11}" -v A="${2:-}" -v B="${3:-}" 'function h2(x){return index("0123456789abcdef",tolower(x))-1}
+    function hx(s,i){return h2(substr(s,i,1))*16+h2(substr(s,i+1,1))}
+    BEGIN{ if(A!=""){ar=hx(A,2);ag=hx(A,4);ab=hx(A,6);br=hx(B,2);bg=hx(B,4);bb=hx(B,6)} }
+    { n=length($0); out=""; for(i=1;i<=n;i++){ c=substr($0,i,1);
+        if(A!=""){ f=(n>1)?(i-1)/(n-1):0; r=int(ar+(br-ar)*f); g=int(ag+(bg-ag)*f); b=int(ab+(bb-ab)*f) }
+        else { x=(NR*2+i)*spread; r=int(sin(x)*127+128); g=int(sin(x+2.094)*127+128); b=int(sin(x+4.189)*127+128) }
+        out=out sprintf("\033[38;2;%d;%d;%dm%s", r,g,b,c) } print out "\033[0m" }'
+}
+cmd_color() {
+  case "${1:-}" in
+    ""|-h|help) sed -n '5,9p' "$0" | sed 's/^# \{0,1\}//'; return ;;
+    list|palette|colors)
+      for i in 0 1 2 3 4 5 6 7; do printf '%s[4%sm  %s[0m' "$E" "$i" "$E"; done; echo "  0-7"
+      for i in 0 1 2 3 4 5 6 7; do printf '%s[10%sm  %s[0m' "$E" "$i" "$E"; done; echo "  8-15"
+      i=16; while [ $i -le 255 ]; do printf '%s[48;5;%sm%4s%s[0m' "$E" "$i" "$i" "$E"; [ $(( (i - 15) % 12 )) -eq 0 ] && echo; i=$((i + 1)); done; echo
+      printf '%-72s\n' "truecolor (24-bit) ················································" | rainbow 0.08
+      for w in bold dim italic underline blink reverse strike; do printf '%s[%sm%s%s[0m  ' "$E" "$(sgr $w)" "$w" "$E"; done; echo
+      echo "color red hello · color bold #ff8800 hi · color bg-blue white 'text' · echo hi | color rainbow"; return ;;
+    rainbow|lolcat) shift; if [ $# -gt 0 ]; then printf '%s\n' "$*" | rainbow; else rainbow; fi; return ;;
+    gradient) shift; a=${1:-#ff0080}; b=${2:-#00e0ff}; shift 2 2>/dev/null || shift $#
+      if [ $# -gt 0 ]; then printf '%s\n' "$*" | rainbow 0 "$a" "$b"; else rainbow 0 "$a" "$b"; fi; return ;;
+    cat) shift; cmd_ccat "$@"; return ;;
+  esac
+  codes=""
+  while [ $# -gt 0 ]; do c=$(sgr "$1"); [ -n "$c" ] || break; codes="${codes:+$codes;}$c"; shift; done
+  [ -n "$codes" ] || { t "unknown color/style: $1 (color list)" "naməlum rəng/stil: $1 (color list)" "bilinmeyen renk/stil: $1 (color list)" "неизвестный цвет/стиль: $1 (color list)" >&2; return 1; }
+  if [ $# -gt 0 ]; then printf '%s[%sm%s%s[0m\n' "$E" "$codes" "$*" "$E"
+  else while IFS= read -r line; do printf '%s[%sm%s%s[0m\n' "$E" "$codes" "$line" "$E"; done; fi
+}
+cmd_ccat() {
+  [ $# -gt 0 ] || { echo "ccat <file…>"; return 1; }
+  if command -v bat >/dev/null 2>&1; then bat --paging=never --style=plain --color=always "$@"
+  elif command -v batcat >/dev/null 2>&1; then batcat --paging=never --style=plain --color=always "$@"
+  elif nibras-need bat >/dev/null 2>&1 && command -v bat >/dev/null 2>&1; then bat --paging=never --style=plain --color=always "$@"
+  elif command -v batcat >/dev/null 2>&1; then batcat --paging=never --style=plain --color=always "$@"
+  else cat "$@"; fi
+}
+
+# ---------------------------------------------------------------- theme
+THEMES="nibras nibras-gold termux dracula nord gruvbox solarized-dark solarized-light monokai one-dark tokyo-night catppuccin catppuccin-latte matrix green light custom"
+sample() {
+  for i in 0 1 2 3 4 5 6 7; do printf '%s[4%sm   %s[0m' "$E" "$i" "$E"; done; echo
+  for i in 0 1 2 3 4 5 6 7; do printf '%s[10%sm   %s[0m' "$E" "$i" "$E"; done; echo
+  printf '%s[1;32m~/project%s[0m $ %s[33mgit%s[0m status  %s[36m# main%s[0m  %s[31m✗ 2%s[0m  %s[32m✓ 5%s[0m  %s[35mdef%s[0m %s[34mhello%s[0m()\n' "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E"
+}
+cmd_theme() {
+  case "${1:-list}" in
+    list|ls) cur=$(getp theme); for n in $THEMES; do [ "$n" = "$cur" ] && printf '  %s[1;32m● %s%s[0m\n' "$E" "$n" "$E" || echo "  ○ $n"; done
+      t "theme <name> · theme preview · theme custom <bg> <fg> [cursor]" "theme <ad> · theme preview · theme custom <fon> <yazı> [kursor]" "theme <ad> · theme preview · theme custom <arka> <yazı> [imleç]" "theme <имя> · theme preview · theme custom <фон> <текст> [курсор]" ;;
+    preview) sample ;;
+    custom) shift; hex "${1:-}" && hex "${2:-}" || { echo "theme custom #282a36 #f8f8f2 [#ff79c6]"; return 1; }
+      setc background "$1"; setc foreground "$2"; [ -n "${3:-}" ] && setc cursor "$3"; setp theme custom; reload; ok "custom $1 / $2"; sample ;;
+    reset) rm -f "$D/colors.properties"; setp theme ""; reload; ok "theme reset" ;;
+    *) case " $THEMES " in *" $1 "*) ;; *) t "unknown theme: $1" "naməlum mövzu: $1" "bilinmeyen tema: $1" "неизвестная тема: $1"; cmd_theme list; return 1 ;; esac
+      [ "$1" = custom ] || [ ! -f "$D/colors.properties" ] || mv "$D/colors.properties" "$D/colors.properties.bak"
+      setp theme "$1"; reload; ok "theme $1"; sleep 0.3; sample ;;
+  esac
+}
+
+# ---------------------------------------------------------------- font
+NF=https://github.com/ryanoasis/nerd-fonts/raw/HEAD/patched-fonts
+font_url() { case "$1" in
+  jetbrains|jetbrains-mono) echo "$NF/JetBrainsMono/Ligatures/JetBrainsMonoNerdFontMono-Regular.ttf" ;;
+  fira|fira-code) echo "$NF/FiraCode/FiraCodeNerdFontMono-Regular.ttf" ;;
+  hack) echo "$NF/Hack/HackNerdFontMono-Regular.ttf" ;;
+  meslo) echo "$NF/Meslo/L/MesloLGLNerdFontMono-Regular.ttf" ;;
+  ubuntu|ubuntu-mono) echo "$NF/UbuntuMono/UbuntuMonoNerdFontMono-Regular.ttf" ;;
+  source-code|source-code-pro) echo "$NF/SourceCodePro/SauceCodeProNerdFontMono-Regular.ttf" ;;
+  cascadia|cascadia-code) echo "$NF/CascadiaCode/CaskaydiaCoveNerdFontMono-Regular.ttf" ;;
+  dejavu|dejavu-mono) echo "$NF/DejaVuSansMono/DejaVuSansMNerdFontMono-Regular.ttf" ;;
+  iosevka) echo "$NF/Iosevka/IosevkaNerdFontMono-Regular.ttf" ;;
+esac; }
+cmd_font() {
+  case "${1:-list}" in
+    list|ls) t "Built in: default (Android monospace). Download on demand (Nerd Font, icons for powerline prompts, ~1–2 MB each):" \
+               "Daxili: default (Android monospace). İstəyə görə yüklənir (Nerd Font, powerline ikonları ilə, hərəsi ~1–2 MB):" \
+               "Dahili: default (Android monospace). İsteğe bağlı indirilir (Nerd Font, ~1–2 MB):" "Встроенный: default. Загружаемые (Nerd Font, ~1–2 МБ):"
+      echo "  jetbrains-mono  fira-code  hack  meslo  ubuntu-mono  source-code-pro  cascadia-code  dejavu-mono  iosevka"
+      echo "  font <name> · font size <n> · font reset · font file <path.ttf>"; [ -f "$D/font.ttf" ] && echo "  ● $(cat "$D/.font-name" 2>/dev/null || echo custom)" ;;
+    size) [ -n "${2:-}" ] || { echo "font size 14"; return 1; }; setp font-size "$2"; reload; ok "font size $2" ;;
+    reset|default) rm -f "$D/font.ttf" "$D/.font-name"; setp font-size ""; reload; ok "font default" ;;
+    file) [ -f "${2:-}" ] || { echo "font file <path.ttf>"; return 1; }; cp "$2" "$D/font.ttf"; basename "$2" > "$D/.font-name"; reload; ok "font $(basename "$2")" ;;
+    *) u=$(font_url "$1"); [ -n "$u" ] || { t "unknown font: $1" "naməlum şrift: $1" "bilinmeyen yazı tipi: $1" "неизвестный шрифт: $1"; cmd_font list; return 1; }
+      mkdir -p "$D/fonts"; f="$D/fonts/$1.ttf"
+      [ -s "$f" ] || { echo "↓ $1"; curl -fL --retry 3 -o "$f.part" "$u" && mv "$f.part" "$f" || { rm -f "$f.part"; return 1; }; }
+      cp "$f" "$D/font.ttf"; echo "$1" > "$D/.font-name"; reload; ok "font $1" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- cursor / wallpaper / bell / margin / fullscreen
+cmd_cursor() {
+  [ $# -gt 0 ] || { echo "cursor block|underline|bar · cursor blink on|off · cursor color #d6b36a"; echo "  style=$(getp terminal-cursor-style) blink=$(getp terminal-cursor-blink-rate)"; return; }
+  while [ $# -gt 0 ]; do case "$1" in
+    block|underline|bar) setp terminal-cursor-style "$1"; ok "cursor $1" ;;
+    blink) shift; case "${1:-on}" in off|0|no) setp terminal-cursor-blink-rate 0 ;; *) setp terminal-cursor-blink-rate 500 ;; esac; ok "blink ${1:-on}" ;;
+    color|colour) shift; hex "${1:-}" || { echo "cursor color #RRGGBB"; return 1; }; setc cursor "$1"; ok "cursor color $1" ;;
+    *) echo "cursor block|underline|bar · blink on|off · color #hex"; return 1 ;;
+  esac; shift; done; reload
+}
+cmd_wallpaper() {
+  case "${1:-}" in
+    ""|help) echo "wallpaper <image.jpg|png> · wallpaper opacity 0-100 (darkening over the image) · wallpaper color #101820 · wallpaper off" ;;
+    off|none|reset) rm -f "$D"/background.jpg "$D"/background.png "$D"/background.webp "$D"/background.jpeg; reload; ok "wallpaper off" ;;
+    opacity) [ -n "${2:-}" ] || { echo "wallpaper opacity 70"; return 1; }; setp background-opacity "$2"; reload; ok "opacity $2" ;;
+    color|colour) hex "${2:-}" || { echo "wallpaper color #RRGGBB"; return 1; }; setc background "$2"; reload; ok "background $2" ;;
+    *) [ -f "$1" ] || { echo "no file: $1 (photos: ~/storage/dcim or /sdcard/DCIM)"; return 1; }
+      e=$(echo "${1##*.}" | tr A-Z a-z); case "$e" in jpg|jpeg|png|webp) ;; *) echo "jpg/png/webp"; return 1 ;; esac
+      rm -f "$D"/background.*; cp "$1" "$D/background.$e"; reload; ok "wallpaper $(basename "$1")" ;;
+  esac
+}
+cmd_bell() { case "${1:-}" in vibrate|beep|ignore) setp bell-character "$1"; reload; ok "bell $1" ;; *) echo "bell vibrate|beep|ignore (now: $(getp bell-character))" ;; esac; }
+cmd_margin() { [ -n "${1:-}" ] || { echo "margin <horizontal> [vertical]  (dp, 0-100)"; return; }; setp terminal-margin-horizontal "$1"; setp terminal-margin-vertical "${2:-0}"; reload; ok "margin $1 ${2:-0}"; }
+cmd_fullscreen() { case "${1:-on}" in on|1|yes|true) setp fullscreen true ;; *) setp fullscreen false ;; esac; reload; ok "fullscreen ${1:-on}"; }
+
+# ---------------------------------------------------------------- prompt
+prompt_body() { # preset → PS1 (bash/ash/zsh-compatible escapes; git branch through a function)
+  case "$1" in
+    nibras) printf '%s\n' '\[\e[1;32m\]\w\[\e[0m\] \$ ' ;;
+    minimal) printf '%s\n' '\[\e[1;36m\]❯\[\e[0m\] ' ;;
+    classic) printf '%s\n' '\[\e[1;32m\]\u@\h\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ ' ;;
+    gold) printf '%s\n' '\[\e[38;2;214;179;106m\]\w\[\e[0m\] \[\e[1;32m\]➜\[\e[0m\] ' ;;
+    git) printf '%s\n' '\[\e[1;34m\]\w\[\e[0;33m\]$(__nb_git)\[\e[0m\] \$ ' ;;
+    time) printf '%s\n' '\[\e[90m\][\t]\[\e[0m\] \[\e[1;32m\]\w\[\e[0m\] \$ ' ;;
+    powerline) printf '%s\n' '\[\e[30;42m\] \u \[\e[32;44m\]\[\e[97;44m\] \w \[\e[34;43m\]\[\e[30;43m\]$(__nb_git) \t \[\e[0;33m\]\[\e[0m\] ' ;;
+    arrows) printf '%s\n' '\[\e[1;35m\]\w\[\e[0;33m\]$(__nb_git)\n\[\e[1;32m\]❯\[\e[1;33m\]❯\[\e[1;31m\]❯\[\e[0m\] ' ;;
+    two-line) printf '%s\n' '\[\e[1;32m\]┌─(\u)─[\[\e[1;34m\]\w\[\e[1;32m\]]\[\e[0;33m\]$(__nb_git)\[\e[1;32m\]\n└─\$\[\e[0m\] ' ;;
+    emoji) printf '%s\n' '🌙 \[\e[1;36m\]\w\[\e[0m\]$(__nb_git) ✨ ' ;;
+    kali) printf '%s\n' '\[\e[1;34m\]┌──(\[\e[1;31m\]\u㉿\h\[\e[1;34m\])-[\[\e[0m\]\w\[\e[1;34m\]]\n└─\[\e[1;31m\]\$\[\e[0m\] ' ;;
+  esac
+}
+PRESETS="nibras minimal classic gold git time powerline arrows two-line emoji kali"
+cmd_prompt() {
+  case "${1:-list}" in
+    list|ls) for p in $PRESETS; do printf '  %-10s ' "$p"; PS=$(prompt_body "$p"); printf '%s' "$PS" | sed 's/\\\[//g; s/\\\]//g; s/\\e/\x1b/g; s/\\u/user/g; s/\\h/phone/g; s/\\w/~\/project/g; s/\\t/12:30:00/g; s/\\\$/$/g; s/\$(__nb_git)/ (main)/g; s/\\n/ ⏎ /g'; printf '\033[0m\n'; done
+      echo "  prompt <preset> · prompt custom '<PS1>' · prompt reset" ;;
+    reset) rm -f "$D/prompt.sh"; ok "prompt default (new sessions)" ;;
+    custom) shift; [ -n "${1:-}" ] || { echo "prompt custom '\\[\\e[1;35m\\]\\w\\[\\e[0m\\] > '"; return 1; }; body=$1 ;;
+    *) body=$(prompt_body "$1"); [ -n "$body" ] || { t "unknown preset: $1" "naməlum şablon: $1" "bilinmeyen şablon: $1" "неизвестный шаблон: $1"; cmd_prompt list; return 1; } ;;
+  esac
+  [ -n "${body:-}" ] || return 0
+  q=$(printf '%s' "$body" | sed "s/'/'\\\\''/g")
+  cat > "$D/prompt.sh" <<P
+# written by: prompt (nibras-look)
+__nb_git() { b=\$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) && printf ' (%s)' "\$b"; }
+if [ -n "\${ZSH_VERSION:-}" ]; then setopt PROMPT_SUBST 2>/dev/null; PS1='%F{green}%~%f \$(__nb_git) %# '; else PS1='$q'; fi
+P
+  ok "prompt ${1}"; t "New sessions use it; this one: . ~/.nibras/prompt.sh" "Yeni sessiyalarda işləyir; bu sessiyada: . ~/.nibras/prompt.sh" "Yeni oturumlarda geçerli; bu oturumda: . ~/.nibras/prompt.sh" "В новых сессиях; в этой: . ~/.nibras/prompt.sh"
+}
+
+# ---------------------------------------------------------------- banner
+cmd_banner() {
+  [ $# -gt 0 ] || { echo "banner <text> [red|gold|rainbow|gradient|#hex] [--font standard|big|slant|small|banner|block]"; return 1; }
+  style=rainbow; fnt=standard; words=""
+  while [ $# -gt 0 ]; do case "$1" in --font|-f) fnt=$2; shift 2 ;; rainbow|gradient) style=$1; shift ;;
+    *) if [ -n "$(sgr "$1")" ] && [ -n "$words" ]; then style=$1; shift; else words="${words:+$words }$1"; shift; fi ;; esac; done
+  command -v figlet >/dev/null 2>&1 || command -v toilet >/dev/null 2>&1 || nibras-need figlet >/dev/null 2>&1 || true
+  if command -v figlet >/dev/null 2>&1; then art=$(figlet -w "${COLUMNS:-60}" -f "$fnt" "$words" 2>/dev/null || figlet -w "${COLUMNS:-60}" "$words")
+  elif command -v toilet >/dev/null 2>&1; then art=$(toilet -w "${COLUMNS:-60}" "$words")
+  else n=$(printf '%s' "$words" | wc -m); line=$(printf '%*s' "$((n + 4))" '' | sed 's/ /═/g')
+    art=$(printf '╔%s╗\n║  %s  ║\n╚%s╝' "$line" "$words" "$line"); fi
+  case "$style" in rainbow) printf '%s\n' "$art" | rainbow 0.15 ;; gradient) printf '%s\n' "$art" | rainbow 0 "#d6b36a" "#3ddc84" ;; *) printf '%s\n' "$art" | cmd_color "$style" ;; esac
+}
+
+# ---------------------------------------------------------------- keys
+keys_preset() { case "$1" in
+  default) echo "[['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT','PGDN']]" ;;
+  dev) echo "[['ESC','{','}','(',')','[',']','<','>','UP','|'],['TAB','CTRL','ALT','=',';',':','\"','\\\\','LEFT','DOWN','RIGHT']]" ;;
+  vim) echo "[['ESC',':','/','w','q','dd','u','UP','~'],['TAB','CTRL','ALT','i','v','yy','p','LEFT','DOWN','RIGHT']]" ;;
+  arrows) echo "[['ESC','TAB','CTRL','ALT','LEFT','DOWN','UP','RIGHT']]" ;;
+  minimal) echo "[['ESC','TAB','CTRL','ALT','UP','DOWN']]" ;;
+  full) echo "[['ESC','F1','F2','F3','F4','F5','F6','F7','F8','F9','F10'],['TAB','CTRL','ALT','HOME','END','PGUP','PGDN','INS','DEL','UP','|'],['/','-','~','\$','&','*','{','}','LEFT','DOWN','RIGHT']]" ;;
+esac; }
+cmd_keys() {
+  case "${1:-show}" in
+    show) echo "extra-keys = $(getp extra-keys)"; echo "keys default|dev|vim|arrows|minimal|full · keys edit · keys off|on" ;;
+    edit) f=$(pfile); grep -q '^extra-keys' "$f" 2>/dev/null || echo "extra-keys = $(keys_preset default)" >> "$f"; nibras-api edit "$f" >/dev/null 2>&1 || ${EDITOR:-vi} "$f"
+      t "Save, then run: nibras-reload-settings" "Yadda saxlayın, sonra: nibras-reload-settings" "Kaydedin, sonra: nibras-reload-settings" "Сохраните и выполните: nibras-reload-settings" ;;
+    off) setp extra-keys-hidden true; reload; ok "keys hidden" ;;
+    on) setp extra-keys-hidden false; reload; ok "keys shown" ;;
+    *) k=$(keys_preset "$1"); [ -n "$k" ] || { cmd_keys show; return 1; }; setp extra-keys "$k"; setp extra-keys-hidden ""; reload; ok "keys $1" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- motd / aliases / reset
+cmd_motd() {
+  case "${1:-show}" in
+    on) rm -f "$H/.hushlogin"; ok "motd on" ;;
+    off) touch "$H/.hushlogin"; ok "motd off" ;;
+    show) cat /etc/nibras/motd 2>/dev/null; [ -f "$D/motd" ] && cat "$D/motd" ;;
+    custom) shift; [ $# -gt 0 ] || { echo "motd custom \"Welcome!\" · motd custom --banner Hello · motd custom --reset"; return 1; }
+      case "$1" in --reset) rm -f "$D/motd"; ok "custom motd removed"; return ;; --banner) shift; cmd_banner "$@" > "$D/motd" ;; *) printf '%s\n' "$*" > "$D/motd" ;; esac; ok "motd custom" ;;
+    *) echo "motd on|off|show|custom \"text\"" ;;
+  esac
+}
+cmd_aliases() {
+  f="$D/aliases.sh"; touch "$f"
+  case "${1:-list}" in
+    list|ls) [ -s "$f" ] && sed -n "s/^alias \([^=]*\)='\(.*\)'$/  \1 → \2/p" "$f" || echo "  —"; echo "aliases add <name> '<command>' · aliases rm <name>" ;;
+    add) [ -n "${2:-}" ] && [ -n "${3:-}" ] || { echo "aliases add gs 'git status'"; return 1; }
+      grep -v "^alias $2=" "$f" > "$f.tmp" || true; printf "alias %s='%s'\n" "$2" "$(printf '%s' "$3" | sed "s/'/'\\\\''/g")" >> "$f.tmp"; mv "$f.tmp" "$f"; ok "alias $2 (new sessions; now: . ~/.nibras/aliases.sh)" ;;
+    rm|remove|del) grep -v "^alias ${2:-}=" "$f" > "$f.tmp" || true; mv "$f.tmp" "$f"; ok "removed ${2:-}" ;;
+    *) cmd_aliases list ;;
+  esac
+}
+cmd_reset() {
+  for k in theme font-size background-opacity terminal-cursor-style terminal-cursor-blink-rate terminal-margin-horizontal terminal-margin-vertical bell-character fullscreen extra-keys extra-keys-hidden; do setp "$k" ""; done
+  rm -f "$D/colors.properties" "$D/font.ttf" "$D/.font-name" "$D/prompt.sh" "$D"/background.* "$H/.hushlogin" "$D/motd"; reload
+  ok "$(t "look reset to Nibras defaults (aliases kept)" "görünüş Nibras standartına qaytarıldı (alias-lar qaldı)" "görünüm varsayılana döndü (alias'lar korundu)" "вид сброшен (алиасы сохранены)")"
+}
+
+# ---------------------------------------------------------------- customize (menu)
+ask() { printf '%s' "$1"; read -r REPLY; }
+cmd_customize() {
+  while :; do
+    printf '\n'; cmd_banner Nibras gradient --font small 2>/dev/null | head -6
+    t " 1) Theme   2) Font   3) Font size   4) Cursor   5) Wallpaper   6) Prompt   7) Extra keys" \
+      " 1) Mövzu   2) Şrift   3) Şrift ölçüsü   4) Kursor   5) Fon şəkli   6) Prompt   7) Əlavə düymələr" \
+      " 1) Tema   2) Yazı tipi   3) Boyut   4) İmleç   5) Duvar kâğıdı   6) Prompt   7) Ek tuşlar" \
+      " 1) Тема   2) Шрифт   3) Размер   4) Курсор   5) Обои   6) Приглашение   7) Доп. клавиши"
+    t " 8) Bell    9) Margins   10) Fullscreen   11) Welcome text   12) Aliases   13) Colors demo   14) Reset   0) Exit" \
+      " 8) Səs/vibrasiya   9) Kənar boşluq   10) Tam ekran   11) Salam mətni   12) Alias-lar   13) Rəng nümunəsi   14) Sıfırla   0) Çıx" \
+      " 8) Zil   9) Kenar boşluğu   10) Tam ekran   11) Karşılama   12) Alias   13) Renkler   14) Sıfırla   0) Çık" \
+      " 8) Звонок   9) Отступы   10) Полный экран   11) Приветствие   12) Алиасы   13) Цвета   14) Сброс   0) Выход"
+    ask "> "; case "$REPLY" in
+      1) cmd_theme list; ask "theme: "; [ -n "$REPLY" ] && cmd_theme "$REPLY" ;;
+      2) cmd_font list; ask "font: "; [ -n "$REPLY" ] && cmd_font "$REPLY" ;;
+      3) ask "size (8-40): "; [ -n "$REPLY" ] && cmd_font size "$REPLY" ;;
+      4) ask "block/underline/bar: "; [ -n "$REPLY" ] && cmd_cursor "$REPLY"; ask "blink on/off: "; [ -n "$REPLY" ] && cmd_cursor blink "$REPLY" ;;
+      5) ask "image path / off: "; [ -n "$REPLY" ] && cmd_wallpaper "$REPLY" ;;
+      6) cmd_prompt list; ask "prompt: "; [ -n "$REPLY" ] && cmd_prompt "$REPLY" ;;
+      7) ask "default/dev/vim/arrows/minimal/full: "; [ -n "$REPLY" ] && cmd_keys "$REPLY" ;;
+      8) ask "vibrate/beep/ignore: "; [ -n "$REPLY" ] && cmd_bell "$REPLY" ;;
+      9) ask "horizontal vertical (e.g. 6 2): "; [ -n "$REPLY" ] && cmd_margin $REPLY ;;
+      10) ask "on/off: "; [ -n "$REPLY" ] && cmd_fullscreen "$REPLY" ;;
+      11) ask "on / off / text: "; case "$REPLY" in on|off) cmd_motd "$REPLY" ;; "") ;; *) cmd_motd custom "$REPLY" ;; esac ;;
+      12) cmd_aliases list; ask "name: "; n=$REPLY; [ -n "$n" ] && { ask "command: "; cmd_aliases add "$n" "$REPLY"; } ;;
+      13) cmd_color list ;;
+      14) cmd_reset ;;
+      0|q|"") break ;;
+    esac
+  done
+}
+
+me=${0##*/}; me=${me#nibras-}
+[ "$me" = look ] && { me=${1:-customize}; [ $# -gt 0 ] && shift; }
+case "$me" in
+  color|colour|colors|renk|reng) cmd_color "$@" ;;
+  ccat) cmd_ccat "$@" ;;
+  theme|themes) cmd_theme "$@" ;;
+  font|fonts) cmd_font "$@" ;;
+  cursor) cmd_cursor "$@" ;;
+  wallpaper|background) cmd_wallpaper "$@" ;;
+  bell) cmd_bell "$@" ;;
+  margin) cmd_margin "$@" ;;
+  fullscreen) cmd_fullscreen "$@" ;;
+  prompt) cmd_prompt "$@" ;;
+  banner|figlet-color) cmd_banner "$@" ;;
+  keys) cmd_keys "$@" ;;
+  motd) cmd_motd "$@" ;;
+  aliases) cmd_aliases "$@" ;;
+  reset-look) cmd_reset ;;
+  customize|customise|look) cmd_customize ;;
+  help|-h|--help|*) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac
