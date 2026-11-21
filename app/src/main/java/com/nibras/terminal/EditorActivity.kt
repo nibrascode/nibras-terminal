@@ -93,6 +93,16 @@ class EditorActivity : Activity() {
             "php" to "$COMMON|function|class|public|private|echo|new|this|namespace|use|try|catch|foreach|as|array",
             "rb" to "$COMMON|def|class|module|end|unless|until|begin|rescue|ensure|yield|self|nil|require|puts|attr_accessor",
             "lua" to "$COMMON|function|local|end|repeat|until|nil|not|and|or",
+            "xml" to "android:layout_width|android:layout_height|android:id|android:text|android:textSize|android:textColor|android:textStyle|android:gravity|android:layout_gravity|" +
+                "android:orientation|android:padding|android:paddingStart|android:paddingEnd|android:paddingTop|android:paddingBottom|android:layout_margin|android:layout_marginTop|" +
+                "android:layout_marginBottom|android:layout_marginStart|android:layout_marginEnd|android:layout_weight|android:background|android:src|android:contentDescription|" +
+                "android:hint|android:inputType|android:visibility|android:onClick|android:scaleType|android:maxLines|android:ellipsize|android:enabled|android:clickable|" +
+                "android:name|android:exported|android:label|android:icon|android:theme|android:permission|android:value|android:resource|" +
+                "app:layout_constraintTop_toTopOf|app:layout_constraintBottom_toBottomOf|app:layout_constraintStart_toStartOf|app:layout_constraintEnd_toEndOf|" +
+                "app:layout_constraintTop_toBottomOf|app:layout_constraintStart_toEndOf|match_parent|wrap_content|vertical|horizontal|center|center_horizontal|center_vertical|" +
+                "LinearLayout|FrameLayout|RelativeLayout|ScrollView|TextView|Button|ImageView|EditText|CheckBox|Switch|ProgressBar|SeekBar|Spinner|" +
+                "androidx.constraintlayout.widget.ConstraintLayout|androidx.recyclerview.widget.RecyclerView|com.google.android.material.button.MaterialButton|" +
+                "activity|service|receiver|provider|intent-filter|action|category|uses-permission|application|manifest|meta-data|string|color|dimen|style|item",
         )
         private val ALIAS = mapOf("bash" to "sh", "zsh" to "sh", "ts" to "js", "mjs" to "js", "jsx" to "js", "tsx" to "js", "cpp" to "c", "cc" to "c", "h" to "c", "hpp" to "c", "kts" to "kt")
         private val STRINGS = Regex("\"(\\\\.|[^\"\\\\\\n])*\"|'(\\\\.|[^'\\\\\\n])*'|`[^`]*`")
@@ -123,6 +133,19 @@ class EditorActivity : Activity() {
                 "for" to "for i in 0..$0 {\n    \n}"),
             "html" to mapOf("html5" to "<!DOCTYPE html>\n<html lang=\"az\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title>$0</title>\n</head>\n<body>\n    \n</body>\n</html>",
                 "div" to "<div>$0</div>", "script" to "<script>\n    $0\n</script>", "style" to "<style>\n    $0\n</style>", "a" to "<a href=\"$0\"></a>", "img" to "<img src=\"$0\" alt=\"\">"),
+            "xml" to mapOf(
+                "linear" to "<LinearLayout\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"wrap_content\"\n    android:orientation=\"vertical\">\n    $0\n</LinearLayout>",
+                "text" to "<TextView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:text=\"\" />",
+                "button" to "<Button\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:text=\"\" />",
+                "image" to "<ImageView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"wrap_content\"\n    android:layout_height=\"wrap_content\"\n    android:src=\"@drawable/\" />",
+                "edit" to "<EditText\n    android:id=\"@+id/$0\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"wrap_content\"\n    android:hint=\"\" />",
+                "frame" to "<FrameLayout\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</FrameLayout>",
+                "scroll" to "<ScrollView\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</ScrollView>",
+                "constraint" to "<androidx.constraintlayout.widget.ConstraintLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\">\n    $0\n</androidx.constraintlayout.widget.ConstraintLayout>",
+                "recycler" to "<androidx.recyclerview.widget.RecyclerView\n    android:id=\"@+id/$0\"\n    android:layout_width=\"match_parent\"\n    android:layout_height=\"match_parent\" />",
+                "activity" to "<activity android:name=\".$0\" android:exported=\"false\" />",
+                "permission" to "<uses-permission android:name=\"android.permission.$0\" />",
+                "string" to "<string name=\"$0\"></string>"),
             "php" to mapOf("php" to "<?php\n$0\n", "function" to "function $0() {\n    \n}", "foreach" to "foreach ($0 as \$item) {\n    \n}", "echo" to "echo $0;"),
         )
         private val WORD = Regex("[A-Za-z_][A-Za-z0-9_]{2,}")
@@ -295,7 +318,7 @@ class EditorActivity : Activity() {
             wordsAt = now
             fileWords = if (editor.text.length < 300_000) WORD.findAll(editor.text).groupingBy { it.value }.eachCount() else emptyMap()
         }
-        val snippets = (SNIPPETS[ext] ?: if (ext in setOf("htm", "xml", "vue")) SNIPPETS["html"] else null).orEmpty()
+        val snippets = (SNIPPETS[ext] ?: if (ext in setOf("htm", "vue", "svg")) SNIPPETS["html"] else null).orEmpty()
         val kws = (LANGS[ext] ?: if (ext.isEmpty()) LANGS["sh"] else null)?.split('|').orEmpty()
         val out = LinkedHashMap<String, String?>() // label → snippet body (null = plain word)
         snippets.filterKeys { it.startsWith(prefix, true) }.forEach { (k, v) -> out["⚡$k"] = v }
@@ -568,6 +591,8 @@ class EditorActivity : Activity() {
         acts += getString(R.string.editor_dup_line) to { snapshot(); val r = lineBounds(); val s = editor.text.substring(r.first, r.last + 1); editor.text.insert(r.last + 1, "\n$s") }
         acts += getString(R.string.editor_del_line) to { snapshot(); val r = lineBounds(); editor.text.delete(r.first, (r.last + 2).coerceAtMost(editor.text.length)) }
         acts += getString(R.string.editor_select_all) to { editor.selectAll() }
+        formatter()?.let { cmd -> acts += "✨ " + getString(R.string.editor_format) + " (${cmd.substringBefore(' ').substringAfterLast('/')})" to { formatWith(cmd) } }
+        if (isLayout()) acts += "📱 " + getString(R.string.editor_layout_preview) to { layoutPreview() }
         if (ext == "json") acts += "{ } " + getString(R.string.editor_format) to {
             runCatching { val t = editor.text.toString().trim(); snapshot(); editor.setText(if (t.startsWith("[")) org.json.JSONArray(t).toString(2) else org.json.JSONObject(t).toString(2)) }
                 .onFailure { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show() }
@@ -606,9 +631,59 @@ class EditorActivity : Activity() {
             "yml", "yaml" -> "nibras-need python3 && python3 -c 'import sys,yaml;yaml.safe_load(open(sys.argv[1]));print(\"OK\")' $q"
             "php" -> "nibras-need php && php -l $q"
             "rb" -> "nibras-need ruby && ruby -wc $q"
+            "java" -> "nibras-apk jdk >/dev/null; cp=; for j in /opt/android-sdk/platforms/*/android.jar; do [ -f \"\$j\" ] && cp=\"-cp \$j\"; done; " +
+                "root=\$(d=\$PWD; while [ \"\$d\" != / ] && [ ! -e \"\$d/settings.gradle\" ] && [ ! -e \"\$d/settings.gradle.kts\" ]; do d=\$(dirname \"\$d\"); done; echo \$d); " +
+                "if [ \"\$root\" != / ]; then echo \"Android project: full diagnostics with Gradle\"; nibras-apk build \"\$root\" compileDebugSources; else javac -Xlint:all -d /tmp/nibras-lint \$cp $q; fi"
+            "kt" -> "root=\$(d=\$PWD; while [ \"\$d\" != / ] && [ ! -e \"\$d/settings.gradle\" ] && [ ! -e \"\$d/settings.gradle.kts\" ]; do d=\$(dirname \"\$d\"); done; echo \$d); " +
+                "if [ \"\$root\" != / ]; then nibras-apk build \"\$root\" compileDebugKotlin; else (nibras-need kotlinc || nibras-need kotlin) && kotlinc -nowarn -d /tmp/nibras-lint $q; fi"
+            "xml", "svg", "html", "htm" -> "(nibras-need xmllint || nibras-need libxml2-utils || nibras-need libxml2) >/dev/null 2>&1; xmllint --noout $q && echo OK"
             else -> "echo 'lint: no checker for .$ext (install lsp adds more)'"
         }
         Launcher.run(this, envId, "cd ${shQuote(guest.substringBeforeLast('/').ifEmpty { "/" })} && $cmd; echo; echo '── lint done ──'", "lint", keepShell = true)
+    }
+
+    /** Formatter per language (ACS / Acode "Format"); runs in the environment, then reloads the file. */
+    private fun formatter(): String? {
+        val q = shQuote(guest)
+        return when (ext) {
+            "py" -> "black -q $q || { pip3 install -q black --break-system-packages 2>/dev/null || pip3 install -q black; black -q $q; }"
+            "js", "css", "scss", "md", "markdown", "yml", "yaml", "html", "htm", "vue" -> "nibras-need node >/dev/null && npx --yes prettier@3 --write $q"
+            "sh" -> "(command -v shfmt || nibras-need shfmt) >/dev/null && shfmt -w -i 2 $q"
+            "c" -> "(command -v clang-format || nibras-need clang-format || nibras-need clang) >/dev/null && clang-format -i $q"
+            "go" -> "gofmt -w $q"
+            "rs" -> "rustfmt $q"
+            "java" -> "nibras-apk jdk >/dev/null; j=/opt/nibras-apk/google-java-format.jar; [ -f \$j ] || curl -fsSL -o \$j https://github.com/google/google-java-format/releases/download/v1.24.0/google-java-format-1.24.0-all-deps.jar; java -jar \$j --aosp -r $q"
+            "kt" -> "nibras-apk jdk >/dev/null; j=/opt/nibras-apk/ktfmt.jar; [ -f \$j ] || curl -fsSL -o \$j https://repo1.maven.org/maven2/com/facebook/ktfmt/0.53/ktfmt-0.53-jar-with-dependencies.jar; java -jar \$j --kotlinlang-style $q"
+            "xml", "svg" -> "(command -v xmllint || nibras-need xmllint || nibras-need libxml2-utils || nibras-need libxml2) >/dev/null; t=\$(mktemp); XMLLINT_INDENT='    ' xmllint --format $q > \$t && cat \$t > $q; rm -f \$t"
+            "php" -> "php -l $q"
+            "lua" -> "(command -v stylua || nibras-need stylua) >/dev/null && stylua $q"
+            else -> null
+        }
+    }
+
+    private fun formatWith(cmd: String) {
+        if (!save()) return
+        Toast.makeText(this, getString(R.string.editor_format) + "…", Toast.LENGTH_SHORT).show()
+        Thread {
+            val r = Headless.run(this, envId, "cd ${shQuote(guest.substringBeforeLast('/').ifEmpty { "/" })} && $cmd", timeoutSec = 600)
+            runOnUiThread {
+                if (r.exitCode == 0) { val pos = editor.selectionStart; load(); editor.setSelection(pos.coerceIn(0, editor.text.length)); Toast.makeText(this, "✓", Toast.LENGTH_SHORT).show() }
+                else AlertDialog.Builder(this).setTitle(R.string.editor_format).setMessage((r.stderr + r.stdout + (r.error ?: "")).takeLast(3000).ifBlank { "exit ${r.exitCode}" }).setPositiveButton(R.string.ok, null).show()
+            }
+        }.start()
+    }
+
+    private fun isLayout() = ext == "xml" && (guest.contains("/res/layout") || editor.text.contains("android:layout_width"))
+
+    /** Compact layout preview (ACS layout editor style): renders common Android views from the XML. */
+    private fun layoutPreview() {
+        val root = runCatching { LayoutPreview.render(this, editor.text.toString(), file?.parentFile) }.getOrElse {
+            Toast.makeText(this, "XML: ${it.message}", Toast.LENGTH_LONG).show(); return
+        }
+        val frame = android.widget.FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.WHITE); addView(root) }
+        val scroll = android.widget.ScrollView(this).apply { addView(frame) }
+        AlertDialog.Builder(this).setTitle(R.string.editor_layout_preview).setView(scroll).setPositiveButton(R.string.ok, null).show()
+            .window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     }
 
     private fun fontBy(d: Float) {

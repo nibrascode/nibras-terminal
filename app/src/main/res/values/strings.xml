@@ -270,4 +270,5 @@
     <string name="editor_autocomplete">Auto-complete</string>
     <string name="editor_lint">Check code (lint)</string>
     <string name="tools_media">Media</string>
+    <string name="editor_layout_preview">Layout preview</string>
 </resources>

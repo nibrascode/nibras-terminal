@@ -269,4 +269,5 @@
     <string name="editor_autocomplete">Avtomatik tamamlama</string>
     <string name="editor_lint">Kodu yoxla (lint)</string>
     <string name="tools_media">Media</string>
+    <string name="editor_layout_preview">Görünüş önizləməsi</string>
 </resources>

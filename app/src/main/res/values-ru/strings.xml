@@ -269,4 +269,5 @@
     <string name="editor_autocomplete">Автодополнение</string>
     <string name="editor_lint">Проверить код (lint)</string>
     <string name="tools_media">Медиа</string>
+    <string name="editor_layout_preview">Предпросмотр макета</string>
 </resources>
