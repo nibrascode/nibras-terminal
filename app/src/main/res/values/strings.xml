@@ -195,4 +195,6 @@
     <string name="battery_saver_off">Battery saver off</string>
     <string name="voice_prompt">Say a command…</string>
     <string name="voice_missing">No speech recognition app on this phone</string>
+    <string name="hosts_export">Export hosts</string>
+    <string name="hosts_import">Import hosts</string>
 </resources>

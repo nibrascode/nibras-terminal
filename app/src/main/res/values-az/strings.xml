@@ -194,4 +194,6 @@
     <string name="battery_saver_off">Batareya qənaəti bağlıdır</string>
     <string name="voice_prompt">Əmri de…</string>
     <string name="voice_missing">Telefonda səs tanıma tətbiqi yoxdur</string>
+    <string name="hosts_export">Hostları ixrac et</string>
+    <string name="hosts_import">Hostları idxal et</string>
 </resources>

@@ -194,4 +194,6 @@
     <string name="battery_saver_off">Экономия батареи выкл.</string>
     <string name="voice_prompt">Скажите команду…</string>
     <string name="voice_missing">Нет приложения распознавания речи</string>
+    <string name="hosts_export">Экспорт хостов</string>
+    <string name="hosts_import">Импорт хостов</string>
 </resources>

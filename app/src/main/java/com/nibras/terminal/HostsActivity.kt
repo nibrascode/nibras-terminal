@@ -55,6 +55,7 @@ class HostsActivity : Activity() {
             },
             Ui.button(this, "+ " + getString(R.string.hosts_add)) { edit(null) },
             Ui.button(this, getString(R.string.hosts_keys)) { keys() },
+            Ui.button(this, "⇅") { exportImport() },
         ), Ui.lp(this))
         root.addView(Ui.field(this, getString(R.string.search_hint)).apply {
             addTextChangedListener(object : android.text.TextWatcher {
@@ -119,6 +120,35 @@ class HostsActivity : Activity() {
                     .setNegativeButton(R.string.cancel, null).show()
             }
         }.show()
+    }
+
+    /** Move saved hosts between phones (no cloud account needed). Keys stay in ~/.ssh. */
+    private fun exportImport() {
+        AlertDialog.Builder(this).setItems(arrayOf(getString(R.string.hosts_export), getString(R.string.hosts_import))) { _, w ->
+            if (w == 0) {
+                save(this, hosts)
+                val out = File(cacheDir, "nibras-hosts.txt").also { file(this).copyTo(it, overwrite = true) }
+                val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", out)
+                startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(android.content.Intent.EXTRA_STREAM, uri).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION), "hosts"))
+            } else {
+                startActivityForResult(android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).addCategory(android.content.Intent.CATEGORY_OPENABLE).setType("*/*"), 51)
+            }
+        }.show()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data ?: return
+        if (requestCode != 51 || resultCode != RESULT_OK) return
+        val added = runCatching {
+            val text = contentResolver.openInputStream(uri)!!.bufferedReader().use { it.readText() }
+            Records.decode(text).map { Host.fromRecord(it) }.filter { it.host.isNotBlank() }
+        }.getOrDefault(emptyList())
+        added.forEach { h -> hosts.removeAll { it.id == h.id }; hosts += h }
+        save(this, hosts); adapter.notifyDataSetChanged()
+        Toast.makeText(this, "+${added.size}", Toast.LENGTH_SHORT).show()
     }
 
     private fun copy(text: String) {

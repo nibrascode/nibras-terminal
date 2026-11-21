@@ -194,4 +194,6 @@
     <string name="battery_saver_off">Pil tasarrufu kapalı</string>
     <string name="voice_prompt">Bir komut söyle…</string>
     <string name="voice_missing">Telefonda ses tanıma uygulaması yok</string>
+    <string name="hosts_export">Sunucuları dışa aktar</string>
+    <string name="hosts_import">Sunucuları içe aktar</string>
 </resources>
