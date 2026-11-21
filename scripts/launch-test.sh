@@ -16,6 +16,14 @@ for t in 5 15 30 45; do
   [ -z "$pid" ] && ok=0
 done
 adb exec-out screencap -p > "$OUT/screen.png" || true
+# PRoot needs ptrace, which the emulator's ARM translation does not provide, so also open an
+# Android-shell session to prove the PTY + terminal rendering path shows a working prompt.
+adb shell am start -a com.nibras.terminal.NEW_SESSION --es env android -n com.nibras.terminal/.MainActivity >/dev/null
+sleep 5
+adb shell input text "echo%sNIBRAS_OK_\$((6*7))"
+adb shell input keyevent 66
+sleep 3
+adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | tee "$OUT/top.txt"
 adb shell ps -A -o PID,NAME,ARGS | grep -iE "proot|nibras" | tee "$OUT/processes.txt" || true
 adb shell run-as com.nibras.terminal ls files/unpacked 2>&1 | tee "$OUT/unpacked.txt" || true

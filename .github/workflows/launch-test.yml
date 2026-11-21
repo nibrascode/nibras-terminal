@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [31, 33, 34]
+        api: [30, 31, 34]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
