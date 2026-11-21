@@ -25,7 +25,7 @@ adb shell input keyevent 66
 sleep 3
 adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
 # Open every tool screen once; each must come up without killing the app.
-for screen in store hosts files editor; do
+for screen in store hosts files editor media packages; do
   adb shell am start -n com.nibras.terminal/.MainActivity --es open $screen >/dev/null
   sleep 4
   adb exec-out screencap -p > "$OUT/screen-$screen.png" || true
