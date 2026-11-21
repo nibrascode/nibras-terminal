@@ -2,7 +2,7 @@ name: Launch test
 
 on:
   push:
-    branches: [main]
+    branches: [main, "wip/**"]
     paths-ignore: ["**.md", "catalog/**", "linux-engine/**", "web/**", "src/**"]
   workflow_dispatch:
 
