@@ -9,8 +9,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Base64
 import android.webkit.MimeTypeMap
-import androidx.core.content.FileProvider
 import com.nibras.terminal.PhoneBridge
+import com.nibras.terminal.SharedFiles
 import com.nibras.terminal.R
 import com.nibras.terminal.core.Rootfs
 import com.nibras.terminal.data.resolveInside
