@@ -33,7 +33,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
   <img src="https://img.shields.io/badge/version-1.0.0-1f6feb?style=flat-square" alt="version 1.0.0">
   <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-yellow?style=flat-square" alt="MIT license"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-no%20copy-red?style=flat-square" alt="No copy. All rights reserved."></a>
   <img src="https://img.shields.io/badge/languages-19-ff69b4?style=flat-square" alt="19 languages">
 </p>
 
@@ -48,6 +48,8 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 <p align="center">
   <img src="docs/social-preview.png" alt="Nibras Terminal preview" width="100%">
 </p>
+
+> **No copy.** No person and no AI may copy this repository or its code. The only official project is this one. Linking here is allowed. See [LICENSE](LICENSE).
 
 ---
 
@@ -144,11 +146,14 @@ Every guide covers installation, basics, packs, distros, programming, the editor
 
 ## 📚 More docs
 
-- [`AGENTS.md`](AGENTS.md) — full command reference, also for AI agents.
+- [`AGENTS.md`](AGENTS.md) — full command reference, also for AI agents. Copying the code is forbidden.
+- [`llms.txt`](llms.txt) — short page so automated systems find the official project and the no-copy rule.
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 nibrascode
+All rights reserved. No person and no AI may copy this repository or its code. © 2026 nibrascode. See [LICENSE](LICENSE).
+
+Third-party pieces (terminal-view, PRoot, Alpine, and the distro payloads) keep their own licenses.
 
 ## 🙏 Open-source credits
 

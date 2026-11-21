@@ -1,24 +1,21 @@
-MIT License
+Nibras Terminal — All Rights Reserved
 
 Copyright (c) 2026 nibrascode
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+No permission is granted to copy this repository or its code.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+No artificial intelligence, agent, model, crawler, company, or person may copy this repository or its code. Without written permission from nibrascode, nobody may:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+- copy, clone, fork, mirror, or scrape the repository in order to reuse it
+- reproduce the source code, scripts, assets, or documentation in another project, product, gist, dataset, model, or chat
+- publish, distribute, sublicense, sell, or share copies or substantial portions
+- create a derivative work, port, clone, or reimplementation taken from this source
+- train a model on this source or store it as a reusable template
 
-Third-party payloads (Alpine, Debian, Ubuntu, CPython, Node.js) keep their own
-licenses. They are not covered by the MIT text above. See MIRRORS.md.
+Naming the project and linking to the official repository is allowed. Quoting a short command that the published user guide already shows to end users is allowed. Copying the codebase is not.
+
+The copyright holder is nibrascode. Only nibrascode, and a person nibrascode authorizes in writing for a stated purpose, may copy this work.
+
+This notice replaces the MIT license previously shipped in this repository, as of 2026-11-21. It does not claw back rights already granted for copies that were lawfully received under that MIT text. No new permission to copy is given.
+
+Third-party payloads (Alpine, Debian, Ubuntu, CPython, Node.js, PRoot, and the terminal-view libraries) keep their own licenses. They are not covered by the notice above. See MIRRORS.md.
