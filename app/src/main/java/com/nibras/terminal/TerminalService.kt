@@ -132,6 +132,8 @@ class TerminalService : Service(), ApiBridge.Host {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_STOP -> {
+                runCatching { java.io.File(filesDir, "sessions.txt").delete() }
+                restorable.clear()
                 sessions.toList().forEach { it.finishIfRunning() }
                 sessions.clear()
                 envOf.clear()
@@ -152,14 +154,25 @@ class TerminalService : Service(), ApiBridge.Host {
         return START_NOT_STICKY
     }
 
-    fun createSession(env: String?, command: List<String>? = null, title: String? = null, inBackground: Boolean = false): TerminalSession {
+    /** Stable key per session: the shell writes its working directory to /tmp/.nibras-cwd-<key>. */
+    val keyOf = HashMap<TerminalSession, String>()
+
+    fun createSession(
+        env: String?, command: List<String>? = null, title: String? = null, inBackground: Boolean = false,
+        startDir: String? = null, key: String? = null,
+    ): TerminalSession {
         val id = Rootfs.pick(this, env)
-        if (id != Rootfs.ANDROID) Rootfs.refreshSessionFiles(this, id, api.port, api.token)
-        val launch = Rootfs.launch(this, id, command)
+        if (id != Rootfs.ANDROID) runCatching { Rootfs.refreshSessionFiles(this, id, api.port, api.token) }
+        val sessionKey = key ?: java.util.UUID.randomUUID().toString().take(8)
+        val extra = mutableListOf("NIBRAS_SESSION=$sessionKey")
+        if (!startDir.isNullOrBlank()) extra += "NIBRAS_START_DIR=$startDir"
+        val launch = Rootfs.launch(this, id, command, extra)
         val session = TerminalSession(launch.exe, launch.cwd, launch.args, launch.env, TRANSCRIPT_ROWS, client)
         session.mSessionName = title ?: Rootfs.name(id)
         sessions += session
         envOf[session] = id
+        keyOf[session] = sessionKey
+        if (command == null && !inBackground) restorable += session
         if (inBackground) {
             background += session
             session.initializeEmulator(80, 24) // starts the process without a view
@@ -173,6 +186,8 @@ class TerminalService : Service(), ApiBridge.Host {
         session.finishIfRunning()
         sessions.remove(session)
         envOf.remove(session)
+        keyOf.remove(session)
+        restorable.remove(session)
         background.remove(session)
         updateNotification()
         ui?.onSessionsChanged()
@@ -243,7 +258,29 @@ class TerminalService : Service(), ApiBridge.Host {
             .build()
     }
 
+    private val restorable = HashSet<TerminalSession>()
+
+    /** Working directory a session last reported (guest path), or "" when unknown. */
+    fun cwdOf(session: TerminalSession): String {
+        val id = envOf[session] ?: return ""
+        val key = keyOf[session] ?: return ""
+        val f = if (id == Rootfs.ANDROID) null else java.io.File(Rootfs.dir(this, id), "tmp/.nibras-cwd-$key")
+        return runCatching { f?.readText()?.trim() }.getOrNull().orEmpty()
+    }
+
+    /** Saves interactive sessions so they come back after Android kills the app (Termux loses them). */
+    fun saveSessions() {
+        val list = sessions.filter { it in restorable }.map { s ->
+            com.nibras.terminal.core.SavedSession(envOf[s] ?: "", s.mSessionName ?: "", cwdOf(s), keyOf[s] ?: "")
+        }
+        runCatching { java.io.File(filesDir, "sessions.txt").writeText(com.nibras.terminal.core.SessionRecords.encode(list)) }
+    }
+
+    fun savedSessions(): List<com.nibras.terminal.core.SavedSession> =
+        runCatching { com.nibras.terminal.core.SessionRecords.decode(java.io.File(filesDir, "sessions.txt").readText()) }.getOrDefault(emptyList())
+
     private fun updateNotification() {
+        if (::api.isInitialized) saveSessions()
         getSystemService(NotificationManager::class.java).notify(NOTE_ID, buildNotification())
     }
 

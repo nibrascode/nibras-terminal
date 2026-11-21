@@ -1,0 +1,143 @@
+#!/bin/sh
+# nibras-apk: build, take apart, change, sign and read Android apps on the phone (arm64 + arm32).
+# Learns from AndroidIDE / Android Code Studio, Apktool, jadx, APK Editor, MT/NP Manager.
+#   nibras-apk setup [--sdk]          JDK, apktool, jadx, aapt/aapt2/zipalign (+ Android SDK for Gradle builds)
+#   nibras-apk new <dir> [package]    minimal Gradle project that builds on the phone
+#   nibras-apk build [dir] [task]     Gradle build (default assembleDebug), aapt2 from the phone
+#   nibras-apk decompile <app.apk> [out]   apktool d (resources + smali)
+#   nibras-apk recompile <dir> [out.apk]   apktool b, then zipalign + sign
+#   nibras-apk java <app.apk> [out]   jadx: dex → Java sources
+#   nibras-apk manifest <app.apk>     readable AndroidManifest.xml
+#   nibras-apk info <app.apk>         package, versions, SDKs, permissions, ABIs
+#   nibras-apk keystore [file] [alias] create a signing key (keytool)
+#   nibras-apk sign <app.apk> [keystore] [alias]   zipalign + apksigner (v1+v2+v3)
+#   nibras-apk verify <app.apk>       apksigner verify --print-certs
+#   nibras-apk align <app.apk>        zipalign -p 4
+#   nibras-apk dex <classes.jar|dir> [out]   d8 → classes.dex
+set -e
+TOOLS=/opt/nibras-apk
+SDK=/opt/android-sdk
+BT=35.0.0
+mkdir -p "$TOOLS/bin"
+export PATH="$TOOLS/bin:$SDK/cmdline-tools/latest/bin:$SDK/build-tools/$BT:$PATH"
+arch=$(uname -m)
+case "$arch" in aarch64|arm64) sdkzip=android-sdk-tools-static-aarch64.zip; sdksum=db1cea2c4454d5f9c5a802646b2d1cf560b4ee7badbe23e51ab8e1881bb50fc2 ;;
+  armv7*|armv8l|arm*) sdkzip=android-sdk-tools-static-arm.zip; sdksum=17b27ad0136b8d1c3ab67be24b3ab9a81c412c39fdc4112b622d900f90b02983 ;;
+  *) sdkzip=""; sdksum="" ;; esac
+fetch() { # url sha256 out
+  echo "↓ $1"
+  if command -v curl >/dev/null 2>&1; then curl -fL --retry 3 -o "$3" "$1"; else wget -O "$3" "$1"; fi
+  if [ -n "$2" ]; then echo "$2  $3" | sha256sum -c - >/dev/null || { echo "SHA-256 mismatch: $3"; rm -f "$3"; exit 1; }; fi
+}
+jdk() {
+  command -v javac >/dev/null 2>&1 && return
+  if command -v apk >/dev/null 2>&1; then apk add openjdk17-jdk curl unzip
+  else export DEBIAN_FRONTEND=noninteractive; ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update
+    apt-get install -y --no-install-recommends openjdk-17-jdk-headless curl unzip ca-certificates; fi
+}
+setup() {
+  jdk
+  command -v curl >/dev/null 2>&1 || nibras-need curl; command -v unzip >/dev/null 2>&1 || nibras-need unzip
+  if [ ! -f "$TOOLS/apktool.jar" ]; then
+    fetch https://github.com/iBotPeaches/Apktool/releases/download/v3.0.3/apktool_3.0.3.jar \
+      dbf930b076c6b9be08d57c449cacefc3bdd6b71ebd59b3066fc0e1f5b14f9423 "$TOOLS/apktool.jar"
+  fi
+  if [ ! -x "$TOOLS/jadx/bin/jadx" ]; then
+    fetch https://github.com/skylot/jadx/releases/download/v1.5.7/jadx-1.5.7.zip \
+      1755e4242ade71a077438723689f404079592ec7764a3a0572f98fef94ebcbf3 /tmp/jadx.zip
+    rm -rf "$TOOLS/jadx"; mkdir -p "$TOOLS/jadx"; unzip -q /tmp/jadx.zip -d "$TOOLS/jadx"; rm -f /tmp/jadx.zip
+    chmod +x "$TOOLS/jadx/bin/"*
+  fi
+  if [ -n "$sdkzip" ] && [ ! -x "$TOOLS/native/build-tools/aapt2" ]; then
+    fetch "https://github.com/lzhiyong/android-sdk-tools/releases/download/35.0.2/$sdkzip" "$sdksum" /tmp/sdkt.zip
+    rm -rf "$TOOLS/native"; mkdir -p "$TOOLS/native"; unzip -q /tmp/sdkt.zip -d "$TOOLS/native"; rm -f /tmp/sdkt.zip
+    chmod +x "$TOOLS/native/build-tools/"* "$TOOLS/native/platform-tools/"*
+  fi
+  printf '#!/bin/sh\nexec java -jar %s/apktool.jar "$@"\n' "$TOOLS" > "$TOOLS/bin/apktool"
+  ln -sf "$TOOLS/jadx/bin/jadx" "$TOOLS/bin/jadx"
+  for t in aapt aapt2 zipalign dexdump aidl; do [ -x "$TOOLS/native/build-tools/$t" ] && ln -sf "$TOOLS/native/build-tools/$t" "$TOOLS/bin/$t"; done
+  chmod +x "$TOOLS/bin/"*
+  for t in apktool jadx aapt aapt2 zipalign; do ln -sf "$TOOLS/bin/$t" "/usr/local/bin/$t" 2>/dev/null || true; done
+  if [ "${1:-}" = --sdk ] || [ ! -f "$SDK/build-tools/$BT/lib/apksigner.jar" ]; then sdk; fi
+  echo "✓ nibras-apk: $(java -version 2>&1 | head -1) · apktool · jadx · aapt2 · zipalign · apksigner · d8"
+}
+sdk() {
+  if [ ! -x "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+    fetch https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip "" /tmp/clt.zip
+    echo "e025545c62a8e64c7559119566a569fb1dec5f60  /tmp/clt.zip" | sha1sum -c - >/dev/null || { echo "SHA-1 mismatch"; exit 1; }
+    mkdir -p "$SDK/cmdline-tools"; rm -rf "$SDK/cmdline-tools/latest" /tmp/clt
+    unzip -q /tmp/clt.zip -d /tmp/clt; mv /tmp/clt/cmdline-tools "$SDK/cmdline-tools/latest"; rm -rf /tmp/clt.zip /tmp/clt
+  fi
+  echo "Android SDK: read and accept the licenses yourself (y/N):"
+  sdkmanager --sdk_root="$SDK" --licenses
+  sdkmanager --sdk_root="$SDK" "platforms;android-35" "build-tools;$BT"
+  # Google ships x86_64 binaries: replace them with phone-native ones.
+  for t in aapt aapt2 zipalign dexdump aidl split-select; do
+    [ -x "$TOOLS/native/build-tools/$t" ] && cp -f "$TOOLS/native/build-tools/$t" "$SDK/build-tools/$BT/$t"
+  done
+  mkdir -p "$HOME/.gradle"
+  grep -q aapt2FromMavenOverride "$HOME/.gradle/gradle.properties" 2>/dev/null || \
+    echo "android.aapt2FromMavenOverride=$SDK/build-tools/$BT/aapt2" >> "$HOME/.gradle/gradle.properties"
+  grep -q '^org.gradle.jvmargs' "$HOME/.gradle/gradle.properties" || echo "org.gradle.jvmargs=-Xmx1536m" >> "$HOME/.gradle/gradle.properties"
+  echo "sdk.dir=$SDK" > "$HOME/.nibras/android-sdk.properties"
+}
+need() { command -v "$1" >/dev/null 2>&1 || [ -f "$SDK/build-tools/$BT/lib/$1.jar" ] || setup; }
+apksigner_() { java -jar "$SDK/build-tools/$BT/lib/apksigner.jar" "$@"; }
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+case "$cmd" in
+  setup) setup "$@" ;;
+  new)
+    dir="${1:?nibras-apk new <dir> [package]}"; pkg="${2:-com.example.app}"; p=$(echo "$pkg" | tr . /)
+    mkdir -p "$dir/app/src/main/java/$p" "$dir/app/src/main/res/values"
+    cat > "$dir/settings.gradle" <<G
+pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+include ':app'
+G
+    echo "plugins { id 'com.android.application' version '8.7.3' apply false }" > "$dir/build.gradle"
+    cat > "$dir/app/build.gradle" <<G
+plugins { id 'com.android.application' }
+android { namespace '$pkg'; compileSdk 35
+  defaultConfig { applicationId '$pkg'; minSdk 21; targetSdk 35; versionCode 1; versionName '1.0' } }
+G
+    cat > "$dir/app/src/main/AndroidManifest.xml" <<G
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="@string/app_name"><activity android:name=".MainActivity" android:exported="true">
+    <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity></application></manifest>
+G
+    echo "<resources><string name=\"app_name\">My App</string></resources>" > "$dir/app/src/main/res/values/strings.xml"
+    cat > "$dir/app/src/main/java/$p/MainActivity.java" <<G
+package $pkg;
+public class MainActivity extends android.app.Activity {
+  @Override protected void onCreate(android.os.Bundle b) { super.onCreate(b);
+    android.widget.TextView t = new android.widget.TextView(this); t.setText("Built with Nibras Terminal"); setContentView(t); }
+}
+G
+    printf 'android.useAndroidX=true\n' > "$dir/gradle.properties"
+    echo "✓ $dir  →  nibras-apk build $dir" ;;
+  build)
+    dir="${1:-.}"; task="${2:-assembleDebug}"; [ -f "$SDK/build-tools/$BT/aapt2" ] || setup --sdk
+    cd "$dir"; [ -f local.properties ] || echo "sdk.dir=$SDK" > local.properties
+    if [ -x ./gradlew ]; then ./gradlew "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
+    else nibras-need gradle || { command -v apk >/dev/null && apk add gradle; }
+      gradle "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"; fi
+    find . -path '*/build/outputs/*' \( -name '*.apk' -o -name '*.aab' \) -newer local.properties 2>/dev/null | sed 's/^/✓ /' ;;
+  decompile|d) need apktool; in="${1:?apk}"; out="${2:-${in%.apk}}"; apktool d -f "$in" -o "$out" && echo "✓ $out" ;;
+  recompile|b) need apktool; dir="${1:?dir}"; out="${2:-${dir%/}-mod.apk}"; apktool b "$dir" -o "$out.unsigned.apk"
+    "$0" align "$out.unsigned.apk" >/dev/null; mv "$out.unsigned.apk" "$out"; "$0" sign "$out" ;;
+  java|jadx) need jadx; in="${1:?apk}"; out="${2:-${in%.apk}-java}"; jadx -d "$out" "$in" && echo "✓ $out" ;;
+  manifest) need aapt2; aapt2 dump xmltree --file AndroidManifest.xml "${1:?apk}" 2>/dev/null || aapt d xmltree "$1" AndroidManifest.xml ;;
+  info) need aapt; aapt dump badging "${1:?apk}" | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|native-code|application-label:|launchable)" ;;
+  keystore) jdk; ks="${1:-$HOME/.nibras/release.jks}"; alias="${2:-nibras}"; mkdir -p "$(dirname "$ks")"
+    keytool -genkeypair -v -keystore "$ks" -alias "$alias" -keyalg RSA -keysize 4096 -validity 10000 && chmod 600 "$ks" && echo "✓ $ks ($alias)" ;;
+  align) need zipalign; in="${1:?apk}"; zipalign -f -p 4 "$in" "$in.aligned" && mv "$in.aligned" "$in" && echo "✓ aligned $in" ;;
+  sign) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; in="${1:?apk}"; ks="${2:-$HOME/.nibras/release.jks}"; alias="${3:-nibras}"
+    [ -f "$ks" ] || "$0" keystore "$ks" "$alias"
+    zipalign -c -p 4 "$in" >/dev/null 2>&1 || "$0" align "$in"
+    apksigner_ sign --ks "$ks" --ks-key-alias "$alias" --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true "$in" && echo "✓ signed $in" ;;
+  verify) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; apksigner_ verify -v --print-certs "${1:?apk}" ;;
+  dex|d8) [ -f "$SDK/build-tools/$BT/lib/d8.jar" ] || setup; in="${1:?jar}"; out="${2:-.}"; mkdir -p "$out"
+    java -cp "$SDK/build-tools/$BT/lib/d8.jar" com.android.tools.r8.D8 --min-api 21 --output "$out" "$in" && echo "✓ $out/classes.dex" ;;
+  help|-h|--help|*) sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//' ;;
+esac

@@ -1,0 +1,729 @@
+#!/bin/sh
+# Nibras toolkit: short commands for everyday jobs. Tools are downloaded on first use
+# (the app itself stays small). Run "nibras" for the menu, "install <pack>" to add a pack.
+. /usr/local/share/nibras/msg.sh
+L=$NIBRAS_LANG
+me=${0##*/}; me=${me#nibras-}
+if [ "$me" = kit ]; then me=${1:-menu}; [ $# -gt 0 ] && shift; fi
+
+say() { # say "en" "az" "tr" "ru"
+  case "$L" in az) printf '%s\n' "$2" ;; tr) printf '%s\n' "$3" ;; ru) printf '%s\n' "$4" ;; *) printf '%s\n' "$1" ;; esac
+}
+die() { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
+need() { nibras-need "$@" || die "$(say "Install failed: $*" "Quraşdırılmadı: $*" "Kurulamadı: $*" "Не установлено: $*")"; }
+has() { command -v "$1" >/dev/null 2>&1; }
+is_alpine() { has apk; }
+outdir() {
+  if [ -d /sdcard/Download ] && [ -w /sdcard/Download ]; then d=/sdcard/Download/Nibras; else d=$HOME/Nibras; fi
+  mkdir -p "$d"; printf '%s' "$d"
+}
+ask_in() { printf '\033[1;36m%s\033[0m ' "$1" >&2; read -r REPLY; printf '%s' "$REPLY"; }
+run() { printf '\033[2m$ %s\033[0m\n' "$*" >&2; "$@"; }
+ip_addr() { ip -4 addr 2>/dev/null | awk '/inet /&&$2!~/^127/{sub(/\/.*/,"",$2);print $2;exit}'; }
+
+# ---------------------------------------------------------------- packs (install <pack>)
+pack_desc() {
+  case "$1" in
+    video) say "Video: merge, cut, convert, compress (ffmpeg)" "Video: birləşdir, kəs, çevir, sıx (ffmpeg)" "Video: birleştir, kes, dönüştür, sıkıştır (ffmpeg)" "Видео: склеить, обрезать, сжать (ffmpeg)" ;;
+    audio) say "Audio: convert, cut, normalize, record" "Səs: çevir, kəs, səviyyələ, yaz" "Ses: dönüştür, kes, normalleştir, kaydet" "Аудио: конвертация, обрезка, нормализация" ;;
+    image) say "Images: resize, convert, compress (ImageMagick)" "Şəkil: ölçü, format, sıxma (ImageMagick)" "Resim: boyut, format, sıkıştırma (ImageMagick)" "Изображения: размер, формат, сжатие" ;;
+    pdf) say "PDF: merge, split, compress, to text/images" "PDF: birləşdir, böl, sıx, mətnə/şəkilə" "PDF: birleştir, böl, sıkıştır, metne/resme" "PDF: склеить, разделить, сжать" ;;
+    download) say "Downloads: videos/music (yt-dlp), fast files (aria2)" "Yükləmə: video/musiqi (yt-dlp), sürətli fayl (aria2)" "İndirme: video/müzik (yt-dlp), hızlı dosya (aria2)" "Загрузки: видео/музыка (yt-dlp), aria2" ;;
+    web) say "Web: instant web server (python/node), PHP" "Veb: ani veb server (python/node), PHP" "Web: anında web sunucu (python/node), PHP" "Веб: мгновенный веб-сервер" ;;
+    git) say "Git with easy clone / save / push" "Git: asan clone / save / push" "Git: kolay clone / save / push" "Git: простые clone / save / push" ;;
+    python) say "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" ;;
+    node) say "Node.js + npm" "Node.js + npm" "Node.js + npm" "Node.js + npm" ;;
+    dev) say "C/C++/Go/Rust compilers, make, cmake (Cxxdroid, AIDE)" "C/C++/Go/Rust kompilyatorları, make, cmake" "C/C++/Go/Rust derleyicileri, make, cmake" "Компиляторы C/C++/Go/Rust, make, cmake" ;;
+    apk) say "APK studio: build, decompile, sign (apktool, jadx, SDK)" "APK studiya: yığ, aç, imzala (apktool, jadx, SDK)" "APK stüdyo: derle, aç, imzala (apktool, jadx, SDK)" "APK-студия: сборка, декомпиляция, подпись" ;;
+    backup) say "Backups: tar/rsync/rclone to phone or cloud" "Ehtiyat: tar/rsync/rclone telefona və ya buluda" "Yedek: tar/rsync/rclone telefona veya buluta" "Резервные копии: tar/rsync/rclone" ;;
+    net) say "Network: scan, ping, speed test, DNS, ports" "Şəbəkə: skan, ping, sürət testi, DNS, portlar" "Ağ: tarama, ping, hız testi, DNS, portlar" "Сеть: скан, ping, скорость, DNS" ;;
+    ocr) say "OCR: text from photos/PDF (AZ/TR/EN/RU/AR)" "OCR: şəkildən/PDF-dən mətn (AZ/TR/EN/RU/AR)" "OCR: resimden/PDF'den metin" "OCR: текст с фото/PDF" ;;
+    share) say "Share folders: WebDAV, FTP, HTTP, DLNA + QR" "Qovluq paylaş: WebDAV, FTP, HTTP, DLNA + QR" "Klasör paylaş: WebDAV, FTP, HTTP, DLNA + QR" "Общий доступ: WebDAV, FTP, HTTP, DLNA + QR" ;;
+    webterm) say "This terminal in a PC browser over Wi-Fi (ttyd)" "Bu terminal Wi-Fi ilə kompüter brauzerində (ttyd)" "Bu terminal Wi-Fi ile PC tarayıcısında (ttyd)" "Терминал в браузере ПК по Wi-Fi" ;;
+    desktop) say "Linux desktop XFCE (inside the app)" "Linux masaüstü XFCE (tətbiqin içində)" "Linux masaüstü XFCE (uygulama içinde)" "Рабочий стол XFCE" ;;
+    llm) say "Offline AI chat on the phone (llama.cpp)" "Telefonda oflayn AI söhbət (llama.cpp)" "Telefonda çevrimdışı AI sohbet (llama.cpp)" "Офлайн ИИ-чат (llama.cpp)" ;;
+    quran) say "Quran & hadith in the terminal (AZ/TR/EN/RU)" "Terminalda Quran və hədis (AZ/TR/EN/RU)" "Terminalde Kuran ve hadis" "Коран и хадисы в терминале" ;;
+    prayer) say "Prayer times and reminders" "Namaz vaxtları və xatırlatmalar" "Namaz vakitleri ve hatırlatmalar" "Время намаза и напоминания" ;;
+    games) say "Classic terminal games" "Klassik terminal oyunları" "Klasik terminal oyunları" "Классические терминальные игры" ;;
+    learn) say "Learn Linux: lessons and quizzes" "Linux öyrən: dərslər və testlər" "Linux öğren: dersler ve testler" "Изучение Linux: уроки и тесты" ;;
+    record) say "Record the terminal session and replay/share it" "Terminal sessiyasını yaz, sonra göstər/paylaş" "Terminal oturumunu kaydet ve oynat" "Запись сессии терминала" ;;
+    vault) say "Encrypted vault for private files (age)" "Şəxsi fayllar üçün şifrəli seyf (age)" "Özel dosyalar için şifreli kasa" "Зашифрованное хранилище файлов" ;;
+    notes) say "Markdown notes in the terminal" "Terminalda Markdown qeydlər" "Terminalde Markdown notlar" "Заметки Markdown" ;;
+    monitor) say "System monitor (htop, btop)" "Sistem monitoru (htop, btop)" "Sistem monitörü (htop, btop)" "Системный монитор" ;;
+    security) say "Security tools (nmap, hydra, sqlmap…) for your own systems" "Təhlükəsizlik alətləri (yalnız öz sistemlərin üçün)" "Güvenlik araçları (sadece kendi sistemlerin için)" "Инструменты безопасности (для своих систем)" ;;
+    office) say "Documents: pandoc, Markdown → PDF/DOCX" "Sənədlər: pandoc, Markdown → PDF/DOCX" "Belgeler: pandoc, Markdown → PDF/DOCX" "Документы: pandoc" ;;
+    *) return 1 ;;
+  esac
+}
+PACKS="video audio image pdf download web git python node dev apk backup net ocr share webterm desktop llm quran prayer games learn record vault notes monitor security office"
+
+install_pack() {
+  p=$1
+  case "$p" in
+    video) need ffmpeg ;;
+    audio) need ffmpeg sox ;;
+    image) need magick 2>/dev/null || need convert ;;
+    pdf) need qpdf gs pdfinfo ;;
+    download) need python3 ffmpeg aria2c curl; install_ytdlp ;;
+    web) need python3 ;;
+    git) need git ssh ;;
+    python|py) need python3 pip3; is_alpine && apk add py3-virtualenv >/dev/null 2>&1; true ;;
+    node) need node ;;
+    dev) need gcc g++ make; nibras-need cmake go rustc >/dev/null || true ;;
+    apk) nibras-apk setup ;;
+    backup) need tar rsync rclone zip unzip ;;
+    net) need nmap ping curl dig traceroute; nibras-need speedtest-cli whois >/dev/null || true ;;
+    ocr) need tesseract
+      if is_alpine; then for l in aze tur rus ara; do apk add "tesseract-ocr-data-$l" >/dev/null 2>&1; done
+      else apt-get install -y tesseract-ocr-aze tesseract-ocr-tur tesseract-ocr-rus tesseract-ocr-ara >/dev/null 2>&1; fi; true ;;
+    share) need rclone qrencode ;;
+    webterm) need ttyd qrencode ;;
+    desktop) nibras-desktop install ;;
+    llm) llm_setup ;;
+    quran|prayer) need curl jq ;;
+    games) games_install ;;
+    learn) true ;;
+    record) nibras-need asciinema >/dev/null 2>&1 || need script ;;
+    vault) need age tar ;;
+    notes) nibras-need glow >/dev/null 2>&1 || true ;;
+    monitor) need htop; nibras-need btop >/dev/null 2>&1 || true ;;
+    security) need nmap; for t in hydra sqlmap nikto john hashcat aircrack-ng; do nibras-need "$t" >/dev/null 2>&1; done; true ;;
+    office) need pandoc ;;
+    *) die "$(say "Unknown pack: $p" "Naməlum paket: $p" "Bilinmeyen paket: $p" "Неизвестный пакет: $p")" ;;
+  esac && printf '\033[32m✓ %s\033[0m\n' "$(say "Ready: $p" "Hazırdır: $p" "Hazır: $p" "Готово: $p")"
+}
+
+install_ytdlp() {
+  has yt-dlp && return 0
+  say "Downloading yt-dlp…" "yt-dlp yüklənir…" "yt-dlp indiriliyor…" "Загрузка yt-dlp…"
+  curl -fL -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp && chmod +x /usr/local/bin/yt-dlp \
+    || pip3 install -U yt-dlp --break-system-packages || die "yt-dlp"
+}
+
+cmd_install() {
+  if [ $# -eq 0 ]; then
+    say "Packs (install <name>):" "Paketlər (install <ad>):" "Paketler (install <ad>):" "Пакеты (install <имя>):"
+    for p in $PACKS; do printf '  \033[1;32m%-9s\033[0m %s\n' "$p" "$(pack_desc "$p")"; done
+    say "Any other Linux package: pkg install <name>" "Başqa istənilən Linux paketi: pkg install <ad>" "Başka herhangi bir paket: pkg install <ad>" "Любой другой пакет: pkg install <имя>"
+    return
+  fi
+  for p in "$@"; do
+    if pack_desc "$p" >/dev/null; then install_pack "$p"; else pkg install "$p"; fi
+  done
+}
+
+# ---------------------------------------------------------------- menu
+cmd_menu() {
+  printf '\033[1;32m  Nibras Terminal\033[0m — %s\n\n' "$(say "tools" "alətlər" "araçlar" "инструменты")"
+  i=1
+  for p in $PACKS; do printf '  \033[1;33m%2d\033[0m \033[1m%-9s\033[0m %s\n' $i "$p" "$(pack_desc "$p")"; i=$((i+1)); done
+  cat <<EOF
+
+  ask · explain · fix · recipes · trash · qr · clip · snapshot · cron · plugin · hs · sysinfo
+  hosts · files · edit · desktop · adb · rish · sshd · apk · install
+EOF
+  [ -t 0 ] || return 0
+  n=$(ask_in "$(say "Number or name (Enter = exit):" "Nömrə və ya ad (Enter = çıxış):" "Numara veya ad (Enter = çıkış):" "Номер или имя (Enter = выход):")")
+  [ -z "$n" ] && return 0
+  case "$n" in *[!0-9]*) p=$n ;; *) p=$(echo $PACKS | tr ' ' '\n' | sed -n "${n}p") ;; esac
+  [ -n "$p" ] || return 0
+  case "$p" in web|share|backup|snapshot|webterm|vault|notes|cron|record|ocr|llm|quran|prayer|net|audio|image|pdf|git) nibras-kit "$p" help ;;
+    apk) nibras-apk ;; dev|desktop|security|monitor|office|python|node) cmd_install "$p" ;; *) nibras-kit "$p" ;; esac
+}
+
+cmd_list() { for p in $PACKS; do printf '%-9s %s\n' "$p" "$(pack_desc "$p")"; done; }
+
+# ---------------------------------------------------------------- video
+cmd_video() {
+  a=${1:-}; [ $# -gt 0 ] && shift
+  case "$a" in
+    ""|menu) video_menu; return ;;
+    help|-h) cat <<EOF
+video merge a.mp4 b.mp4 … [out.mp4]   $(say "join videos" "videoları birləşdir" "videoları birleştir" "склеить")
+video cut in.mp4 00:01:00 00:02:30     $(say "cut a part (start end)" "hissə kəs (başlanğıc son)" "parça kes" "вырезать")
+video convert in.mkv out.mp4           $(say "change format" "format dəyiş" "format değiştir" "сменить формат")
+video compress in.mp4 [crf 28]         $(say "make smaller" "kiçilt" "küçült" "сжать")
+video audio in.mp4 [mp3]               $(say "extract audio" "səsi çıxar" "sesi çıkar" "извлечь звук")
+video gif in.mp4 [start] [seconds]     GIF
+video resize in.mp4 720                $(say "scale to height" "hündürlüyə görə ölçü" "yüksekliğe göre boyut" "высота")
+video rotate in.mp4 [90|180|270]
+video mute in.mp4 · video speed in.mp4 2 · video frames in.mp4 · video info in.mp4
+video subs in.mp4 subs.srt             $(say "burn subtitles" "altyazı əlavə et" "altyazı göm" "вшить субтитры")
+EOF
+      return ;;
+  esac
+  need ffmpeg
+  o=$(outdir)
+  case "$a" in
+    merge|join)
+      [ $# -ge 2 ] || die "video merge a.mp4 b.mp4 [out.mp4]"
+      last=$(eval echo "\${$#}"); out=; case "$last" in *.mp4|*.mkv|*.mov|*.webm) [ -e "$last" ] || out=$last ;; esac
+      list=$(mktemp); n=0
+      for f in "$@"; do [ "$f" = "$out" ] && continue; printf "file '%s'\n" "$(readlink -f "$f")" >> "$list"; n=$((n+1)); done
+      out=${out:-$o/merged-$(date +%H%M%S).mp4}
+      run ffmpeg -hide_banner -f concat -safe 0 -i "$list" -c copy "$out" || {
+        say "Different formats — re-encoding…" "Formatlar fərqlidir — yenidən kodlanır…" "Formatlar farklı — yeniden kodlanıyor…" "Разные форматы — перекодирование…"
+        run ffmpeg -hide_banner -y -f concat -safe 0 -i "$list" -c:v libx264 -preset veryfast -crf 23 -c:a aac "$out"; }
+      rm -f "$list"; echo "→ $out" ;;
+    cut|trim) [ $# -ge 3 ] || die "video cut in.mp4 START END"; out=$o/cut-$(basename "$1"); run ffmpeg -hide_banner -y -ss "$2" -to "$3" -i "$1" -c copy "$out"; echo "→ $out" ;;
+    convert) [ $# -ge 2 ] || die "video convert in out.ext"; run ffmpeg -hide_banner -y -i "$1" "$2" ;;
+    compress) out=$o/small-$(basename "${1%.*}").mp4; run ffmpeg -hide_banner -y -i "$1" -c:v libx264 -preset veryfast -crf "${2:-28}" -c:a aac -b:a 96k "$out"
+      echo "→ $out ($(du -h "$1" | cut -f1) → $(du -h "$out" | cut -f1))" ;;
+    audio|mp3) ext=${2:-mp3}; out=$o/$(basename "${1%.*}").$ext; run ffmpeg -hide_banner -y -i "$1" -vn "$out"; echo "→ $out" ;;
+    gif) out=$o/$(basename "${1%.*}").gif; run ffmpeg -hide_banner -y -ss "${2:-0}" -t "${3:-5}" -i "$1" -vf "fps=12,scale=480:-1:flags=lanczos,split[a][b];[a]palettegen[p];[b][p]paletteuse" "$out"; echo "→ $out" ;;
+    resize) out=$o/${2:-720}p-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -vf "scale=-2:${2:-720}" -c:a copy "$out"; echo "→ $out" ;;
+    rotate) case "${2:-90}" in 90) vf=transpose=1 ;; 180) vf="transpose=1,transpose=1" ;; 270) vf=transpose=2 ;; *) die "90|180|270" ;; esac
+      out=$o/rot-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -vf "$vf" -c:a copy "$out"; echo "→ $out" ;;
+    mute) out=$o/mute-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -an -c:v copy "$out"; echo "→ $out" ;;
+    speed) s=${2:-2}; out=$o/x$s-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -filter_complex "[0:v]setpts=PTS/$s[v];[0:a]atempo=$s[a]" -map "[v]" -map "[a]" "$out"; echo "→ $out" ;;
+    frames) d=$o/frames-$(basename "${1%.*}"); mkdir -p "$d"; run ffmpeg -hide_banner -i "$1" -vf fps="${2:-1}" "$d/%04d.jpg"; echo "→ $d" ;;
+    subs) out=$o/subs-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -vf "subtitles=$2" -c:a copy "$out"; echo "→ $out" ;;
+    info) need ffprobe; ffprobe -hide_banner "$1" ;;
+    *) die "video help" ;;
+  esac
+}
+
+video_menu() {
+  say "What do you want to do?" "Nə etmək istəyirsən?" "Ne yapmak istiyorsun?" "Что сделать?"
+  echo " 1) merge  2) cut  3) compress  4) audio  5) gif  6) convert  7) resize"
+  c=$(ask_in ">")
+  case "$c" in
+    1) f=$(ask_in "$(say "Files (space separated, * works):" "Fayllar (boşluqla, * işləyir):" "Dosyalar (boşlukla, * çalışır):" "Файлы (через пробел):")"); eval "set -- $f"; cmd_video merge "$@" ;;
+    2) f=$(ask_in "File:"); s=$(ask_in "Start (00:00:10):"); e=$(ask_in "End (00:01:00):"); cmd_video cut "$f" "$s" "$e" ;;
+    3) f=$(ask_in "File:"); cmd_video compress "$f" ;;
+    4) f=$(ask_in "File:"); cmd_video audio "$f" ;;
+    5) f=$(ask_in "File:"); s=$(ask_in "Start sec:"); d=$(ask_in "Seconds:"); cmd_video gif "$f" "${s:-0}" "${d:-5}" ;;
+    6) f=$(ask_in "File:"); t=$(ask_in "Output (out.mp4):"); cmd_video convert "$f" "$t" ;;
+    7) f=$(ask_in "File:"); h=$(ask_in "Height (720):"); cmd_video resize "$f" "${h:-720}" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- audio
+cmd_audio() {
+  a=${1:-help}; [ $# -gt 0 ] && shift
+  [ "$a" = help ] && { echo "audio convert in.wav out.mp3 · audio cut in.mp3 START END · audio merge a.mp3 b.mp3 · audio normalize in.mp3 · audio record [seconds] · audio info in.mp3"; return; }
+  need ffmpeg; o=$(outdir)
+  case "$a" in
+    convert) run ffmpeg -hide_banner -y -i "$1" "$2" ;;
+    cut) out=$o/cut-$(basename "$1"); run ffmpeg -hide_banner -y -ss "$2" -to "$3" -i "$1" -c copy "$out"; echo "→ $out" ;;
+    merge) list=$(mktemp); for f in "$@"; do printf "file '%s'\n" "$(readlink -f "$f")" >> "$list"; done; out=$o/merged-$(date +%H%M%S).mp3
+      run ffmpeg -hide_banner -y -f concat -safe 0 -i "$list" -c:a libmp3lame -q:a 2 "$out"; rm -f "$list"; echo "→ $out" ;;
+    normalize) out=$o/norm-$(basename "$1"); run ffmpeg -hide_banner -y -i "$1" -af loudnorm "$out"; echo "→ $out" ;;
+    record) out=$o/rec-$(date +%H%M%S).m4a; nibras-microphone-record -f "$out" -l "${1:-30}" ;;
+    info) ffprobe -hide_banner "$1" ;;
+    *) die "audio help" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- image
+im() { if has magick; then magick "$@"; else convert "$@"; fi; }
+cmd_image() {
+  a=${1:-help}; [ $# -gt 0 ] && shift
+  [ "$a" = help ] && { echo "image resize in.jpg 50%|1080 · image convert in.png out.webp · image compress in.jpg [quality] · image pdf *.jpg · image crop in.jpg WxH+X+Y · image rotate in.jpg 90 · image gray in.jpg · image info in.jpg · image batch 1080 *.jpg"; return; }
+  has magick || has convert || need convert; o=$(outdir)
+  case "$a" in
+    resize) out=$o/$(basename "$1"); s=$2; case "$s" in *%) ;; *) s="${s}x${s}>" ;; esac; run im "$1" -resize "$s" "$out"; echo "→ $out" ;;
+    convert) run im "$1" "$2" ;;
+    compress) out=$o/small-$(basename "${1%.*}").jpg; run im "$1" -strip -quality "${2:-75}" "$out"; echo "→ $out" ;;
+    pdf) out=$o/images-$(date +%H%M%S).pdf; run im "$@" "$out"; echo "→ $out" ;;
+    crop) out=$o/crop-$(basename "$1"); run im "$1" -crop "$2" +repage "$out"; echo "→ $out" ;;
+    rotate) out=$o/rot-$(basename "$1"); run im "$1" -rotate "${2:-90}" "$out"; echo "→ $out" ;;
+    gray) out=$o/gray-$(basename "$1"); run im "$1" -colorspace Gray "$out"; echo "→ $out" ;;
+    info) if has magick; then magick identify -verbose "$1" | head -30; else identify -verbose "$1" | head -30; fi ;;
+    batch) s=$1; shift; for f in "$@"; do run im "$f" -resize "${s}x${s}>" "$o/$(basename "$f")"; done; echo "→ $o" ;;
+    *) die "image help" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- pdf
+cmd_pdf() {
+  a=${1:-help}; [ $# -gt 0 ] && shift
+  [ "$a" = help ] && { echo "pdf merge a.pdf b.pdf … · pdf split in.pdf [pages 1-3] · pdf compress in.pdf · pdf text in.pdf · pdf images in.pdf · pdf info in.pdf · pdf rotate in.pdf 90 · pdf lock in.pdf · pdf unlock in.pdf"; return; }
+  o=$(outdir)
+  case "$a" in
+    merge) need qpdf; out=$o/merged-$(date +%H%M%S).pdf; run qpdf --empty --pages "$@" -- "$out"; echo "→ $out" ;;
+    split) need qpdf; if [ -n "${2:-}" ]; then out=$o/pages-$2-$(basename "$1"); run qpdf "$1" --pages . "$2" -- "$out"; echo "→ $out"
+      else d=$o/split-$(basename "${1%.*}"); mkdir -p "$d"; run qpdf --split-pages "$1" "$d/page-%d.pdf"; echo "→ $d"; fi ;;
+    compress) need gs; out=$o/small-$(basename "$1"); run gs -q -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dNOPAUSE -dBATCH -sOutputFile="$out" "$1"
+      echo "→ $out ($(du -h "$1" | cut -f1) → $(du -h "$out" | cut -f1))" ;;
+    text) need pdftotext; out=$o/$(basename "${1%.*}").txt; run pdftotext -layout "$1" "$out"; echo "→ $out" ;;
+    images) need pdftoppm; d=$o/$(basename "${1%.*}"); mkdir -p "$d"; run pdftoppm -jpeg -r 150 "$1" "$d/page"; echo "→ $d" ;;
+    info) need pdfinfo; pdfinfo "$1" ;;
+    rotate) need qpdf; out=$o/rot-$(basename "$1"); run qpdf "$1" --rotate="+${2:-90}" -- "$out"; echo "→ $out" ;;
+    lock) need qpdf; pw=$(ask_in "Password:"); out=$o/locked-$(basename "$1"); qpdf --encrypt "$pw" "$pw" 256 -- "$1" "$out"; echo "→ $out" ;;
+    unlock) need qpdf; pw=$(ask_in "Password:"); out=$o/open-$(basename "$1"); qpdf --password="$pw" --decrypt "$1" "$out"; echo "→ $out" ;;
+    *) die "pdf help" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- download
+cmd_download() {
+  a=${1:-}
+  case "$a" in
+    ""|menu) u=$(ask_in "URL:"); [ -n "$u" ] || return 0
+      echo " 1) $(say "best video" "ən yaxşı video" "en iyi video" "лучшее видео")  2) mp3  3) 720p  4) $(say "file" "fayl" "dosya" "файл")"
+      c=$(ask_in ">"); case "$c" in 2) cmd_download audio "$u" ;; 3) cmd_download video "$u" 720 ;; 4) cmd_download file "$u" ;; *) cmd_download video "$u" ;; esac; return ;;
+    help|-h) cat <<EOF
+download <url>                 $(say "video/music from YouTube & 1000+ sites, or any file" "YouTube və 1000+ saytdan video/musiqi, ya da istənilən fayl" "YouTube ve 1000+ siteden video/müzik veya dosya" "видео/музыка или любой файл")
+download audio <url>           mp3
+download video <url> [720]     $(say "max height" "maks. hündürlük" "maks. yükseklik" "макс. высота")
+download playlist <url>
+download file <url>            $(say "fast, resumable (aria2)" "sürətli, davam etdirilən (aria2)" "hızlı, devam ettirilebilir" "быстро, с докачкой")
+download update                $(say "update yt-dlp" "yt-dlp-ni yenilə" "yt-dlp güncelle" "обновить yt-dlp")
+download --android <url>       $(say "via Android download manager" "Android yükləmə meneceri ilə" "Android indirme yöneticisi" "через Android")
+$(say "Download only content you have the right to." "Yalnız hüququn olan məzmunu yüklə." "Sadece hakkın olan içeriği indir." "Скачивайте только разрешённый контент.")
+EOF
+      return ;;
+    --android) shift; exec nibras-api download "$@" ;;
+  esac
+  o=$(outdir); [ $# -gt 0 ] && shift
+  case "$a" in
+    update) install_ytdlp; yt-dlp -U ;;
+    audio) need python3 ffmpeg; install_ytdlp; run yt-dlp -x --audio-format mp3 --embed-thumbnail --add-metadata -o "$o/%(title)s.%(ext)s" "$@" ;;
+    video) need python3 ffmpeg; install_ytdlp; h=${2:-}; f="bv*+ba/b"; [ -n "$h" ] && f="bv*[height<=$h]+ba/b[height<=$h]"
+      run yt-dlp -f "$f" --merge-output-format mp4 -o "$o/%(title)s.%(ext)s" "$1" ;;
+    playlist) need python3 ffmpeg; install_ytdlp; run yt-dlp -f "bv*+ba/b" --merge-output-format mp4 -o "$o/%(playlist_title)s/%(playlist_index)03d %(title)s.%(ext)s" "$@" ;;
+    file) need aria2c; run aria2c -x 8 -s 8 -c -d "$o" "$@" ;;
+    http://*|https://*)
+      case "$a" in
+        *.zip|*.apk|*.pdf|*.iso|*.gz|*.xz|*.tar|*.mp3|*.jpg|*.png|*.deb|*.exe|*.7z) need aria2c; run aria2c -x 8 -s 8 -c -d "$o" "$a" ;;
+        *) need python3 ffmpeg; install_ytdlp; run yt-dlp -f "bv*+ba/b" --merge-output-format mp4 -o "$o/%(title)s.%(ext)s" "$a" || { need aria2c; aria2c -c -d "$o" "$a"; } ;;
+      esac ;;
+    *) die "download help" ;;
+  esac
+}
+
+# ---------------------------------------------------------------- web / git / python / node / dev
+cmd_web() {
+  a=${1:-.}
+  case "$a" in
+    help|-h) echo "web [folder] [port]   ·  web php [folder]  ·  web node [folder]   ($(say "instant web server" "ani veb server" "anında web sunucu" "веб-сервер"))"; return ;;
+    php) need php; d=${2:-.}; ip=$(ip_addr); echo "http://127.0.0.1:8080  http://$ip:8080"; exec php -S 0.0.0.0:8080 -t "$d" ;;
+    node) need node; d=${2:-.}; ip=$(ip_addr); echo "http://127.0.0.1:8080  http://$ip:8080"; exec npx --yes http-server "$d" -p 8080 ;;
+  esac
+  need python3; port=${2:-8000}; ip=$(ip_addr)
+  echo "http://127.0.0.1:$port  ·  http://$ip:$port"; has qrencode && qrencode -t ansiutf8 "http://$ip:$port"
+  cd "$a" && exec python3 -m http.server "$port"
+}
+cmd_git() {
+  need git; a=${1:-help}; [ $# -gt 0 ] && shift
+  case "$a" in
+    help) echo "git: get <url> · save \"message\" · sync · undo · log · setup"; ;;
+    get) run git clone --depth 1 "$@" ;;
+    save) git add -A && git commit -m "${1:-update $(date +%F)}" ;;
+    sync) git pull --rebase && git push ;;
+    undo) git reset --soft HEAD~1 ;;
+    log) git log --oneline --graph -20 ;;
+    setup) n=$(ask_in "Name:"); e=$(ask_in "Email:"); git config --global user.name "$n"; git config --global user.email "$e"; git config --global init.defaultBranch main ;;
+    *) git "$a" "$@" ;;
+  esac
+}
+cmd_python() { need python3 pip3; [ $# -gt 0 ] && exec python3 "$@"; python3 --version; say "venv: python3 -m venv .venv && . .venv/bin/activate" "venv: python3 -m venv .venv && . .venv/bin/activate" "venv: python3 -m venv .venv && . .venv/bin/activate" "venv: python3 -m venv .venv && . .venv/bin/activate"; exec python3; }
+cmd_node() { need node; [ $# -gt 0 ] && exec node "$@"; node --version; exec node; }
+
+# ---------------------------------------------------------------- backup / snapshot
+cmd_backup() {
+  a=${1:-help}; [ $# -gt 0 ] && shift; o=$(outdir)/backups; mkdir -p "$o"
+  case "$a" in
+    help) echo "backup home · backup <folder> · backup list · backup restore <file.tar.gz> · backup sync <src> <dst> (rsync) · backup cloud (rclone config)"; ;;
+    home) out=$o/home-$(date +%F-%H%M).tar.gz; run tar -czf "$out" -C / --exclude=root/storage --exclude=root/.cache root; echo "→ $out" ;;
+    list) ls -lh "$o" ;;
+    restore) run tar -xzf "$1" -C / ;;
+    sync) need rsync; run rsync -avh --progress "$1" "$2" ;;
+    cloud) need rclone; rclone config ;;
+    *) d=$(readlink -f "$a"); out=$o/$(basename "$d")-$(date +%F-%H%M).tar.gz; run tar -czf "$out" -C "$(dirname "$d")" "$(basename "$d")"; echo "→ $out" ;;
+  esac
+}
+cmd_snapshot() {
+  a=${1:-help}; [ $# -gt 0 ] && shift; o=$(outdir)/snapshots; mkdir -p "$o"
+  case "$a" in
+    help) echo "snapshot save [name] · snapshot list · snapshot restore <name>   ($(say "whole Linux environment" "bütün Linux mühiti" "tüm Linux ortamı" "всё окружение"))" ;;
+    save) out=$o/${1:-$(. /etc/os-release; echo "$ID")-$(date +%F-%H%M)}.tar.gz
+      say "Saving the environment…" "Mühit saxlanılır…" "Ortam kaydediliyor…" "Сохранение окружения…"
+      tar -czf "$out" -C / --exclude=proc --exclude=sys --exclude=dev --exclude=sdcard --exclude=storage --exclude=tmp \
+        --exclude=root/storage --exclude=var/cache --one-file-system . 2>/dev/null; echo "→ $out ($(du -h "$out" | cut -f1))" ;;
+    list) ls -lh "$o" ;;
+    restore) f=$o/${1%.tar.gz}.tar.gz; [ -f "$f" ] || f=$1; [ -f "$f" ] || die "?"
+      c=$(ask_in "$(say "Overwrite the environment with $f? (yes)" "Mühit $f ilə əvəz olunsun? (yes)" "Ortam $f ile değiştirilsin mi? (yes)" "Перезаписать окружение? (yes)")")
+      [ "$c" = yes ] && tar -xzf "$f" -C / && say "Done. Open a new session." "Hazırdır. Yeni sessiya aç." "Tamam. Yeni oturum aç." "Готово. Откройте новую сессию." ;;
+  esac
+}
+
+# ---------------------------------------------------------------- net / share / webterm / qr
+cmd_net() {
+  a=${1:-help}; [ $# -gt 0 ] && shift
+  case "$a" in
+    help) echo "net ip · net scan · net ports <host> · net ping <host> · net speed · net dns <name> · net trace <host> · net whois <domain> · net get <url>" ;;
+    ip) echo "local: $(ip_addr)"; need curl; echo "public: $(curl -fsS https://api.ipify.org)"; nibras-wifi-connectioninfo 2>/dev/null | head -12 ;;
+    scan) need nmap; ip=$(ip_addr); run nmap -sn "${1:-${ip%.*}.0/24}" ;;
+    ports) need nmap; run nmap -F "$@" ;;
+    ping) need ping; run ping -c 5 "$@" ;;
+    speed) if nibras-need speedtest-cli >/dev/null 2>&1; then speedtest-cli --simple; else need curl
+      curl -o /dev/null -w "download: %{speed_download} B/s\n" -s https://speed.cloudflare.com/__down?bytes=25000000; fi ;;
+    dns) need dig; dig +short "$@" ;;
+    trace) need traceroute; traceroute "$@" ;;
+    whois) need whois; whois "$@" ;;
+    get) need curl; curl -fsSL "$@" ;;
+    *) die "net help" ;;
+  esac
+}
+cmd_share() {
+  a=${1:-help}; [ $# -gt 0 ] && shift
+  [ "$a" = help ] && { echo "share webdav|ftp|http|dlna [folder] [port]  ·  share file <file>"; return; }
+  need rclone; ip=$(ip_addr)
+  case "$a" in
+    file) need python3; f=$(readlink -f "$1"); port=8765; url="http://$ip:$port/$(basename "$f")"; echo "$url"; has qrencode || nibras-need qrencode; qrencode -t ansiutf8 "$url"
+      cd "$(dirname "$f")" && exec python3 -m http.server $port ;;
+  esac
+  d=${1:-/sdcard}; port=${2:-8081}; pw=$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  url="$a://$ip:$port"; [ "$a" = webdav ] && url="http://$ip:$port"; [ "$a" = http ] && url="http://$ip:$port"
+  echo "$url   user: nibras   password: $pw"; has qrencode && qrencode -t ansiutf8 "$url"
+  case "$a" in
+    webdav|http|ftp) exec rclone serve "$a" "$d" --addr "0.0.0.0:$port" --user nibras --pass "$pw" ;;
+    dlna) exec rclone serve dlna "$d" --addr "0.0.0.0:$port" --name "Nibras" ;;
+    *) die "share help" ;;
+  esac
+}
+cmd_webterm() {
+  need ttyd; ip=$(ip_addr); port=${1:-7681}; pw=$(head -c 6 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  say "Open on your computer (same Wi-Fi):" "Kompüterdə aç (eyni Wi-Fi):" "Bilgisayarda aç (aynı Wi-Fi):" "Откройте на компьютере (тот же Wi-Fi):"
+  echo "  http://$ip:$port   user: nibras   password: $pw"; has qrencode && qrencode -t ansiutf8 "http://$ip:$port"
+  exec ttyd -W -p "$port" -c "nibras:$pw" -t fontSize=15 -t titleFixed="Nibras Terminal" "${SHELL:-/bin/sh}" -l
+}
+cmd_qr() {
+  has qrencode || need qrencode
+  if [ $# -eq 0 ] && [ ! -t 0 ]; then qrencode -t ansiutf8; elif [ -f "${1:-}" ]; then cmd_share file "$1"; else qrencode -t ansiutf8 "$*"; fi
+}
+
+# ---------------------------------------------------------------- ocr / llm / quran / prayer
+cmd_ocr() {
+  [ -n "${1:-}" ] && [ "$1" != help ] || { echo "ocr photo.jpg [aze+eng|tur|rus|ara]  ·  ocr file.pdf"; return; }
+  need tesseract; f=$1; lang=${2:-}
+  [ -z "$lang" ] && case "$L" in az) lang=aze+eng ;; tr) lang=tur+eng ;; ru) lang=rus+eng ;; *) lang=eng ;; esac
+  tesseract --list-langs 2>/dev/null | grep -q "^${lang%%+*}$" || lang=eng
+  o=$(outdir); out=$o/$(basename "${f%.*}")
+  case "$f" in
+    *.pdf) need pdftoppm; t=$(mktemp -d); pdftoppm -r 200 -png "$f" "$t/p"; : > "$out.txt"
+      for p in "$t"/p*.png; do tesseract "$p" - -l "$lang" 2>/dev/null >> "$out.txt"; done; rm -rf "$t" ;;
+    *) tesseract "$f" "$out" -l "$lang" 2>/dev/null ;;
+  esac
+  cat "$out.txt"; echo "→ $out.txt"
+}
+LLM_DIR=/opt/nibras-llm
+llm_setup() {
+  [ -x $LLM_DIR/llama-cli ] && [ -f $LLM_DIR/model.gguf ] && return 0
+  need git cmake g++ make curl
+  mkdir -p $LLM_DIR; cd $LLM_DIR || exit 1
+  if [ ! -x llama-cli ]; then
+    say "Building llama.cpp (10–40 min on a phone)…" "llama.cpp yığılır (telefonda 10–40 dəq)…" "llama.cpp derleniyor (10–40 dk)…" "Сборка llama.cpp (10–40 мин)…"
+    [ -d src ] || git clone --depth 1 https://github.com/ggml-org/llama.cpp src || die "git"
+    cmake -S src -B build -DLLAMA_CURL=OFF -DGGML_NATIVE=OFF -DCMAKE_BUILD_TYPE=Release >/dev/null && cmake --build build -j"$(nproc)" --target llama-cli || die "build"
+    cp build/bin/llama-cli llama-cli
+  fi
+  if [ ! -f model.gguf ]; then
+    say "Downloading a small multilingual model (~400 MB)…" "Kiçik çoxdilli model yüklənir (~400 MB)…" "Küçük çok dilli model indiriliyor (~400 MB)…" "Загрузка модели (~400 МБ)…"
+    curl -fL -C - -o model.gguf.part "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf" && mv model.gguf.part model.gguf
+  fi
+}
+cmd_llm() {
+  case "${1:-chat}" in
+    help) echo "llm · llm \"question\" · llm model <url.gguf>"; return ;;
+    model) curl -fL -o $LLM_DIR/model.gguf "$2"; return ;;
+  esac
+  llm_setup || exit 1
+  if [ $# -gt 0 ] && [ "$1" != chat ]; then exec $LLM_DIR/llama-cli -m $LLM_DIR/model.gguf -p "$*" -n 400 --no-display-prompt -no-cnv 2>/dev/null; fi
+  exec $LLM_DIR/llama-cli -m $LLM_DIR/model.gguf -cnv --color 2>/dev/null
+}
+cmd_quran() {
+  need curl jq; a=${1:-help}
+  case "$L" in az) ed=az.mammadaliyev ;; tr) ed=tr.diyanet ;; ru) ed=ru.kuliev ;; *) ed=en.sahih ;; esac
+  case "$a" in
+    help) echo "quran 2:255 · quran 1 (surah) · quran random · quran search <word> · hadith [bukhari|muslim] [n]"; ;;
+    random) n=$(( $(od -An -N2 -tu2 /dev/urandom) % 6236 + 1 )); cmd_quran "$n" ;;
+    search) shift; curl -fsS "https://api.alquran.cloud/v1/search/$(printf %s "$*" | jq -sRr @uri)/all/$ed" | jq -r '.data.matches[:10][]|"\(.surah.number):\(.numberInSurah)  \(.text)"' ;;
+    *:*) curl -fsS "https://api.alquran.cloud/v1/ayah/$a/editions/quran-uthmani,$ed" | jq -r '.data[]|.text' ; echo "($a)" ;;
+    *) case "$a" in *[!0-9]*) die "quran help" ;; esac
+       if [ "$a" -le 114 ]; then curl -fsS "https://api.alquran.cloud/v1/surah/$a/$ed" | jq -r '.data.englishName as $n|"— \($n) —", (.data.ayahs[]|"\(.numberInSurah). \(.text)")' | ${PAGER:-less -R} 2>/dev/null || cat
+       else curl -fsS "https://api.alquran.cloud/v1/ayah/$a/editions/quran-uthmani,$ed" | jq -r '.data[]|.text'; fi ;;
+  esac
+}
+cmd_hadith() {
+  need curl jq; book=${1:-bukhari}; n=${2:-$(( $(od -An -N2 -tu2 /dev/urandom) % 7000 + 1 ))}
+  case "$L" in tr) lang=tur ;; ru) lang=rus ;; *) lang=eng ;; esac
+  curl -fsS "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/$lang-$book/$n.json" | jq -r '.hadiths[0].text // empty' || curl -fsS "https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/eng-$book/$n.json" | jq -r '.hadiths[0].text'
+  echo "($book $n)"
+}
+cmd_prayer() {
+  need curl jq; conf=$HOME/.config/nibras/prayer; mkdir -p "${conf%/*}"
+  a=${1:-today}
+  case "$a" in
+    help) echo "prayer · prayer city Baku [Azerbaijan] · prayer remind on|off"; return ;;
+    city) shift; printf 'CITY=%s\nCOUNTRY=%s\n' "$1" "${2:-}" > "$conf"; a=today ;;
+  esac
+  [ -f "$conf" ] && . "$conf"; CITY=${CITY:-Baku}; COUNTRY=${COUNTRY:-Azerbaijan}
+  case "$a" in
+    remind)
+      if [ "${2:-on}" = off ]; then crontab -l 2>/dev/null | grep -v nibras-prayer | crontab -; echo off; return; fi
+      j=$(curl -fsS "https://api.aladhan.com/v1/timingsByCity?city=$CITY&country=$COUNTRY") || die net
+      ( crontab -l 2>/dev/null | grep -v nibras-prayer
+        for p in Fajr Dhuhr Asr Maghrib Isha; do t=$(echo "$j" | jq -r ".data.timings.$p" | cut -c1-5); echo "${t#*:} ${t%:*} * * * nibras-notification -t '$p' -c '$p $t' # nibras-prayer"; done
+        echo "1 0 * * * nibras-kit prayer remind on >/dev/null 2>&1 # nibras-prayer" ) | crontab -
+      cron_start; say "Reminders on (while the app runs)." "Xatırlatmalar açıqdır (tətbiq işləyəndə)." "Hatırlatmalar açık." "Напоминания включены." ;;
+    *) curl -fsS "https://api.aladhan.com/v1/timingsByCity?city=$CITY&country=$COUNTRY" | jq -r --arg c "$CITY" '.data|"\($c) · \(.date.readable) · \(.date.hijri.date)", (.timings|to_entries[]|select(.key|test("Fajr|Sunrise|Dhuhr|Asr|Maghrib|Isha"))|"  \(.key)\t\(.value)")' ;;
+  esac
+}
+
+# ---------------------------------------------------------------- games / learn
+games_install() {
+  for g in nethack ninvaders moon-buggy bastet nsnake greed cmatrix sl cowsay fortune 2048; do nibras-need "$g" >/dev/null 2>&1 && echo "  ✓ $g"; done; true
+}
+cmd_games() {
+  case "${1:-list}" in
+    list) say "Games:" "Oyunlar:" "Oyunlar:" "Игры:"; for g in guess nethack ninvaders moon-buggy bastet nsnake greed cmatrix sl 2048; do
+        if [ $g = guess ] || has $g; then printf '  \033[32m%s\033[0m\n' $g; else printf '  %s (install games)\n' $g; fi; done ;;
+    guess) n=$(( $(od -An -N2 -tu2 /dev/urandom) % 100 + 1 )); t=0
+      say "I picked a number 1–100." "1–100 arası ədəd tutdum." "1–100 arası bir sayı tuttum." "Я загадал число 1–100."
+      while :; do g=$(ask_in "?"); t=$((t+1)); case "$g" in ''|*[!0-9]*) continue ;; esac
+        if [ "$g" -lt $n ]; then echo "↑"; elif [ "$g" -gt $n ]; then echo "↓"; else say "Yes! $t tries" "Bəli! $t cəhd" "Evet! $t deneme" "Да! $t попыток"; break; fi; done ;;
+    *) g=$1; has "$g" || nibras-need "$g"; exec "$g" ;;
+  esac
+}
+cmd_learn() {
+  prog=$HOME/.config/nibras/learn; mkdir -p "${prog%/*}"; touch "$prog"
+  lesson() { # n en az tr ru task answer-regex
+    printf '\n\033[1;33m%s %s\033[0m\n' "$(say Lesson Dərs Ders Урок)" "$1"
+    say "$2" "$3" "$4" "$5"
+    printf '\033[36m%s\033[0m %s\n' "$(say Task: Tapşırıq: Görev: Задание:)" "$6"
+    while :; do c=$(ask_in "$"); [ "$c" = q ] && exit 0
+      if printf '%s' "$c" | grep -Eq "$7"; then sh -c "$c" 2>&1 | head -15; echo "$1" >> "$prog"; printf '\033[32m✓\033[0m\n'; break
+      else say "Not quite — try again (q = quit)" "Tam deyil — yenidən yoxla (q = çıxış)" "Tam değil — tekrar dene (q = çık)" "Не совсем — ещё раз (q = выход)"; fi; done
+  }
+  say "Learn Linux step by step. Type the command for each task." "Linux-u addım-addım öyrən. Hər tapşırıq üçün əmri yaz." "Linux'u adım adım öğren. Her görev için komutu yaz." "Изучайте Linux шаг за шагом."
+  lesson 1 "pwd shows the folder you are in." "pwd olduğun qovluğu göstərir." "pwd bulunduğun klasörü gösterir." "pwd показывает текущую папку." "$(say 'Show your folder' 'Qovluğunu göstər' 'Klasörünü göster' 'Покажи папку')" '^pwd$'
+  lesson 2 "ls lists files; ls -la also shows hidden ones." "ls faylları siyahılayır; ls -la gizliləri də göstərir." "ls dosyaları listeler; ls -la gizlileri de gösterir." "ls — список файлов; ls -la — со скрытыми." "$(say 'List all files' 'Bütün faylları göstər' 'Tüm dosyaları listele' 'Покажи все файлы')" '^ls( -[a-zA-Z]*a[a-zA-Z]*)'
+  lesson 3 "mkdir creates a folder." "mkdir qovluq yaradır." "mkdir klasör oluşturur." "mkdir создаёт папку." "$(say 'Create folder test' 'test qovluğu yarat' 'test klasörü oluştur' 'Создай папку test')" '^mkdir (-p )?test$'
+  lesson 4 "echo prints text; > writes it into a file." "echo mətn yazır; > onu fayla yazır." "echo metin yazar; > dosyaya yazar." "echo выводит текст; > пишет в файл." "$(say 'Write hello into test/a.txt' 'test/a.txt faylına salam yaz' 'test/a.txt dosyasına merhaba yaz' 'Запиши hello в test/a.txt')" '^echo .+ > ?test/a\.txt$'
+  lesson 5 "cat shows a file." "cat faylı göstərir." "cat dosyayı gösterir." "cat показывает файл." "$(say 'Show test/a.txt' 'test/a.txt-ni göstər' 'test/a.txt göster' 'Покажи test/a.txt')" '^cat test/a\.txt$'
+  lesson 6 "cp copies, mv moves/renames." "cp kopyalayır, mv köçürür/adını dəyişir." "cp kopyalar, mv taşır/yeniden adlandırır." "cp копирует, mv перемещает." "$(say 'Copy test/a.txt to test/b.txt' 'test/a.txt-ni test/b.txt-yə kopyala' 'test/a.txt dosyasını test/b.txt olarak kopyala' 'Скопируй в test/b.txt')" '^cp test/a\.txt test/b\.txt$'
+  lesson 7 "grep finds text inside files." "grep fayllarda mətn axtarır." "grep dosyalarda metin arar." "grep ищет текст в файлах." "$(say 'Find hello/salam in test/' 'test/ içində axtar' 'test/ içinde ara' 'Найди текст в test/')" '^grep (-r |-ri |-rn )?[^ ]+ test'
+  lesson 8 "| sends output of one command to another." "| bir əmrin çıxışını digərinə ötürür." "| bir komutun çıktısını diğerine aktarır." "| передаёт вывод другой команде." "$(say 'Count files: ls | wc -l' 'Faylları say: ls | wc -l' 'Dosyaları say: ls | wc -l' 'Посчитай файлы: ls | wc -l')" '^ls.*\| ?wc -l$'
+  lesson 9 "rm -r deletes (careful!). In Nibras, trash is safer." "rm -r silir (diqqət!). Nibras-da trash daha təhlükəsizdir." "rm -r siler (dikkat!). Nibras'ta trash daha güvenli." "rm -r удаляет (осторожно!). trash безопаснее." "$(say 'Move test to trash' 'test-i zibil qutusuna at' 'test klasörünü çöpe at' 'Отправь test в корзину')" '^(trash|rm -r) test/?$'
+  lesson 10 "install adds tools. Try a pack name." "install alət əlavə edir. Paket adını yoxla." "install araç ekler." "install добавляет инструменты." "$(say 'List packs' 'Paketləri göstər' 'Paketleri göster' 'Покажи пакеты')" '^(install|nibras install)$'
+  quiz
+}
+quiz() {
+  printf '\n\033[1;35mQuiz\033[0m\n'; score=0
+  q() { a=$(ask_in "$1"); if printf '%s' "$a" | grep -Eqi "$2"; then score=$((score+1)); echo "✓"; else echo "✗ → $3"; fi; }
+  q "$(say 'Command to show current folder?' 'Hazırkı qovluğu göstərən əmr?' 'Mevcut klasörü gösteren komut?' 'Команда текущей папки?')" '^pwd$' pwd
+  q "$(say 'Show hidden files?' 'Gizli faylları göstər?' 'Gizli dosyaları göster?' 'Показать скрытые?')" '^ls -[a-z]*a' 'ls -la'
+  q "$(say 'Search text in files?' 'Fayllarda mətn axtar?' 'Dosyalarda metin ara?' 'Поиск текста?')" '^grep' grep
+  q "$(say 'Merge videos?' 'Videoları birləşdir?' 'Videoları birleştir?' 'Склеить видео?')" '^video merge' 'video merge a.mp4 b.mp4'
+  echo "$score/4"
+}
+
+# ---------------------------------------------------------------- ask / explain / recipes / fix
+RECIPES='merge|birləşdir|birleştir|склеить|join video|video merge a.mp4 b.mp4
+cut|kəs|kes|обрез|video cut in.mp4 00:00:10 00:00:40
+compress|sıx|sıkıştır|сжать|video compress in.mp4
+mp3|music|musiqi|müzik|музык|download audio <url>
+youtube|yt|video yüklə|video indir|скачать видео|download <url>
+gif|video gif in.mp4 0 5
+resize|ölçü|boyut|размер|image resize photo.jpg 1080
+pdf birləşdir|pdf merge|pdf birleştir|склеить pdf|pdf merge a.pdf b.pdf
+pdf sıx|pdf compress|pdf sıkıştır|сжать pdf|pdf compress file.pdf
+text|mətn|metin|текст|ocr|ocr photo.jpg
+server|site|sayt|сайт|web .
+share|paylaş|paylaş|поделиться|share webdav /sdcard
+pc|kompüter|bilgisayar|компьютер|browser|webterm
+speed|sürət|hız|скорость|net speed
+ip|net ip
+backup|ehtiyat|yedek|резерв|backup home
+ssh|server|hosts
+apk|apk new MyApp && cd MyApp && apk build
+decompile|apk decompile app.apk
+sign|imzala|подпис|apk sign app.apk
+python|py|python
+ai|süni|yapay|ии|llm
+quran|quran|quran 1:1
+namaz|prayer|ezan|намаз|prayer
+game|oyun|игр|games
+learn|öyrən|öğren|учить|learn
+cpu|ram|monitor|htop
+delete|sil|удал|trash file
+qr|qr "text"
+zip|arxiv|arşiv|архив|zip -r out.zip folder'
+cmd_ask() {
+  [ $# -gt 0 ] || { say 'ask "how do I merge videos"' 'ask "videoları necə birləşdirim"' 'ask "videoları nasıl birleştiririm"' 'ask "как склеить видео"'; return; }
+  q=$(printf '%s' "$*" | tr 'A-Z' 'a-z'); found=0
+  printf '%s\n' "$RECIPES" | while IFS= read -r line; do
+    keys=${line%|*}; cmd=${line##*|}; old=$IFS; IFS='|'
+    for k in $keys; do case "$q" in *"$k"*) printf '  \033[1;32m%s\033[0m\n' "$cmd"; break ;; esac; done; IFS=$old
+  done | awk '!s[$0]++' | head -6 | grep . || { say "No recipe yet. Try: explain <command>, or llm \"$*\"" "Resept tapılmadı. Yoxla: explain <əmr>, ya da llm \"$*\"" "Tarif yok. Dene: explain <komut> veya llm \"$*\"" "Нет рецепта. Попробуйте explain или llm"; }
+}
+cmd_recipes() { printf '%s\n' "$RECIPES" | awk -F'|' '{print "  " $NF}' | awk '!s[$0]++'; }
+cmd_explain() {
+  [ $# -gt 0 ] || { echo "explain <command>   (tldr pages: en/tr/ru…)"; return; }
+  c=$1
+  if ! has tldr; then need python3 pip3; pip3 install -q tldr --break-system-packages 2>/dev/null || pip3 install -q tldr; fi
+  lang=$L; [ "$lang" = az ] && lang=tr
+  if has tldr; then tldr -L "$lang" "$c" 2>/dev/null || tldr "$c" 2>/dev/null && return; fi
+  if has "$c"; then "$c" --help 2>&1 | head -40; else say "Unknown command. install? → install $c" "Naməlum əmr. Qurmaq: pkg install $c" "Bilinmeyen komut: pkg install $c" "Неизвестная команда: pkg install $c"; fi
+}
+cmd_fix() { # suggest a fix for a missing / mistyped command
+  c=${1:-}; [ -n "$c" ] || { echo "fix <command>"; return; }
+  printf '\033[33m%s\033[0m\n' "$(say "Command not found: $c" "Əmr tapılmadı: $c" "Komut bulunamadı: $c" "Команда не найдена: $c")"
+  if pack_desc "$c" >/dev/null 2>&1; then echo "  → install $c"; return 127; fi
+  best=$(for d in $(echo "$PATH" | tr ':' ' '); do ls "$d" 2>/dev/null; done | sort -u | awk -v w="$c" '
+    function dist(a,b,  i,j,la,lb,d,c1,x,y,z){la=length(a);lb=length(b);for(i=0;i<=la;i++)d[i,0]=i;for(j=0;j<=lb;j++)d[0,j]=j
+      for(i=1;i<=la;i++)for(j=1;j<=lb;j++){c1=(substr(a,i,1)==substr(b,j,1))?0:1;x=d[i-1,j]+1;y=d[i,j-1]+1;z=d[i-1,j-1]+c1;d[i,j]=(x<y?(x<z?x:z):(y<z?y:z))}return d[la,lb]}
+    length($0)>1 && (dd=dist(w,$0))<=2 {print dd, $0}' | sort -n | head -3 | awk '{print $2}')
+  [ -n "$best" ] && for b in $best; do printf '  → %s\n' "$b"; done
+  printf '  → pkg install %s\n' "$c"
+  return 127
+}
+
+# ---------------------------------------------------------------- trash / clip / notes / vault / record / cron / plugin / hs / sysinfo
+TRASH=$HOME/.local/share/Trash
+cmd_trash() {
+  mkdir -p "$TRASH/files" "$TRASH/info"
+  case "${1:-}" in
+    ""|help) echo "trash <files…> · trash list · trash restore <name> · trash empty"; return ;;
+    list) ls -la "$TRASH/files"; return ;;
+    empty) rm -rf "$TRASH/files"/* "$TRASH/info"/*; say "Trash emptied" "Zibil qutusu boşaldıldı" "Çöp boşaltıldı" "Корзина очищена"; return ;;
+    restore) n=$2; src=$(sed -n 's/^Path=//p' "$TRASH/info/$n.trashinfo" 2>/dev/null); [ -n "$src" ] || die "?"; mv "$TRASH/files/$n" "$src" && rm -f "$TRASH/info/$n.trashinfo" && echo "→ $src"; return ;;
+  esac
+  for f in "$@"; do
+    [ -e "$f" ] || [ -L "$f" ] || { echo "? $f" >&2; continue; }
+    n=$(basename "$f"); [ -e "$TRASH/files/$n" ] && n="$n.$(date +%s)"
+    printf '[Trash Info]\nPath=%s\nDeletionDate=%s\n' "$(readlink -f "$f")" "$(date +%FT%T)" > "$TRASH/info/$n.trashinfo"
+    mv "$f" "$TRASH/files/$n"
+  done
+}
+cmd_clip() {
+  h=$HOME/.local/share/nibras-clip; touch "$h"
+  case "${1:-list}" in
+    list) nl -ba "$h" | tail -30 ;;
+    save) c=$(nibras-clipboard-get); [ -n "$c" ] && printf '%s\n' "$c" | tr '\n' ' ' | sed 's/ $//' >> "$h" && echo >> "$h" ;;
+    [0-9]*) sed -n "${1}p" "$h" | nibras-clipboard-set; say "Copied" "Kopyalandı" "Kopyalandı" "Скопировано" ;;
+    clear) : > "$h" ;;
+    *) echo "clip [list|save|N|clear]" ;;
+  esac
+}
+cmd_notes() {
+  d=$HOME/notes; mkdir -p "$d"
+  case "${1:-list}" in
+    list) ls -t "$d" | head -40 ;;
+    new) f=$d/${2:-$(date +%F-%H%M)}.md; [ -f "$f" ] || printf '# %s\n\n' "${2:-$(date '+%F %H:%M')}" > "$f"; nibras-api edit "$f" 2>/dev/null || ${EDITOR:-vi} "$f" ;;
+    show) f=$d/${2%.md}.md; if has glow; then glow "$f"; else sed -e 's/^# \(.*\)/\x1b[1;33m\1\x1b[0m/' -e 's/^## \(.*\)/\x1b[1;36m\1\x1b[0m/' -e 's/\*\*\([^*]*\)\*\*/\x1b[1m\1\x1b[0m/g' "$f"; fi ;;
+    find) grep -rin --color=auto "$2" "$d" ;;
+    add) shift; printf -- '- %s  (%s)\n' "$*" "$(date '+%F %H:%M')" >> "$d/inbox.md"; echo "✓ inbox.md" ;;
+    *) echo "notes [list|new [name]|show name|find text|add text]" ;;
+  esac
+}
+cmd_vault() {
+  need age tar; v=$(outdir)/vault; mkdir -p "$v"
+  case "${1:-help}" in
+    lock) d=${2:?folder}; out=$v/$(basename "$d").tar.age; tar -C "$(dirname "$(readlink -f "$d")")" -cz "$(basename "$d")" | age -p -o "$out" && \
+      { c=$(ask_in "$(say "Delete the original folder? (yes)" "Orijinal qovluq silinsin? (yes)" "Orijinal klasör silinsin mi? (yes)" "Удалить оригинал? (yes)")"); [ "$c" = yes ] && rm -rf "$d"; echo "→ $out"; } ;;
+    open) f=${2:?file}; [ -f "$f" ] || f=$v/$f; age -d "$f" | tar -xz -C "${3:-.}" && echo "✓" ;;
+    list) ls -lh "$v" ;;
+    *) echo "vault lock <folder> · vault open <file.tar.age> [to] · vault list   (age, password)" ;;
+  esac
+}
+cmd_record() {
+  d=$(outdir)/recordings; mkdir -p "$d"
+  case "${1:-start}" in
+    start) f=$d/session-$(date +%F-%H%M%S)
+      say "Recording… type exit to stop" "Yazılır… dayandırmaq üçün exit yaz" "Kaydediliyor… durdurmak için exit" "Запись… exit для остановки"
+      if has asciinema; then asciinema rec "$f.cast"; else need script; script -q -t 2>"$f.time" "$f.log"; fi; echo "→ $f" ;;
+    play) f=$2; case "$f" in *.cast) asciinema play "$f" ;; *) scriptreplay "${f%.log}.time" "${f%.log}.log" ;; esac ;;
+    list) ls -lh "$d" ;;
+    *) echo "record [start|play file|list]" ;;
+  esac
+}
+cron_start() { pgrep crond >/dev/null 2>&1 || { has crond && crond 2>/dev/null; } || { has cron && cron 2>/dev/null; } || true; }
+cmd_cron() {
+  has crontab || need crontab
+  case "${1:-list}" in
+    list) crontab -l 2>/dev/null | nl -ba ;;
+    add) shift; when=$1; shift
+      case "$when" in hourly) when="0 * * * *" ;; daily) when="0 9 * * *" ;; every5) when="*/5 * * * *" ;; weekly) when="0 9 * * 1" ;; esac
+      (crontab -l 2>/dev/null; echo "$when $*") | crontab -; cron_start; echo "✓ $when $*" ;;
+    rm|remove) crontab -l 2>/dev/null | sed "${2}d" | crontab - ;;
+    menu|"") ;;
+    *) echo "cron list · cron add hourly|daily|weekly|every5|\"m h d M w\" <command> · cron rm N   ($(say "for jobs even when the app is closed:" "tətbiq bağlı olanda da işləmək üçün:" "uygulama kapalıyken de:" "даже при закрытом приложении:") nibras-job-scheduler)" ;;
+  esac
+}
+cmd_plugin() {
+  d=$HOME/.nibras/plugins; mkdir -p "$d"
+  case "${1:-list}" in
+    list) ls "$d" ;;
+    install) need curl; n=${3:-$(basename "$2")}; curl -fsSL "$2" -o "$d/$n" && chmod +x "$d/$n"
+      head -5 "$d/$n"; say "Installed. Plugins are your own scripts — install only from people you trust." "Quraşdırıldı. Yalnız güvəndiyin mənbədən quraşdır." "Kuruldu. Sadece güvendiğin kaynaktan kur." "Установлено. Только из доверенных источников." ;;
+    new) n=${2:?name}; printf '#!/bin/sh\n# %s: Nibras plugin. Runs as the command "%s".\necho "hello from %s"\n' "$n" "$n" "$n" > "$d/$n"; chmod +x "$d/$n"; nibras-api edit "$d/$n" ;;
+    remove|rm) rm -f "$d/$2" ;;
+    *) echo "plugin list · plugin new <name> · plugin install <url> [name] · plugin rm <name>  (~/.nibras/plugins is on PATH)" ;;
+  esac
+}
+cmd_hs() { # history search
+  h=$HISTFILE; [ -f "$h" ] || h=$HOME/.ash_history
+  if has fzf; then c=$(tac "$h" 2>/dev/null | awk '!s[$0]++' | fzf --height 40% --reverse) && printf '%s\n' "$c" && nibras-clipboard-set "$c" 2>/dev/null
+  elif [ -n "${1:-}" ]; then grep -i -- "$1" "$h" | awk '!s[$0]++' | tail -30
+  else tail -30 "$h"; say "(install fzf for interactive search: pkg install fzf)" "(interaktiv axtarış üçün: pkg install fzf)" "(etkileşimli arama: pkg install fzf)" "(pkg install fzf)"; fi
+}
+cmd_sysinfo() {
+  . /etc/os-release 2>/dev/null
+  printf '\033[1;32m%s\033[0m %s · %s\n' "${PRETTY_NAME:-Linux}" "$(uname -m)" "$(uname -r)"
+  awk '/MemTotal/{t=$2}/MemAvailable/{a=$2}END{printf "RAM  %d / %d MB\n",(t-a)/1024,t/1024}' /proc/meminfo
+  df -h / 2>/dev/null | awk 'NR==2{print "Disk " $3 " / " $2}'
+  echo "CPU  $(nproc) × $(awk -F: '/Hardware|model name/{print $2;exit}' /proc/cpuinfo)"
+  nibras-battery-status 2>/dev/null | tr -d '{}",' | grep -E "percentage|status" | sed 's/^ */Batt /'
+}
+
+# ---------------------------------------------------------------- dispatch
+case "$me" in
+  menu) cmd_menu ;;
+  list) cmd_list ;;
+  install|add) cmd_install "$@" ;;
+  video) cmd_video "$@" ;;
+  audio) cmd_audio "$@" ;;
+  image|img) cmd_image "$@" ;;
+  pdf) cmd_pdf "$@" ;;
+  download|dl) cmd_download "$@" ;;
+  web) cmd_web "$@" ;;
+  git) cmd_git "$@" ;;
+  py|python) cmd_python "$@" ;;
+  node) cmd_node "$@" ;;
+  backup) cmd_backup "$@" ;;
+  snapshot) cmd_snapshot "$@" ;;
+  net) cmd_net "$@" ;;
+  share) cmd_share "$@" ;;
+  webterm) cmd_webterm "$@" ;;
+  qr) cmd_qr "$@" ;;
+  ocr) cmd_ocr "$@" ;;
+  llm|ai) cmd_llm "$@" ;;
+  quran) cmd_quran "$@" ;;
+  hadith) cmd_hadith "$@" ;;
+  prayer|namaz) cmd_prayer "$@" ;;
+  games|game) cmd_games "$@" ;;
+  learn) cmd_learn "$@" ;;
+  ask) cmd_ask "$@" ;;
+  explain) cmd_explain "$@" ;;
+  recipes) cmd_recipes ;;
+  fix) cmd_fix "$@" ;;
+  trash) cmd_trash "$@" ;;
+  clip) cmd_clip "$@" ;;
+  notes|note) cmd_notes "$@" ;;
+  vault) cmd_vault "$@" ;;
+  record|rec) cmd_record "$@" ;;
+  cron) cmd_cron "$@" ;;
+  plugin|plugins) cmd_plugin "$@" ;;
+  hs) cmd_hs "$@" ;;
+  sysinfo) cmd_sysinfo ;;
+  monitor) has btop && exec btop; need htop; exec htop ;;
+  security) install_pack security ;;
+  office) need pandoc; [ $# -ge 2 ] && exec pandoc "$1" -o "$2"; echo "office in.md out.docx|out.pdf|out.html" ;;
+  apk) exec nibras-apk "$@" ;;
+  dev|desktop) cmd_install "$me" ;;
+  *) printf '%s?\n' "$me"; cmd_menu ;;
+esac

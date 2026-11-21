@@ -1,5 +1,5 @@
 #!/bin/sh
-# Termux-style package manager front-end for apk (Alpine) and apt (Debian/Ubuntu).
+# Nibras package manager front-end for apk (Alpine) and apt (Debian/Ubuntu).
 usage() {
   cat <<'U'
 Usage: pkg <command> [packages]
@@ -49,5 +49,5 @@ elif command -v apt-get >/dev/null 2>&1; then
     *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
   esac
 else
-  echo "pkg: no package manager found in this environment"; exit 1
+  . /usr/local/share/nibras/msg.sh; nmsg no_pm; exit 1
 fi

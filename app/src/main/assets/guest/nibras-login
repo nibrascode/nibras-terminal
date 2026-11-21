@@ -1,6 +1,7 @@
 #!/bin/sh
 # Nibras Terminal: starts the preferred login shell (see: nibras-shell), or runs a script.
 cd "$HOME" 2>/dev/null || cd /
+if [ -n "${NIBRAS_START_DIR:-}" ] && [ -d "$NIBRAS_START_DIR" ]; then cd "$NIBRAS_START_DIR"; fi
 if [ $# -gt 0 ]; then
   [ -r /etc/profile ] && . /etc/profile >/dev/null 2>&1
   if [ -x "$1" ]; then exec "$@"; else exec /bin/sh "$@"; fi

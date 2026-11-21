@@ -84,7 +84,8 @@ class ApiBridge(private val context: Context, private val host: Host) {
         val parts = decoded.split('\n', limit = 3)
         val name = parts.getOrNull(0)?.trim().orEmpty()
         val env = parts.getOrNull(1)?.trim().orEmpty()
-        val args = parts.getOrNull(2)?.trim().orEmpty()
+        val raw = parts.getOrNull(2).orEmpty()
+        val args = raw.trim()
         return when (name) {
             "reload-settings" -> { main.post { host.reloadSettings() }; "OK\nsettings reloaded" }
             "new-session" -> {
@@ -98,8 +99,42 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
             }
             "open" -> open(env, args)
+            "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
+            "files" -> ui { com.nibras.terminal.FilesActivity.open(context, envId(env), args.ifBlank { null }) }
+            "desktop-view" -> ui { com.nibras.terminal.DesktopActivity.open(context, env.ifBlank { null }) }
+            "hosts" -> ui { context.startActivity(Intent(context, com.nibras.terminal.HostsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            "dialog" -> com.nibras.terminal.PromptActivity.ask(context, "dialog", words(raw)).let { "OK\n$it" }
+            "storage-get" -> {
+                val out = words(raw).firstOrNull() ?: return "ERR\nusage: nibras-storage-get <output file>"
+                val target = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), out) ?: return "ERR\nbad path: $out"
+                com.nibras.terminal.PromptActivity.ask(context, "storage-get", emptyList(), target).let { "OK\n$it" }
+            }
+            "job-scheduler" -> "OK\n" + com.nibras.terminal.ScriptJobService.handle(context, words(raw), envId(env))
+            "audio-info" -> "OK\n" + com.nibras.terminal.ExtraPhone.audioInfo(context)
+            "telephony-deviceinfo" -> "OK\n" + com.nibras.terminal.ExtraPhone.telephony(context)
+            "wifi-scaninfo" -> {
+                val perm = android.Manifest.permission.ACCESS_FINE_LOCATION
+                if (context.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) { main.post { host.requestPermission(perm) }; "ERR\n" + context.getString(R.string.permission_needed, "ACCESS_FINE_LOCATION") }
+                else "OK\n" + com.nibras.terminal.ExtraPhone.wifiScan(context)
+            }
+            "wallpaper" -> {
+                val lock = args.startsWith("-l ")
+                val path = args.removePrefix("-l ").trim()
+                "OK\n" + com.nibras.terminal.ExtraPhone.wallpaper(context, com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), path), lock)
+            }
             else -> phone(name, args)
         }
+    }
+
+    private fun envId(env: String) = com.nibras.terminal.ui.HostPaths.envId(context, env.ifBlank { null })
+
+    /** Arguments the guest sent separated by \u001f (keeps quoting); falls back to spaces. */
+    private fun words(args: String): List<String> =
+        if (args.contains('\u001f')) args.split('\u001f').dropLastWhile { it.isEmpty() } else args.trim().split(' ').filter { it.isNotEmpty() }
+
+    private fun ui(block: () -> Unit): String {
+        onMainThread(block)
+        return "OK"
     }
 
     private fun phone(name: String, args: String): String {
