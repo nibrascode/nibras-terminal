@@ -39,7 +39,7 @@ object TermProps {
         fun get(k: String) = p.getProperty(k)?.trim()?.takeIf { it.isNotEmpty() }
         fun bool(k: String) = get(k)?.lowercase()?.let { it == "true" || it == "1" || it == "yes" }
         bool("fullscreen")?.let { prefs.fullscreen = it }
-        get("theme")?.let { t -> if (Themes.names.containsKey(t)) prefs.theme = t }
+        get("theme")?.let { Themes.canonical(it) }?.let { t -> if (Themes.names.containsKey(t)) prefs.theme = t }
         get("font-size")?.toIntOrNull()?.let { prefs.fontSize = it.coerceIn(6, 96) }
         backgroundOpacity = get("background-opacity")?.toIntOrNull()?.coerceIn(0, 100) ?: 70
         bool("keep-screen-on")?.let { prefs.keepScreenOn = it }

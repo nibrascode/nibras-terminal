@@ -5,11 +5,11 @@ import com.termux.terminal.TerminalColors
 import java.io.File
 import java.util.Properties
 
-/** Built-in color schemes (Termux:Styling equivalent) plus ~/.nibras/colors.properties. */
+/** Built-in color schemes plus ~/.nibras/colors.properties. */
 object Themes {
     val names = linkedMapOf(
         "nibras" to "Nibras (black)",
-        "termux" to "Termux",
+        "classic-dark" to "Classic Dark",
         "solarized-dark" to "Solarized Dark",
         "solarized-light" to "Solarized Light",
         "dracula" to "Dracula",
@@ -27,6 +27,9 @@ object Themes {
         "green" to "Green on black",
     )
 
+    /** Hidden legacy names that still work. */
+    fun canonical(name: String): String = if (name == "termux") "classic-dark" else name
+
     private fun scheme(bg: String, fg: String, cursor: String, palette: String): Properties {
         val p = Properties()
         p["background"] = bg
@@ -37,7 +40,7 @@ object Themes {
     }
 
     fun properties(name: String): Properties = when (name) {
-        "termux" -> Properties()
+        "classic-dark", "termux" -> Properties()
         "solarized-dark" -> scheme("#002b36", "#839496", "#93a1a1",
             "#073642 #dc322f #859900 #b58900 #268bd2 #d33682 #2aa198 #eee8d5 #002b36 #cb4b16 #586e75 #657b83 #839496 #6c71c4 #93a1a1 #fdf6e3")
         "solarized-light" -> scheme("#fdf6e3", "#657b83", "#586e75",

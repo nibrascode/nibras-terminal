@@ -88,13 +88,14 @@ cmd_ccat() {
 }
 
 # ---------------------------------------------------------------- theme
-THEMES="nibras nibras-gold termux dracula nord gruvbox solarized-dark solarized-light monokai one-dark tokyo-night catppuccin catppuccin-latte matrix green light custom"
+THEMES="nibras nibras-gold classic-dark dracula nord gruvbox solarized-dark solarized-light monokai one-dark tokyo-night catppuccin catppuccin-latte matrix green light custom"
 sample() {
   for i in 0 1 2 3 4 5 6 7; do printf '%s[4%sm   %s[0m' "$E" "$i" "$E"; done; echo
   for i in 0 1 2 3 4 5 6 7; do printf '%s[10%sm   %s[0m' "$E" "$i" "$E"; done; echo
   printf '%s[1;32m~/project%s[0m $ %s[33mgit%s[0m status  %s[36m# main%s[0m  %s[31m✗ 2%s[0m  %s[32m✓ 5%s[0m  %s[35mdef%s[0m %s[34mhello%s[0m()\n' "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E" "$E"
 }
 cmd_theme() {
+  [ "${1:-}" = termux ] && set -- classic-dark  # hidden legacy name
   case "${1:-list}" in
     list|ls) cur=$(getp theme); for n in $THEMES; do [ "$n" = "$cur" ] && printf '  %s[1;32m● %s%s[0m\n' "$E" "$n" "$E" || echo "  ○ $n"; done
       t "theme <name> · theme preview · theme custom <bg> <fg> [cursor]" "theme <ad> · theme preview · theme custom <fon> <yazı> [kursor]" "theme <ad> · theme preview · theme custom <arka> <yazı> [imleç]" "theme <имя> · theme preview · theme custom <фон> <текст> [курсор]" ;;
