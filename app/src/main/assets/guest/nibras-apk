@@ -91,7 +91,8 @@ setup() {
     rm -rf "$TOOLS/native"; mkdir -p "$TOOLS/native"; unzip -q /tmp/sdkt.zip -d "$TOOLS/native"; rm -f /tmp/sdkt.zip
     chmod +x "$TOOLS/native/build-tools/"* "$TOOLS/native/platform-tools/"*
   fi
-  printf '#!/bin/sh\nexec java -jar %s/apktool.jar "$@"\n' "$TOOLS" > "$TOOLS/bin/apktool"
+  # apktool ships an x86_64 aapt2: point "apktool b" at the phone-native one.
+  printf '#!/bin/sh\nc=$1; [ $# -gt 0 ] && shift\ncase "$c" in b|build) [ -x %s/native/build-tools/aapt2 ] && set -- "$c" --aapt %s/native/build-tools/aapt2 "$@" || set -- "$c" "$@" ;; *) set -- "$c" "$@" ;; esac\nexec java -jar %s/apktool.jar "$@"\n' "$TOOLS" "$TOOLS" "$TOOLS" > "$TOOLS/bin/apktool"
   ln -sf "$TOOLS/jadx/bin/jadx" "$TOOLS/bin/jadx"
   for t in aapt aapt2 zipalign dexdump aidl; do [ -x "$TOOLS/native/build-tools/$t" ] && ln -sf "$TOOLS/native/build-tools/$t" "$TOOLS/bin/$t"; done
   chmod +x "$TOOLS/bin/"*
@@ -121,6 +122,7 @@ sdk() {
   echo "sdk.dir=$SDK" > "$HOME/.nibras/android-sdk.properties"
 }
 need() { command -v "$1" >/dev/null 2>&1 || [ -f "$SDK/build-tools/$BT/lib/$1.jar" ] || setup; }
+apktool() { [ -f "$TOOLS/apktool.jar" ] && [ -x "$TOOLS/bin/apktool" ] && grep -q -- --aapt "$TOOLS/bin/apktool" || setup; "$TOOLS/bin/apktool" "$@"; }
 apksigner_() { java -jar "$SDK/build-tools/$BT/lib/apksigner.jar" "$@"; }
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
