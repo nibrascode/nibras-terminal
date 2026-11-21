@@ -21,7 +21,7 @@
 - ✅ SSH açarı yaratmaq (ed25519/rsa/ecdsa), açarı hosta göndərmək
 - ✅ Port yönləndirmə (L/R/D), jump host, keep-alive, agent forwarding
 - ✅ Mosh, Telnet, SFTP, hazır əmrlər (snippets), girişdən sonra əmr
-- 🟡 Cihazlar arası sinxronizasiya: yoxdur (bulud hesabı tələb edir); hosts faylı `files/hosts.txt`
+- 🟡 Cihazlar arası sinxronizasiya: bulud hesabı yoxdur; hostlar `ssh config` ixrac/idxal faylı ilə köçürülür (`files/hosts.txt`). Bu, dürüst olaraq "fayl ilə sinxron"dur.
 - ✅ USB serial konsol: `nibras-usb serial [cihaz] [baud]` (CDC-ACM/Arduino, CP210x/ESP32, FTDI, CH340) — root lazım deyil, menyuda 🔌 USB
 
 ## UserLAnd · Andronix · AnLinux · Linux Deploy · NetHunter
@@ -59,7 +59,7 @@ Mağaza, `plugin`, `notes`, `llm`, `quran`, `hadith`, `prayer`, `games`, sessiya
 | SSH | Termius | hostlar, açarlar, tunellər, multi-exec, snippets, sinxron | Hamısı + mosh/telnet, `ssh config` idxal/ixrac, fayl ilə köçürmə | 🟡 bulud sinxronizasiyası yoxdur (hesab tələb edir); parol saxlanmır (açar tövsiyə olunur) |
 | Terminal | Termux | əlavə düymələr, sessiyalar, temalar, pinch-zoom | Hamısı + ekranı bölmək, əmr təklifləri, köhnə yazılarda axtarış, sessiya bərpası, səslə əmr | ✅ üstün |
 | Linux | Andronix / UserLAnd | distro seçimi, masaüstü | Alpine/Debian/Ubuntu + öz rootfs, masaüstü tətbiqin içində, snapshot | ✅ |
-| APK alətləri | APK Editor / jadx | decompile, imzala, manifest | `apk` əmrləri + fayl menecerindən bir toxunuş | 🟡 vizual resurs redaktoru yoxdur (terminal + redaktor ilə) |
+| APK alətləri | APK Editor / jadx | decompile, imzala, manifest | `apk` əmrləri + fayl menecerindən bir toxunuş | ✅ vizual resurs redaktoru (`nibras-apk res`): dillər üzrə mətnlər, rənglər, ikonlar, ad/paket/versiya, bir toxunuşla yığ+imzala+quraşdır |
 | Python/C++ | Pydroid / Cxxdroid | Run, pip, çıxış | Run + çıxış kodu və vaxt, layihə faylı tanıma, `py` paket menyusu | ✅ |
 | ADB/Shizuku | LADB | pair/connect/shell | Eyni + `rish` | ✅ |
 
@@ -167,7 +167,7 @@ Root tələb edən (yalnız root olan telefonda): SMB 445 portu, FUSE/sshfs bağ
 | Diaqnostika | Layihədə Gradle kompilyasiyası, ayrı faylda javac/kotlinc, xmllint | ➕ |
 | Format | Hər dil üçün (google-java-format, ktfmt, xmllint, black, prettier, shfmt, clang-format, gofmt, rustfmt, stylua) | ➕ |
 | Layout XML önizləmə | Yığcam önizləmə: əsas widget-lər, @string/@color/@dimen/@drawable; ConstraintLayout/RelativeLayout sütun kimi | ➕ (yığcam, sürüklə-burax dizayner yoxdur) |
-| LSP | `install lsp` (helix/neovim + dil serverləri) | 🟡 redaktorun içində deyil |
+| LSP | Redaktorun öz LSP müştərisi: tamamlama, xətalar, izah (uzun bas), tərifə keçid; `install lsp-python|js|c|java|kotlin|xml|bash|go|rust|web|all` | ✅ |
 | Pluginlər, temalar | `plugin`, 12 tema | ✅ |
 
 ## Bütün dillər (Nibras-ın əsas fərqi)
@@ -221,3 +221,38 @@ Root tələb edən (yalnız root olan telefonda): SMB 445 portu, FUSE/sshfs bağ
 `run <qovluq>` layihə faylını tanıyır: Cargo.toml, go.mod, package.json, Gradle (Android: yığ, quraşdır, aç), pubspec.yaml, mix.exs, build.zig, CMakeLists.txt, Makefile, main.py.
 
 Redaktor bu dillərin hamısını rəngləyir: sh, py, js/ts, java, kt, c/c++, go, rs, php, rb, pl, lua, dart, r, jl, hs, ex, zig, nim, ps1, swift, scala, cs, f90, xml/html.
+
+## APK alətləri: digər APK tətbiqləri ilə sətir-sətir uyğunluq
+
+| Müəllim | Onda olan iş | Nibras-da | Status |
+|---|---|---|---|
+| AndroidIDE / CodeAssist | Telefonda Gradle ilə yığma, Java/Kotlin/XML, LSP | `nibras-apk build/run`, redaktorda LSP (`install lsp-java`, `lsp-kotlin`, `lsp-xml`) | ✅ |
+| Sketchware Pro | Bloklarla vizual tətbiq qurucusu | `nibras-apk wizard`: sual-cavab ilə layihə (düymə, siyahı, forma, veb-sayt, Kotlin, Compose) + layout önizləmə | 🟡 blok redaktoru yoxdur, yığcam sehrbaz var |
+| AIDE / Jstudio / Dcoder | Telefonda kod yazıb işə salmaq | `run fayl` (30+ dil), redaktor ▶ | ✅ |
+| APK Editor (Pro/Studio) | Resursları, ikonu, adı, paketi dəyişmək | `nibras-apk res` vizual redaktor, `rename`, `rebuild` | ✅ |
+| MT Manager / NP Manager | dex/smali redaktoru | `nibras-apk baksmali` / `smali`, redaktorda smali faylları | ✅ |
+| MT Manager | arsc redaktoru, resurs adlarını bərpa | `nibras-apk arsc d/b`, `refactor` (APKEditor) | ✅ |
+| MT Manager | İmza yoxlaması, yenidən imzalama | `nibras-apk verify`, `sigcheck`, `sign`, `signdebug` | ✅ |
+| MT Manager | "İmzanı öldür" (signature kill) | — | ❌ etik deyil: başqasının tətbiqinin qorumasını sındırmaq, əlavə olunmur |
+| MT / NP Manager | Split → tək APK, zipalign, optimallaşdırma, obfuskasiya | `merge`, `align`, `optimize` (aapt2 + R8), `protect` | ✅ |
+| MT Manager | Resurs tərcüməsi | `nibras-apk translate <qovluq> <dil>` + cədvəldə redaktə | ✅ |
+| APKTool M / SAI | Split APK/APKS/XAPK/APKM quraşdırmaq, antisplit | `install-split` (PackageInstaller sessiyası), `merge` | ✅ şifrəli APKM açılmır |
+| App Cloner | Paket adını dəyişib klon yaratmaq | `nibras-apk rename app.apk com.yeni.ad "Ad"` | ✅ |
+| apk-mitm | Sertifikat pinning-i götürmək | `nibras-apk mitm` (yalnız öz tətbiqiniz və ya icazəli test üçün) | ✅ |
+| App Manager | Quraşdırılmış tətbiqlər, manifest, icazələr, komponentlər | `nibras-apk apps`, `appinfo`, `exported` | ✅ |
+| APK Extractor | Quraşdırılmış tətbiqin APK-sını çıxarmaq | `nibras-apk extract <paket>` (split-lər `.apks` kimi) | ✅ |
+| Apktool / jadx | decompile, Java kodu | `decompile`, `java`, `diff` | ✅ |
+
+Lisenziya yoxlamasını yan keçmək, reklam söndürmək və pirat funksiyaları qəsdən əlavə olunmur.
+
+## Görünüş və rəngli yazı
+
+| Müəllim | İş | Nibras-da | Status |
+|---|---|---|---|
+| Termux:Styling | Rəng sxemləri, şriftlər | `theme` (17 mövzu + öz hex), `font` (Nerd Font-lar istəyə görə) | ✅ |
+| lolcat / figlet / toilet | Rəngli və böyük yazı | `color rainbow`, `color gradient`, `banner` | ✅ |
+| bat | Rəngli `cat` | `ccat fayl` | ✅ |
+| oh-my-zsh / starship | Rəngli prompt | `prompt` (powerline, git, two-line, kali, emoji…) | ✅ |
+| Termux | termux.properties: kursor, zəng, kənar, tam ekran, düymələr | `cursor`, `bell`, `margin`, `fullscreen`, `keys` (eyni açarlar) | ✅ |
+| — | Fon şəkli | `wallpaper şəkil.jpg`, `wallpaper opacity 70` | ✅ Nibras-a xas |
+| — | Hamısı bir menyuda | `customize` | ✅ Nibras-a xas |
