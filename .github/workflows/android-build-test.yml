@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        template: [views, kotlin]
+        template: [views, kotlin, webview, list, form]
     name: template ${{ matrix.template }}
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
           mkdir -p t && cp app/src/main/assets/guest/nibras-apk app/src/main/assets/guest/nibras-need app/src/main/assets/guest/nibras-msg.sh t/
           cat > t/run.sh <<'SH'
           set -e
-          apt-get update -qq && apt-get install -y -qq curl unzip ca-certificates git >/dev/null
+          apt-get update -qq && apt-get install -y -qq curl unzip zip ca-certificates git >/dev/null
           install -m755 /t/nibras-apk /usr/local/bin/nibras-apk; install -m755 /t/nibras-need /usr/local/bin/nibras-need
           mkdir -p /usr/local/share/nibras /root/.nibras; cp /t/nibras-msg.sh /usr/local/share/nibras/msg.sh
           yes | nibras-apk setup --sdk
@@ -37,6 +37,18 @@ jobs:
           test -n "$apk"
           /opt/android-sdk/build-tools/35.0.0/aapt2 dump badging "$apk" | head -3
           java -jar /opt/android-sdk/build-tools/35.0.0/lib/apksigner.jar verify "$apk" && echo "ANDROID_BUILD_OK $(du -h "$apk" | cut -f1)"
+          if [ "$1" = views ]; then # APK tools (APK Editor / MT Manager / APKTool M parity) on the built app
+            cp "$apk" /root/app.apk; cd /root
+            nibras-apk decompile app.apk app-src && sed -i 's/Built with Nibras Terminal/Modded/' app-src/res/layout/activity_main.xml
+            echo n | nibras-apk rebuild app-src && nibras-apk sigcheck app-src-mod.apk
+            nibras-apk optimize app.apk && test -f app-opt.apk
+            nibras-apk baksmali app.apk smali-out && nibras-apk smali smali-out classes2.dex && test -s classes2.dex
+            nibras-apk rename app.apk com.nibras.democlone "Demo Clone" && /opt/android-sdk/build-tools/35.0.0/aapt2 dump badging app-com.nibras.democlone.apk | grep -q "package: name='com.nibras.democlone'"
+            mkdir split && cp app.apk split/base.apk && (cd split && zip -q ../app.apks base.apk) && nibras-apk merge app.apks && test -f app-merged.apk
+            nibras-apk diff app.apk app-src-mod.apk | grep -q Modded
+            echo APK_TOOLS_OK
+          fi
           SH
           docker run --rm -v "$PWD/t:/t" arm64v8/debian:bookworm sh /t/run.sh ${{ matrix.template }} 2>&1 | tee build.log
           grep -q ANDROID_BUILD_OK build.log
+          [ "${{ matrix.template }}" != views ] || grep -q APK_TOOLS_OK build.log

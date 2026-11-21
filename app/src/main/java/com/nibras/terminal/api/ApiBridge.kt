@@ -190,7 +190,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
             "apps" -> com.nibras.terminal.AppTools.apps(context, words(raw)) { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") }
             "install-apks" -> {
                 val fs = words(raw).map { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") ?: return "ERR\nbad path: $p" }
-                if (fs.isEmpty()) "ERR\nusage: apk install-split <base.apk split*.apk | app.apks | app.xapk | app.apkm>" else com.nibras.terminal.AppTools.installSplits(context, fs)
+                if (fs.isEmpty()) "ERR\nusage: nibras-apk install-split <base.apk split*.apk | app.apks | app.xapk | app.apkm>" else com.nibras.terminal.AppTools.installSplits(context, fs)
             }
             "environments" -> ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
             "nfc" -> {

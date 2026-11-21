@@ -294,7 +294,7 @@ class ResEditorActivity : Activity() {
         val cmd = when {
             yml != null -> "nibras-apk rebuild $q"
             gradle != null -> "nibras-apk run $q"
-            else -> "echo 'Not an apktool folder or Gradle project: decode an APK first with  apk res app.apk'"
+            else -> "echo 'Not an apktool folder or Gradle project: decode an APK first with  nibras-apk res app.apk'"
         }
         Launcher.run(this, envId, cmd, "rebuild", keepShell = true)
     }

@@ -281,7 +281,7 @@
     <string name="res_images">الصور</string>
     <string name="res_app">التطبيق</string>
     <string name="res_rebuild">بناء · توقيع · تثبيت</string>
-    <string name="res_none">لا يوجد مجلد res/values في %1$s. افتح ملف APK أولاً: apk res app.apk</string>
+    <string name="res_none">لا يوجد مجلد res/values في %1$s. افتح ملف APK أولاً: nibras-apk res app.apk</string>
     <string name="res_strings_hint">%1$d نصاً · اضغط للتعديل · ⚠ = لم يُترجم بعد</string>
     <string name="res_add_lang">إضافة لغة</string>
     <string name="res_images_hint">اضغط على صورة لاستبدالها من المعرض (بنفس المقاس)</string>

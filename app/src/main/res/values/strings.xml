@@ -283,7 +283,7 @@
     <string name="res_images">Images</string>
     <string name="res_app">App</string>
     <string name="res_rebuild">Rebuild · sign · install</string>
-    <string name="res_none">No res/values folder in %1$s. Decode an APK first: apk res app.apk</string>
+    <string name="res_none">No res/values folder in %1$s. Decode an APK first: nibras-apk res app.apk</string>
     <string name="res_strings_hint">%1$d strings · tap one to edit · ⚠ = not translated yet</string>
     <string name="res_add_lang">Add language</string>
     <string name="res_images_hint">Tap an image to replace it from the gallery (resized to the same size)</string>

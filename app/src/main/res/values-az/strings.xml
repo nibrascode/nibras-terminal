@@ -282,7 +282,7 @@
     <string name="res_images">Şəkillər</string>
     <string name="res_app">Tətbiq</string>
     <string name="res_rebuild">Yığ · imzala · quraşdır</string>
-    <string name="res_none">%1$s içində res/values qovluğu yoxdur. Əvvəlcə APK-nı açın: apk res app.apk</string>
+    <string name="res_none">%1$s içində res/values qovluğu yoxdur. Əvvəlcə APK-nı açın: nibras-apk res app.apk</string>
     <string name="res_strings_hint">%1$d mətn · redaktə üçün toxunun · ⚠ = hələ tərcümə olunmayıb</string>
     <string name="res_add_lang">Dil əlavə et</string>
     <string name="res_images_hint">Şəklə toxunun və qalereyadan dəyişin (eyni ölçüyə gətirilir)</string>

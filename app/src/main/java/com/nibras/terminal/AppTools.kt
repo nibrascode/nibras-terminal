@@ -103,7 +103,7 @@ object AppTools {
                             z.putNextEntry(ZipEntry(File(src).name)); File(src).inputStream().use { it.copyTo(z) }; z.closeEntry()
                         }
                     }
-                    "OK\n${out.name} (${out.length() / 1024} KB, base + ${splits.size} splits) — install with: apk install-split ${out.name}  ·  one APK: apk merge ${out.name}"
+                    "OK\n${out.name} (${out.length() / 1024} KB, base + ${splits.size} splits) — install with: nibras-apk install-split ${out.name}  ·  one APK: nibras-apk merge ${out.name}"
                 }
             }
             else -> "ERR\nusage: apps list [-s|-a] [filter] | info <pkg> | exported <pkg> | extract <pkg> [dir]"

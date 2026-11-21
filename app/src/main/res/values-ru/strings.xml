@@ -282,7 +282,7 @@
     <string name="res_images">Изображения</string>
     <string name="res_app">Приложение</string>
     <string name="res_rebuild">Собрать · подписать · установить</string>
-    <string name="res_none">В %1$s нет папки res/values. Сначала распакуйте APK: apk res app.apk</string>
+    <string name="res_none">В %1$s нет папки res/values. Сначала распакуйте APK: nibras-apk res app.apk</string>
     <string name="res_strings_hint">%1$d строк · нажмите, чтобы изменить · ⚠ = ещё не переведено</string>
     <string name="res_add_lang">Добавить язык</string>
     <string name="res_images_hint">Нажмите на изображение, чтобы заменить его из галереи (с тем же размером)</string>
