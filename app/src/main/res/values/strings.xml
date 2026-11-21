@@ -89,4 +89,5 @@
     <string name="shortcut_new">New session</string>
     <string name="wakelock_on">Wake lock on</string>
     <string name="wakelock_off">Wake lock off</string>
+    <string name="crash_title">The app stopped last time — report</string>
 </resources>

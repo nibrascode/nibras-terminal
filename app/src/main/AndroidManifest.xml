@@ -32,6 +32,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
+        android:name=".NibrasApp"
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="Nibras Terminal"

@@ -88,4 +88,5 @@
     <string name="shortcut_new">Yeni oturum</string>
     <string name="wakelock_on">Uyanık tutma açık</string>
     <string name="wakelock_off">Uyanık tutma kapalı</string>
+    <string name="crash_title">Uygulama geçen sefer durdu — rapor</string>
 </resources>

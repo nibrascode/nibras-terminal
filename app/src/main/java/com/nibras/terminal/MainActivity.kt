@@ -97,15 +97,54 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         window.navigationBarColor = Color.BLACK
         buildLayout()
         pendingIntent = intent
-        val start = Intent(this, TerminalService::class.java)
-        startForegroundService(start)
-        bindService(start, this, Context.BIND_AUTO_CREATE)
+        showPreviousCrash()
+        startTerminalService()
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
             !prefs.sp.getBoolean("askedNotifications", false)
         ) {
             prefs.sp.edit().putBoolean("askedNotifications", true).apply()
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQ_PERMISSION)
         }
+    }
+
+    /** Starts and binds the session service. A failure here must never close the app. */
+    private fun startTerminalService() {
+        val start = Intent(this, TerminalService::class.java)
+        try {
+            startForegroundService(start)
+        } catch (t: Throwable) {
+            NibrasApp.record(this, "startForegroundService", t)
+            runCatching { startService(start) }
+        }
+        try {
+            bindService(start, this, Context.BIND_AUTO_CREATE)
+        } catch (t: Throwable) {
+            NibrasApp.record(this, "bindService", t)
+            Toast.makeText(this, getString(R.string.boot_failed, t.message ?: t.javaClass.simpleName), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /** If the last run crashed, show the report once so it can be copied or shared. */
+    private fun showPreviousCrash() {
+        val file = NibrasApp.crashFile(this)
+        if (!file.isFile) return
+        val text = runCatching { file.readText() }.getOrDefault("")
+        file.delete()
+        if (text.isBlank()) return
+        val view = TextView(this).apply {
+            this.text = text
+            typeface = Typeface.MONOSPACE
+            textSize = 11f
+            setTextIsSelectable(true)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.crash_title)
+            .setView(android.widget.ScrollView(this).apply { addView(view) })
+            .setPositiveButton(R.string.menu_copy_all) { _, _ -> copy(text) }
+            .setNeutralButton(R.string.menu_share) { _, _ -> share(text) }
+            .setNegativeButton(R.string.ok, null)
+            .show()
     }
 
     // ---------------------------------------------------------------- layout
@@ -119,6 +158,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             isFocusable = true
             isFocusableInTouchMode = true
             keepScreenOn = prefs.keepScreenOn
+            setTextSize(defaultFontSize())
         }
         keys = ExtraKeysView(this, ::onExtraKey) { }
         input = EditText(this).apply {
@@ -530,6 +570,14 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     }
 
     private fun applySettings() {
+        try {
+            applySettingsUnsafe()
+        } catch (t: Throwable) {
+            NibrasApp.record(this, "applySettings", t)
+        }
+    }
+
+    private fun applySettingsUnsafe() {
         val home = runCatching { Rootfs.homeOf(this) }.getOrNull()
         background = Themes.apply(prefs.theme, home)
         service?.sessions?.forEach { it.emulator?.mColors?.reset() }
@@ -549,9 +597,11 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             listOf(rows[0], rows[1])
         })
         keys.visibility = if (prefs.extraKeys) View.VISIBLE else View.GONE
-        terminal.setTypeface(Themes.typeface(home))
+        // setTextSize must run before setTypeface: TerminalView has no renderer until a text size is set,
+        // and setTypeface() dereferences it (this NPE closed 0.2.113 right after launch).
         fontSize = if (prefs.fontSize > 0) prefs.fontSize else if (fontSize > 0) fontSize else defaultFontSize()
         terminal.setTextSize(fontSize)
+        runCatching { terminal.setTypeface(Themes.typeface(home)) }
         terminal.keepScreenOn = prefs.keepScreenOn
         applyCursor()
         terminal.invalidate()

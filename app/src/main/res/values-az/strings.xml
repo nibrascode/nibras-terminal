@@ -88,4 +88,5 @@
     <string name="shortcut_new">Yeni sessiya</string>
     <string name="wakelock_on">Oyaq saxlama açıqdır</string>
     <string name="wakelock_off">Oyaq saxlama bağlıdır</string>
+    <string name="crash_title">Tətbiq əvvəlki dəfə dayandı — hesabat</string>
 </resources>

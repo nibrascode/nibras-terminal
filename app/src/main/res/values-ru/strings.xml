@@ -88,4 +88,5 @@
     <string name="shortcut_new">Новая сессия</string>
     <string name="wakelock_on">Без сна: вкл</string>
     <string name="wakelock_off">Без сна: выкл</string>
+    <string name="crash_title">Приложение в прошлый раз остановилось — отчёт</string>
 </resources>

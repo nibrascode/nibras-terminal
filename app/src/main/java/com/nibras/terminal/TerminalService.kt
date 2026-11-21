@@ -105,9 +105,17 @@ class TerminalService : Service(), ApiBridge.Host {
                 setShowBadge(false)
             },
         )
-        startForegroundCompat()
+        try {
+            startForegroundCompat()
+        } catch (t: Throwable) {
+            NibrasApp.record(this, "startForeground", t)
+        }
         api = ApiBridge(applicationContext, this)
-        api.start()
+        try {
+            api.start()
+        } catch (t: Throwable) {
+            NibrasApp.record(this, "api.start", t)
+        }
     }
 
     private fun startForegroundCompat() {
