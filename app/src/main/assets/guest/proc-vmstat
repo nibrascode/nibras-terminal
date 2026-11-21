@@ -1,0 +1,13 @@
+nr_free_pages 1743136
+nr_zone_inactive_anon 179281
+nr_zone_active_anon 7183
+nr_zone_inactive_file 22858
+nr_zone_active_file 51328
+nr_mlock 0
+nr_bounce 0
+nr_zspages 0
+nr_free_cma 0
+pgpgin 198330
+pgpgout 159612
+pswpin 0
+pswpout 0

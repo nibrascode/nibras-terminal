@@ -1,0 +1,53 @@
+#!/bin/sh
+# Termux-style package manager front-end for apk (Alpine) and apt (Debian/Ubuntu).
+usage() {
+  cat <<'U'
+Usage: pkg <command> [packages]
+  install|i|add <pkg>   install packages
+  uninstall|remove <pkg> remove packages
+  update                refresh the package index
+  upgrade               upgrade all packages
+  search <query>        search packages
+  show|info <pkg>       show package details
+  list-installed        list installed packages
+  list-all              list all available packages
+  files <pkg>           list files of an installed package
+  clean                 clear the download cache
+U
+}
+cmd="${1:-help}"; [ $# -gt 0 ] && shift
+if command -v apk >/dev/null 2>&1; then
+  case "$cmd" in
+    install|i|add|in) exec apk add "$@" ;;
+    uninstall|remove|rm|del|un) exec apk del "$@" ;;
+    update|up) exec apk update ;;
+    upgrade|ug) apk update && exec apk upgrade "$@" ;;
+    search|se|s) exec apk search -v "$@" ;;
+    show|info|sh) exec apk info -a "$@" ;;
+    list-installed|list|li) exec apk info -vv ;;
+    list-all|la) exec apk search -q ;;
+    files) exec apk info -L "$@" ;;
+    clean|cl) exec apk cache clean ;;
+    help|-h|--help) usage ;;
+    *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
+  esac
+elif command -v apt-get >/dev/null 2>&1; then
+  export DEBIAN_FRONTEND="${DEBIAN_FRONTEND:-noninteractive}"
+  need_update() { ! ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1; }
+  case "$cmd" in
+    install|i|add|in) need_update && apt-get update; exec apt-get install -y "$@" ;;
+    uninstall|remove|rm|del|un) exec apt-get remove -y "$@" ;;
+    update|up) exec apt-get update ;;
+    upgrade|ug) apt-get update && exec apt-get upgrade -y "$@" ;;
+    search|se|s) need_update && apt-get update >/dev/null; exec apt-cache search "$@" ;;
+    show|info|sh) exec apt-cache show "$@" ;;
+    list-installed|list|li) exec dpkg-query -W -f='${Package} ${Version}\n' ;;
+    list-all|la) need_update && apt-get update >/dev/null; exec apt-cache pkgnames ;;
+    files) exec dpkg -L "$@" ;;
+    clean|cl) exec apt-get clean ;;
+    help|-h|--help) usage ;;
+    *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
+  esac
+else
+  echo "pkg: no package manager found in this environment"; exit 1
+fi

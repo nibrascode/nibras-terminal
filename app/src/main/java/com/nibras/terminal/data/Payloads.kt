@@ -175,6 +175,7 @@ fun seedSmallPayloads(context: Context, components: List<Component>, installed: 
     val next = installed.toMutableMap()
     for (component in components) {
         if (isLargePayload(component)) continue
+        if (component.kind == "archive" && component.group == "environment") continue // rootfs handled by Rootfs
         val asset = "payloads/${component.filename}"
         val exists = runCatching { context.assets.open(asset).close() }.isSuccess
         if (!exists) continue
@@ -205,22 +206,50 @@ fun seedSmallPayloads(context: Context, components: List<Component>, installed: 
     return next
 }
 
-fun extractArchive(archive: File, destination: File) {
-    if (destination.exists()) {
-        destination.deleteRecursively()
-    }
+/**
+ * Unpacks tar.gz / tar.xz / zip into [destination].
+ *
+ * Linux root filesystems need three things the old extractor dropped:
+ * absolute symlinks (Alpine: /bin/sh -> /bin/busybox), hard links, and the
+ * executable bit. Symlinks are kept verbatim (they are resolved inside PRoot),
+ * but every write is resolved through already-created links *inside* the
+ * destination, so a crafted archive can never write outside it.
+ */
+fun extractArchive(archive: File, destination: File, onProgress: ((Long) -> Unit)? = null) {
+    deleteTree(destination)
     destination.mkdirs()
+    val root = destination.toPath().toAbsolutePath().normalize()
+    val hardLinks = mutableListOf<Pair<String, String>>()
+    var count = 0L
     openArchive(archive).use { input ->
         while (true) {
             val entry = input.nextEntry ?: break
-            writeEntry(input, entry, destination)
+            writeEntry(input, entry, root, hardLinks)
+            count++
+            if (count % 200 == 0L) onProgress?.invoke(count)
+        }
+    }
+    // Hard links last, so their targets exist.
+    for ((name, target) in hardLinks) {
+        runCatching {
+            val dest = resolveInside(root, name, followLast = false)
+            val src = resolveInside(root, target, followLast = true)
+            if (!Files.exists(src)) return@runCatching
+            dest.parent?.let { Files.createDirectories(it) }
+            Files.deleteIfExists(dest)
+            try {
+                android.system.Os.link(src.toString(), dest.toString())
+            } catch (_: Throwable) {
+                Files.copy(src, dest)
+                runCatching { android.system.Os.chmod(dest.toString(), android.system.Os.stat(src.toString()).st_mode and 0x1ff) }
+            }
         }
     }
 }
 
 private fun openArchive(archive: File): ArchiveInputStream<out ArchiveEntry> {
     val name = archive.name.lowercase()
-    val raw = BufferedInputStream(archive.inputStream())
+    val raw = BufferedInputStream(archive.inputStream(), 256 * 1024)
     return when {
         name.endsWith(".tar.gz") || name.endsWith(".tgz") ->
             TarArchiveInputStream(GzipCompressorInputStream(raw))
@@ -234,25 +263,37 @@ private fun openArchive(archive: File): ArchiveInputStream<out ArchiveEntry> {
 private fun writeEntry(
     input: ArchiveInputStream<out ArchiveEntry>,
     entry: ArchiveEntry,
-    destination: File,
+    root: java.nio.file.Path,
+    hardLinks: MutableList<Pair<String, String>>,
 ) {
-    val name = entry.name.replace('\\', '/')
-    if (name.isBlank()) return
-    val dest = safeChild(destination, name)
+    val name = entry.name.replace('\\', '/').removePrefix("./").trimEnd('/')
+    if (name.isBlank() || name == ".") return
+    checkName(name)
     val tar = entry as? TarArchiveEntry
-    if (tar?.isSymbolicLink == true || tar?.isLink == true) {
+    if (tar?.isLink == true) {
+        val target = tar.linkName?.removePrefix("./") ?: return
+        checkName(target)
+        hardLinks += name to target
+        return
+    }
+    val dest = resolveInside(root, name, followLast = false)
+    if (tar?.isSymbolicLink == true) {
         val target = tar.linkName ?: return
-        if (!relativeLink(target)) return
-        dest.parentFile?.mkdirs()
-        runCatching { Files.createSymbolicLink(dest.toPath(), java.nio.file.Paths.get(target)) }
+        dest.parent?.let { Files.createDirectories(it) }
+        Files.deleteIfExists(dest)
+        runCatching { Files.createSymbolicLink(dest, java.nio.file.Paths.get(target)) }
         return
     }
     if (entry.isDirectory) {
-        dest.mkdirs()
+        if (Files.isSymbolicLink(dest)) return
+        if (!Files.isDirectory(dest)) Files.createDirectories(dest)
+        tar?.let { setMode(dest, it.mode or 0x1c0) } // keep u+rwx on dirs
         return
     }
-    dest.parentFile?.mkdirs()
-    dest.outputStream().use { output ->
+    if (tar != null && !tar.isFile) return // devices, fifos: not possible without root
+    dest.parent?.let { Files.createDirectories(it) }
+    if (Files.isSymbolicLink(dest)) Files.delete(dest)
+    Files.newOutputStream(dest).use { output ->
         val buffer = ByteArray(64 * 1024)
         while (true) {
             val n = input.read(buffer)
@@ -260,19 +301,76 @@ private fun writeEntry(
             output.write(buffer, 0, n)
         }
     }
+    val mode = tar?.mode ?: ((entry as? org.apache.commons.compress.archivers.zip.ZipArchiveEntry)?.unixMode ?: 0)
+    if (mode != 0) setMode(dest, mode or 0x180) // keep u+rw
 }
 
-private fun relativeLink(target: String): Boolean {
-    if (target.startsWith("/") || target.contains('\\')) return false
-    return target.split('/').none { it == ".." }
+private fun setMode(path: java.nio.file.Path, mode: Int) {
+    runCatching { android.system.Os.chmod(path.toString(), mode and 0xfff) }
 }
 
-private fun safeChild(root: File, name: String): File {
-    if (name.startsWith("/") || name.split('/').any { it == ".." }) {
-        error("Təhlükəli arxiv yolu")
+private fun checkName(name: String) {
+    if (name.split('/').any { it == ".." }) error("Təhlükəli arxiv yolu: $name")
+}
+
+/**
+ * Resolves [name] (relative to the archive root) to a host path inside [root],
+ * following symlinks that were already extracted as the guest would see them
+ * (absolute targets are relative to [root]). Throws if the result escapes.
+ */
+fun resolveInside(root: java.nio.file.Path, name: String, followLast: Boolean): java.nio.file.Path {
+    var current = root
+    val parts = name.split('/').filter { it.isNotEmpty() && it != "." }.toMutableList()
+    var hops = 0
+    var i = 0
+    while (i < parts.size) {
+        val part = parts[i]
+        val last = i == parts.size - 1
+        if (part == "..") {
+            current = if (current == root) root else (current.parent ?: root)
+            i++
+            continue
+        }
+        val next = current.resolve(part)
+        if ((!last || followLast) && Files.isSymbolicLink(next)) {
+            if (++hops > 40) error("Çox simvolik keçid: $name")
+            val target = Files.readSymbolicLink(next).toString()
+            val rest = parts.subList(i + 1, parts.size).toList()
+            val targetParts = target.split('/').filter { it.isNotEmpty() && it != "." }
+            if (target.startsWith("/")) current = root
+            parts.clear()
+            parts.addAll(targetParts + rest)
+            i = 0
+            continue
+        }
+        current = next
+        i++
     }
-    val rootPath = root.toPath().toAbsolutePath().normalize()
-    val dest = rootPath.resolve(name).normalize()
-    if (!dest.startsWith(rootPath)) error("Təhlükəli arxiv yolu")
-    return dest.toFile()
+    val normal = current.normalize()
+    if (!normal.startsWith(root)) error("Təhlükəli arxiv yolu: $name")
+    return normal
+}
+
+/** Deletes a directory tree without ever following symlinks (rootfs links point at guest paths). */
+fun deleteTree(dir: File) {
+    val path = dir.toPath()
+    if (!Files.exists(path, java.nio.file.LinkOption.NOFOLLOW_LINKS)) return
+    Files.walkFileTree(path, object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+        override fun visitFile(file: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes): java.nio.file.FileVisitResult {
+            runCatching { Files.delete(file) }
+            return java.nio.file.FileVisitResult.CONTINUE
+        }
+        override fun visitFileFailed(file: java.nio.file.Path, exc: java.io.IOException): java.nio.file.FileVisitResult {
+            runCatching { Files.delete(file) }
+            return java.nio.file.FileVisitResult.CONTINUE
+        }
+        override fun preVisitDirectory(d: java.nio.file.Path, attrs: java.nio.file.attribute.BasicFileAttributes): java.nio.file.FileVisitResult {
+            runCatching { android.system.Os.chmod(d.toString(), 0x1c0) }
+            return java.nio.file.FileVisitResult.CONTINUE
+        }
+        override fun postVisitDirectory(d: java.nio.file.Path, exc: java.io.IOException?): java.nio.file.FileVisitResult {
+            runCatching { Files.delete(d) }
+            return java.nio.file.FileVisitResult.CONTINUE
+        }
+    })
 }

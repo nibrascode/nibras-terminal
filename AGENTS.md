@@ -5,7 +5,7 @@ Bu fayl mənbədir. Süni zəka əmr uydurmasın. Burada olmayan əmri işlək k
 ## Harada işləyir
 
 - Veb terminal: https://nibrascode.github.io/nibras-terminal/
-- Telefon paketi: `com.nibras.terminal`. Android 8 (API 26), yalnız arm64-v8a. Tətbiq açılan kimi terminal ekranı gəlir, Ev səhifəsi yox.
+- Telefon paketi: `com.nibras.terminal`. Android 8 (API 26). Universal APK: arm64-v8a və armeabi-v7a. Tətbiq açılan kimi tam ekran terminal gəlir. Aşağıda nav tabları yoxdur, sessiyalar və ayarlar sol çəkmədə durur.
 
 Veb terminal ilə telefon APK-sı eyni ad daşıyır, amma eyni mühərrik deyil. Veb əmrini telefon shell-ində, telefon əmrini vebdə işlək sayma.
 
@@ -81,16 +81,15 @@ Boru, yönləndirmə, `&&`, `||`, `;`, `$()`, dırnaq və `set -e` / `set -x` ve
 
 ## Telefon APK-sı
 
-Açılış birbaşa qara terminaldır. İstək sətri `~ $`.
+Açılış birbaşa tam ekran qara terminaldır (Termux `terminal-view` v0.118.1). Alt nav tabları **yoxdur**, onları geri qaytarma.
 
-- Alpine APK-nın içindədir və arxa planda açılır. Hazır olanda Linux əmrləri PRoot ilə Alpine-də işləyir.
-- Alpine hələ açılmayıbsa əmr itmir: telefonun `/system/bin/sh` cavab verir.
-- Debian və Ubuntu APK-da deyil. Yükləmə siyahısındadır, 5 MB-dan böyükdür.
-- PRoot `libproot.so` kimi APK-nın içindədir.
-- Qovluq və mühit dəyişənləri növbəti əmrə saxlanır. `/root/storage` telefon yaddaşına bağlıdır.
-- `clear` ekranı təmizləyir. `Dur` uzun əmri kəsir.
-- Aşağı düymələr: `ESC`, `CTRL`, `ALT`, `TAB`, `←`, `→`, `↑`, `PASTE`. Çıxışı seçib köçürmək olur.
-- `CTRL` yanırsa növbəti hərf idarə simvoluna çevrilir.
+- Sessiyalar, "Yeni sessiya", mühitlər, ayarlar və "Daha çox" menyusu sol çəkmədədir (`☰` extra-key və ya kənardan çəkmək).
+- Alpine 3.24.4 hər iki ABI üçün APK-dadır (`assets/payloads/*.tar.gz.bin`; `.gz` uzantısı olmamalıdır, çünki aapt onu açır). İlk açılışda açılır.
+- ABI seçimini `DeviceAbi.current` edir (`Process.is64Bit()`). Paket bu ABI-də yoxdursa "mövcud deyil" deyilir.
+- PRoot Termux yığımıdır: `jniLibs/<abi>/libproot.so`, loader və talloc ilə. `linux-engine/README.md` faylına baxın.
+- Debian, Ubuntu, Python və Node yüklənir. armhf versiyaları `payloads-0.2` release-indədir.
+- Extra-keys: `ESC / - HOME ↑ END PGUP` / `TAB CTRL ALT ← ↓ → PGDN`; `~/.nibras/extra-keys`.
+- Dillər: az, tr, en, ru (`res/values-*`).
 
 Telefon əmrləri Linux gözləmir. `termux-` yazılsa, eyni əmr `nibras-` kimi işləyir.
 

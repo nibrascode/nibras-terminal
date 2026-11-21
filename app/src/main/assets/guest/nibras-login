@@ -1,0 +1,18 @@
+#!/bin/sh
+# Nibras Terminal: starts the preferred login shell (see: nibras-shell), or runs a script.
+cd "$HOME" 2>/dev/null || cd /
+if [ $# -gt 0 ]; then
+  [ -r /etc/profile ] && . /etc/profile >/dev/null 2>&1
+  if [ -x "$1" ]; then exec "$@"; else exec /bin/sh "$@"; fi
+fi
+if [ -r /etc/nibras/motd ] && [ ! -e "$HOME/.hushlogin" ]; then cat /etc/nibras/motd; fi
+pref=
+[ -r "$HOME/.nibras/shell" ] && pref=$(head -n 1 "$HOME/.nibras/shell")
+for s in $pref /bin/bash /bin/ash /bin/sh; do
+  case "$s" in /*) ;; *) s=$(command -v "$s" 2>/dev/null) ;; esac
+  if [ -n "$s" ] && [ -x "$s" ]; then
+    export SHELL="$s"
+    exec "$s" -l
+  fi
+done
+exec /bin/sh -l

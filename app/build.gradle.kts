@@ -19,7 +19,7 @@ android {
         versionCode = androidVersion
         versionName = (findProperty("versionName") as String?) ?: "0.1.$androidVersion"
         ndk {
-            abiFilters += "arm64-v8a"
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
     }
 
@@ -62,9 +62,18 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            // proot, its loader and talloc must exist as real files in nativeLibraryDir,
+            // because Android 10+ only lets an app exec() binaries from there.
+            useLegacyPackaging = true
         }
     }
 }
@@ -83,5 +92,10 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("org.tukaani:xz:1.10")
+    implementation("androidx.drawerlayout:drawerlayout:1.2.0")
+    // Termux terminal emulator + view (Apache-2.0): real PTY, VT100/xterm, scrollback, pinch zoom, selection.
+    implementation("com.github.termux.termux-app:terminal-view:v0.118.1")
+    implementation("com.github.termux.termux-app:terminal-emulator:v0.118.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    testImplementation("junit:junit:4.13.2")
 }

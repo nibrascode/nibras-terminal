@@ -1,6 +1,9 @@
 name: Android package
 
 on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "catalog/**", "linux-engine/**", ".github/workflows/proot-test.yml"]
   workflow_dispatch:
     inputs:
       sdk:
@@ -87,7 +90,7 @@ jobs:
       - name: Build
         run: |
           CODE=$((100 + ${GITHUB_RUN_NUMBER:-0}))
-          GRADLE=(./gradlew --no-daemon -Psdk="$SDK" -PversionCode="$CODE" -PversionName="0.1.$CODE")
+          GRADLE=(./gradlew --no-daemon -Psdk="$SDK" -PversionCode="$CODE" -PversionName="0.2.$CODE")
           if [ "$KIND" = "sign" ]; then
             set -a
             . ./nibras-signing.env
@@ -108,6 +111,19 @@ jobs:
           else
             cp app/build/outputs/apk/debug/app-debug.apk dist/
           fi
+      - name: Unit tests (rootfs extractor)
+        run: ./gradlew --no-daemon -Psdk="$SDK" testDebugUnitTest
+      - name: Check ABIs
+        if: env.KIND != 'aab'
+        run: |
+          APK=$(ls dist/*.apk | head -1)
+          unzip -l "$APK" | grep -E 'lib/|assets/payloads/' | tee dist/apk-contents.txt
+          for abi in arm64-v8a armeabi-v7a; do
+            for lib in libproot.so libproot-loader.so libtalloc.so libtermux.so; do
+              unzip -l "$APK" | grep -q "lib/$abi/$lib" || { echo "missing lib/$abi/$lib"; exit 1; }
+            done
+          done
+          ls -l "$APK" | tee -a dist/apk-contents.txt
       - name: Check signature
         run: |
           TOOL=$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort | tail -1)

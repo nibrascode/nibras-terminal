@@ -1,0 +1,73 @@
+name: PRoot test
+
+# Runs the bundled PRoot + Alpine rootfs inside Termux's Android (bionic) docker image
+# on a native ARM runner, for both arm64-v8a and armeabi-v7a.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/src/main/jniLibs/**"
+      - "app/src/main/assets/payloads/**"
+      - "app/src/main/assets/guest/**"
+      - ".github/workflows/proot-test.yml"
+
+jobs:
+  proot:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: aarch64
+            abi: arm64-v8a
+            alpine: aarch64
+          - image: arm
+            abi: armeabi-v7a
+            alpine: armv7
+    name: proot ${{ matrix.abi }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: CPU
+        run: |
+          lscpu || true
+          (setarch linux32 uname -m && echo "AArch32 personality: ok") || echo "no linux32 personality"
+      - name: Prepare test tree
+        run: |
+          mkdir -p t/lib t/rootfs t/tmp
+          cp app/src/main/jniLibs/${{ matrix.abi }}/*.so t/lib/
+          tar -xzf app/src/main/assets/payloads/alpine-minirootfs-3.24.4-${{ matrix.alpine }}.tar.gz.bin -C t/rootfs
+          mkdir -p t/rootfs/usr/local/bin t/rootfs/etc/profile.d t/rootfs/etc/nibras
+          for f in nibras-login nibras-shell pkg nibras-api; do install -m755 app/src/main/assets/guest/$f t/rootfs/usr/local/bin/$f; done
+          cp app/src/main/assets/guest/profile.sh t/rootfs/etc/profile.d/nibras.sh
+          echo "Nibras test motd" > t/rootfs/etc/nibras/motd
+          printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' > t/rootfs/etc/resolv.conf
+          cat > t/test.sh <<'SH'
+          set -e
+          echo "host: $(uname -m) / $(getprop ro.product.cpu.abi 2>/dev/null) / uid $(id -u)"
+          L=/t/lib
+          export LD_LIBRARY_PATH=$L PROOT_TMP_DIR=/t/tmp PROOT_LOADER=$L/libproot-loader.so
+          [ -f $L/libproot-loader32.so ] && export PROOT_LOADER_32=$L/libproot-loader32.so
+          P="$L/libproot.so --kill-on-exit --link2symlink --sysvipc -L -0 -r /t/rootfs -w /root -b /dev -b /proc -b /sys -b /dev/urandom:/dev/random -b /proc/self/fd:/dev/fd"
+          E="/usr/bin/env -i HOME=/root TERM=xterm-256color LANG=C.UTF-8 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin NIBRAS_ENV=alpine"
+          $L/libproot.so --version | head -3 || true
+          echo "== guest =="
+          $P $E /bin/sh -c 'echo "uname -m: $(uname -m)"; apk --version; echo "alpine $(cat /etc/alpine-release)"; id'
+          echo "== login script mode =="
+          $P $E /usr/local/bin/nibras-login /bin/sh -c 'echo "PATH=$PATH"'
+          echo "== login interactive =="
+          echo 'echo "PS1 set: ${PS1:+yes}"; exit' | $P $E /usr/local/bin/nibras-login
+          echo "== pkg install bash =="
+          $P $E /bin/sh -c 'pkg install bash >/tmp/pkg.log 2>&1 || { tail -20 /tmp/pkg.log; exit 1; }; bash -c "echo bash \$BASH_VERSION on \$(uname -m)"'
+          echo "PROOT_TEST_OK"
+          SH
+          chmod -R a+rwX t
+      - name: Run in termux-docker (${{ matrix.image }})
+        run: |
+          set -o pipefail
+          docker run --rm --privileged -v "$PWD/t:/t" termux/termux-docker:${{ matrix.image }} /system/bin/sh /t/test.sh 2>&1 | tee proot-${{ matrix.abi }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proot-test-${{ matrix.abi }}
+          path: proot-*.log

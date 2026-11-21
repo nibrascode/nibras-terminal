@@ -1,0 +1,34 @@
+#!/bin/sh
+# Experimental: XFCE desktop over VNC. Connect a VNC viewer app to 127.0.0.1:5901.
+# nibras-desktop [install|start|stop]
+set -e
+act="${1:-start}"
+install_desktop() {
+  if command -v apk >/dev/null 2>&1; then
+    apk add xfce4 xfce4-terminal tigervnc dbus dbus-x11 font-dejavu adwaita-icon-theme
+  else
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends xfce4 xfce4-terminal tigervnc-standalone-server tigervnc-tools dbus-x11 fonts-dejavu-core
+  fi
+}
+case "$act" in
+  install) install_desktop ;;
+  stop)
+    pkill -f "Xvnc :1" 2>/dev/null || true
+    pkill -f xfce4-session 2>/dev/null || true
+    rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
+    echo "desktop stopped" ;;
+  start)
+    command -v Xvnc >/dev/null 2>&1 || install_desktop
+    mkdir -p "$HOME/.vnc"
+    if [ ! -s "$HOME/.vnc/passwd" ]; then echo "Choose a VNC password:"; vncpasswd "$HOME/.vnc/passwd"; fi
+    "$0" stop >/dev/null 2>&1 || true
+    Xvnc :1 -geometry "${GEOMETRY:-1280x720}" -depth 24 -rfbport 5901 -localhost -SecurityTypes VncAuth \
+      -PasswordFile "$HOME/.vnc/passwd" >"$HOME/.vnc/xvnc.log" 2>&1 &
+    sleep 2
+    DISPLAY=:1 dbus-launch --exit-with-session startxfce4 >"$HOME/.vnc/xfce.log" 2>&1 &
+    echo "Desktop is running. Open a VNC viewer app and connect to 127.0.0.1:5901"
+    echo "Stop with: nibras-desktop stop" ;;
+  *) echo "usage: nibras-desktop [install|start|stop]"; exit 1 ;;
+esac

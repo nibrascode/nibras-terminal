@@ -39,28 +39,35 @@ Dörd dil var: Azərbaycan, Türk, İngilis, Rus. Dil düyməsinə toxunanda yal
 
 ## Telefon tətbiqi
 
-Paket `com.nibras.terminal`. Kotlin və Jetpack Compose. Minimum Android 8, API 26, yalnız arm64-v8a.
+Paket `com.nibras.terminal`. Kotlin. Minimum Android 8 (API 26). Bir universal APK həm **arm64-v8a**, həm də **armeabi-v7a** (32-bit ARM) üçündür. Tətbiq işə düşəndə hansı ABI ilə qurulduğunu (`Process.is64Bit()`) yoxlayır və uyğun PRoot ilə Alpine-i seçir.
 
-Tətbiq açılan kimi qara terminal gəlir. Ev səhifəsi birinci ekran deyil. İstək sətri `~ $`.
+Tətbiq açılan kimi tam ekran qara terminal gəlir. Bu, Termux-un terminal emulyatorudur (`terminal-view` / `terminal-emulator` v0.118.1, Apache-2.0): VT100/xterm, 256 rəng və truecolor, scrollback, iki barmaqla böyütmə, mətn seçimi, URL seçimi. Aşağıdakı nav tabları yoxdur. Sessiyalar, mühitlər və ayarlar soldakı çəkmədə (drawer) durur: ekranın sol kənarından çəkin və ya extra-keys sırasında `☰` düyməsinə basın.
 
-Alpine 3.24.1 APK-nın içindədir və arxa planda açılır. Hazır olanda əmrlər PRoot ilə Alpine-də işləyir. Alpine hələ açılmayıbsa əmr itmir: telefonun öz shell-i cavab verir. Qovluq və mühit dəyişənləri növbəti əmrə qalır. `/root/storage` telefon yaddaşına bağlıdır.
+- Bir neçə sessiya. Sessiyanın adını dəyişmək və bağlamaq üçün üzərinə uzun basın. "Yeni sessiya" düyməsinə uzun basanda mühit seçilir: Alpine, Debian, Ubuntu və ya Android shell.
+- Extra-keys: `ESC / - HOME ↑ END PGUP` və `TAB CTRL ALT ← ↓ → PGDN`. CTRL/ALT yapışqandır. Sıranı `~/.nibras/extra-keys` (və ya `~/.termux/extra-keys`) ilə dəyişmək olur. Sıranı sola sürüşdürəndə mətn sahəsi açılır.
+- Səs düymələri Termux kimidir: aşağı səs düyməsi CTRL, yuxarı səs düyməsi isə extra-keys rolunu oynayır. Fiziki klaviaturada Ctrl+Alt qısayolları işləyir.
+- 12 rəng sxemi var. `~/.nibras/colors.properties` və `~/.nibras/font.ttf` fayllarını özünüz qoya bilərsiniz.
+- Ön plan xidməti sessiyaları açıq saxlayır. Bildirişdə "Çıx" və wakelock düymələri var. Açılış skriptləri `~/.nibras/boot/` qovluğundadır. Ana ekran vidceti `~/.shortcuts` skriptlərini işlədir. "Paylaş" menyusundan gələn fayl `~/downloads` qovluğuna düşür.
+- Dil seçimi: AZ, TR, EN, RU.
 
-`clear` ekranı təmizləyir. `Dur` uzun əmri kəsir. Aşağıda `ESC`, `CTRL`, `ALT`, `TAB`, oxlar və `PASTE` var. Çıxışı barmaqla seçib köçürmək olur. `CTRL` yanırsa növbəti hərf idarə simvoluna çevrilir.
+Alpine 3.24.4 hər iki ABI üçün APK-nın içindədir və ilk açılışda simvolik keçidlər və icra icazələri ilə birlikdə açılır. `pkg install ...` əmri apk və apt üçün Termux üslubunda ön tərəfdir. `/root/storage` telefon yaddaşına bağlıdır (`termux-setup-storage`).
 
-Telefon əmrləri Linux gözləmir. `termux-` yazılsa, eyni əmr `nibras-` kimi qəbul olunur: batareya, lövhə, bildiriş, titrəmə, səs, fənər, işıq, səs səviyyəsi, kamera, mikrofon, yer, sensor, barmaq izi, kontakt, zəng və SMS. Kamera, mikrofon, yer, kontakt və SMS icazə istəyir. İcazə yoxdursa nəticə uydurulmur.
+Telefon əmrləri: `termux-*` və `nibras-*` adları eyni körpüyə gedir (lokal soket, təsadüfi token `/etc/nibras/api` faylında). Batareya, lövhə, bildiriş, toast, titrəmə, fənər, işıq, səs, kamera, mikrofon, yer, sensor, barmaq izi, kontakt, zəng, SMS, `termux-open`, `termux-wake-lock` və `termux-setup-storage` var. Kamera, mikrofon, yer, kontakt və SMS icazə istəyir. İcazə verilməyibsə nəticə uydurulmur.
 
 ## Nə içindədir
 
-| Seçim | Yer |
-| --- | --- |
-| Alpine 3.24.1 | APK-nın içində, ayrıca yüklənmir |
-| Debian, Ubuntu | 5 MB-dan böyükdür, yükləmə siyahısındadır |
-| Python, Node | 5 MB-dan böyükdür, yükləmə siyahısındadır |
-| Git, C, PHP, skript və şablon | APK-nın içində |
-| PRoot | APK-da `libproot.so` |
-| Komut kitabçası | APK-nın içində |
+| Seçim | arm64-v8a | armeabi-v7a |
+| --- | --- | --- |
+| Alpine 3.24.4 | APK-nın içində | APK-nın içində |
+| Debian stable | yüklənir (payloads-0.1) | yüklənir (payloads-0.2, armhf) |
+| Ubuntu 24.04 | yüklənir | yüklənir (armhf) |
+| Python 3.12 | yüklənir | yüklənir (armv7) |
+| Node | yüklənir | v22 (Node 23+ armv7 üçün yoxdur, `libatomic1` lazımdır) |
+| PRoot | `libproot.so` + loader + loader32 | `libproot.so` + loader |
 
-Siyahı [`catalog/manifest.json`](catalog/manifest.json) içindədir. Tətbiq əvvəl cihazdakı nüsxəni oxuyur, şəbəkə varsa GitHub-dakı nüsxə ilə yeniləyir. Checksum uyğun gəlməyən fayl silinir, yarımçıq paket saxlanılmır.
+Bu ABI-də işləməyən paket siyahıda "<abi> üçün mövcud deyil" kimi görünür, yükləmə düyməsi isə olmur.
+
+Siyahı [`catalog/manifest.json`](catalog/manifest.json) faylındadır. Checksum uyğun gəlməyən fayl silinir.
 
 ## APK və AAB
 
