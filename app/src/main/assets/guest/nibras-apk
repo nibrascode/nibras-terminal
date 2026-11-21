@@ -35,6 +35,14 @@
 #   nibras-apk apps [list|-s|-a] · appinfo <pkg> · exported <pkg> · extract <pkg> [dir]   installed apps: list, details, back up
 #   nibras-apk mitm <apk>             remove certificate pinning for testing your own apps (apk-mitm)
 #   nibras-apk signdebug <apk> · debugkey   sign with a throw-away debug key
+#   nibras-apk test [dir]             unit tests (testDebugUnitTest), like Android Studio
+#   nibras-apk lint [dir]             Android lint (lintDebug)
+#   nibras-apk analyze <apk|dir>      APK size: dex, resources, native libs, assets
+#   nibras-apk assets <image> [dir]   one picture → launcher icons (mdpi … xxxhdpi)
+#   nibras-apk perms [dir|apk] [list|+NAME|-NAME|--run]   toggle uses-permission, then rebuild if you ask
+#   nibras-apk manifest edit          same as perms. "manifest <apk>" still prints the XML
+#   nibras-apk db <pkg|file.db> [db] [sql]   your debug app's SQLite, or a .db file you already have
+#   nibras-apk crash [package]        last lines from the crash buffer (wireless debugging: nibras-adb pair)
 set -e
 TOOLS=/opt/nibras-apk
 SDK=/opt/android-sdk
@@ -124,6 +132,448 @@ sdk() {
 need() { command -v "$1" >/dev/null 2>&1 || [ -f "$SDK/build-tools/$BT/lib/$1.jar" ] || setup; }
 apktool() { [ -f "$TOOLS/apktool.jar" ] && [ -x "$TOOLS/bin/apktool" ] && grep -q -- --aapt "$TOOLS/bin/apktool" || setup; "$TOOLS/bin/apktool" "$@"; }
 apksigner_() { java -jar "$SDK/build-tools/$BT/lib/apksigner.jar" "$@"; }
+gradle_task() { # dir task
+  dir="${1:-.}"; task="${2:?task}"
+  [ -f "$SDK/build-tools/$BT/aapt2" ] || setup --sdk
+  cd "$dir"
+  [ -f local.properties ] || echo "sdk.dir=$SDK" > local.properties
+  if [ -x ./gradlew ]; then G=./gradlew; else gradle_dist; G=/opt/gradle/bin/gradle; fi
+  echo "→ $task"
+  $G "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
+}
+perm_norm() {
+  p="$1"
+  p=$(printf '%s' "$p" | tr -d '[:space:]')
+  case "$p" in
+    ""|android.permission.*) printf '%s\n' "$p" ;;
+    *.*) printf '%s\n' "$p" ;;
+    *) printf 'android.permission.%s\n' "$p" ;;
+  esac
+}
+manifest_path() {
+  t="${1:-.}"
+  if [ -f "$t" ] && [ "${t%.apk}" != "$t" ]; then
+    out="${t%.apk}-src"
+    if [ ! -f "$out/AndroidManifest.xml" ]; then need apktool; apktool d -f -s "$t" -o "$out" >/dev/null; fi
+    printf '%s\n' "$out/AndroidManifest.xml"
+    return
+  fi
+  if [ -f "$t" ] && grep -q '<manifest' "$t" 2>/dev/null; then printf '%s\n' "$t"; return 0; fi
+  if [ -f "$t/app/src/main/AndroidManifest.xml" ]; then printf '%s\n' "$t/app/src/main/AndroidManifest.xml"; return 0; fi
+  if [ -f "$t/src/main/AndroidManifest.xml" ]; then printf '%s\n' "$t/src/main/AndroidManifest.xml"; return 0; fi
+  if [ -f "$t/AndroidManifest.xml" ]; then printf '%s\n' "$t/AndroidManifest.xml"; return 0; fi
+  echo "no AndroidManifest.xml in $t" >&2
+  return 1
+}
+list_perms() {
+  awk '
+    /<uses-permission/ {
+      s = $0
+      if (s ~ /android:name="/) { sub(/.*android:name="/, "", s); sub(/".*/, "", s); print s }
+    }
+  ' "$1"
+}
+add_perm() {
+  mf="$1"; p=$(perm_norm "$2")
+  [ -n "$p" ] || { echo "empty permission"; return 1; }
+  grep -q "android:name=\"$p\"" "$mf" && { echo "already there: $p"; return 0; }
+  awk -v p="$p" '
+    {
+      if (!d && $0 ~ /<manifest[^>]*\/>/) {
+        line = $0
+        sub(/\/>$/, ">", line)
+        print line
+        print "    <uses-permission android:name=\"" p "\" />"
+        print "</manifest>"
+        d = 1
+        next
+      }
+      if (!d && $0 ~ /<\/manifest>/) { print "    <uses-permission android:name=\"" p "\" />"; d = 1 }
+      print
+    }
+    END { if (!d) exit 1 }
+  ' "$mf" > "$mf.nibras" && mv "$mf.nibras" "$mf" || { echo "no </manifest> in $mf"; return 1; }
+  echo "+ $p"
+}
+rm_perm() {
+  mf="$1"; p=$(perm_norm "$2")
+  grep -q "android:name=\"$p\"" "$mf" || { echo "not in the manifest: $p"; return 1; }
+  grep -v "android:name=\"$p\"" "$mf" > "$mf.nibras" && mv "$mf.nibras" "$mf"
+  echo "- $p"
+}
+rebuild_manifest() {
+  mf="$1"; d=$(dirname "$mf"); i=0
+  if [ -f "$d/apktool.yml" ]; then "$0" rebuild "$d"; return; fi
+  while [ "$i" -lt 6 ]; do
+    if [ -f "$d/settings.gradle" ] || [ -f "$d/settings.gradle.kts" ]; then "$0" run "$d"; return; fi
+    d=$(dirname "$d"); i=$((i + 1))
+  done
+  echo "Saved $mf"
+  echo "Next: nibras-apk run <project>    or    nibras-apk rebuild <apktool dir>"
+}
+perms_cmd() {
+  target="${1:-.}"; [ $# -gt 0 ] && shift
+  mf=$(manifest_path "$target") || exit 1
+  [ -f "$mf" ] || { echo "missing $mf"; exit 1; }
+  run=0; acted=0
+  if [ $# -eq 0 ]; then
+    echo "$mf"
+    list_perms "$mf" | awk '{printf "%2d  %s\n", NR, $0}'
+    if [ -t 0 ]; then
+      echo "A number removes that line. +NAME adds it (CAMERA or the full name). q quits."
+      while true; do
+        printf '> '
+        read -r ans || break
+        case "$ans" in
+          q|Q) break ;;
+          "") break ;;
+          +*) add_perm "$mf" "${ans#+}" ;;
+          -*) rm_perm "$mf" "${ans#-}" ;;
+          *[!0-9]*) echo "number, +NAME, -NAME, or q" ;;
+          *)
+            p=$(list_perms "$mf" | sed -n "${ans}p")
+            [ -n "$p" ] && rm_perm "$mf" "$p" || echo "no line $ans"
+            ;;
+        esac
+      done
+      printf 'Build and install now? [y/N] '
+      read -r go || true
+      case "$go" in y|Y) rebuild_manifest "$mf" ;; *) echo "Saved $mf" ;; esac
+    fi
+    return 0
+  fi
+  for a in "$@"; do
+    case "$a" in
+      --run) run=1 ;;
+      list) echo "$mf"; list_perms "$mf" | sed 's/^/  /' || true; acted=1 ;;
+      +*) add_perm "$mf" "${a#+}"; acted=1 ;;
+      -*) rm_perm "$mf" "${a#-}"; acted=1 ;;
+      *) echo "usage: nibras-apk perms <dir|apk> [list|+NAME|-NAME|--run]"; exit 1 ;;
+    esac
+  done
+  [ "$acted" = 0 ] && { echo "$mf"; list_perms "$mf" | sed 's/^/  /' || true; }
+  [ "$run" = 1 ] && rebuild_manifest "$mf"
+}
+analyze_cmd() {
+  t="${1:-.}"
+  if [ -d "$t" ]; then
+    t=$(apk_out "$t")
+    [ -n "$t" ] || { echo "no APK yet. Build first: nibras-apk build"; exit 1; }
+  fi
+  [ -f "$t" ] || { echo "not a file: ${1:-}"; exit 1; }
+  command -v unzip >/dev/null 2>&1 || nibras-need unzip
+  bytes=$(wc -c < "$t" | tr -d ' ')
+  echo "$(basename "$t")  zip $bytes bytes"
+  unzip -l "$t" | awk -v zip="$bytes" '
+    function human(n,    i, u) {
+      split("B KB MB GB", u, " ")
+      i = 1
+      while (n >= 1024 && i < 4) { n /= 1024; i++ }
+      return sprintf("%.1f %s", n, u[i])
+    }
+    function bucket(name) {
+      if (name ~ /(^|\/)classes[0-9]*\.dex$/ || name ~ /\.dex$/) return "dex"
+      if (name ~ /^lib\//) return "native"
+      if (name ~ /^res\// || name == "resources.arsc" || name ~ /\.arsc$/) return "resources"
+      if (name ~ /^assets\//) return "assets"
+      if (name == "AndroidManifest.xml") return "manifest"
+      if (name ~ /^META-INF\//) return "meta"
+      if (name ~ /^kotlin\//) return "kotlin"
+      return "other"
+    }
+    NR < 4 { next }
+    /^----/ { next }
+    {
+      if ($1 !~ /^[0-9]+$/) next
+      name = $0
+      sub(/^ *[0-9]+ +[0-9-]+ +[0-9:]+ +/, "", name)
+      if (name == "" || name ~ /files?$/) next
+      len = $1 + 0
+      b = bucket(name)
+      sum[b] += len
+      total += len
+      nfiles++
+      names[nfiles] = name
+      sizes[nfiles] = len
+    }
+    END {
+      order[1]="dex"; order[2]="resources"; order[3]="native"; order[4]="assets"
+      order[5]="manifest"; order[6]="kotlin"; order[7]="meta"; order[8]="other"
+      print "uncompressed " human(total)
+      for (i = 1; i <= 8; i++) {
+        k = order[i]
+        v = sum[k] + 0
+        pct = (total > 0) ? (100 * v / total) : 0
+        printf "  %-12s %10s   %5.1f%%\n", k, human(v), pct
+      }
+      print "largest"
+      m = nfiles + 0
+      for (a = 1; a <= m; a++) rank[a] = a
+      for (a = 1; a <= m; a++) for (b = a + 1; b <= m; b++) if (sizes[rank[b]] > sizes[rank[a]]) { t = rank[a]; rank[a] = rank[b]; rank[b] = t }
+      limit = (m < 12) ? m : 12
+      for (a = 1; a <= limit; a++) printf "  %10s  %s\n", human(sizes[rank[a]]), names[rank[a]]
+      printf "zip file %s\n", human(zip + 0)
+    }
+  '
+}
+res_dir_of() {
+  d="${1:-.}"
+  if [ -d "$d/app/src/main" ] || [ -f "$d/app/build.gradle" ] || [ -f "$d/app/build.gradle.kts" ]; then
+    mkdir -p "$d/app/src/main/res"
+    printf '%s\n' "$d/app/src/main/res"
+    return 0
+  fi
+  if [ -d "$d/res" ]; then printf '%s\n' "$d/res"; return 0; fi
+  if [ -f "$d/AndroidManifest.xml" ]; then mkdir -p "$d/res"; printf '%s\n' "$d/res"; return 0; fi
+  if [ -d "$d" ]; then printf '%s\n' "$d"; return 0; fi
+  echo "no project directory: $d" >&2
+  return 1
+}
+write_adaptive() {
+  res="$1"
+  mkdir -p "$res/mipmap-anydpi-v26"
+  for n in ic_launcher ic_launcher_round; do
+    cat > "$res/mipmap-anydpi-v26/$n.xml" <<'XML'
+<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/white"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+XML
+  done
+}
+scale_magick() {
+  src="$1"; px="$2"; out="$3"
+  mkdir -p "$(dirname "$out")"
+  if command -v magick >/dev/null 2>&1; then
+    magick "$src" -resize "${px}x${px}^" -gravity center -extent "${px}x${px}" "PNG32:$out"
+  else
+    convert "$src" -resize "${px}x${px}^" -gravity center -extent "${px}x${px}" "PNG32:$out"
+  fi
+}
+png_icons() {
+  python3 - "$1" "$2" <<'PY'
+import struct, sys, zlib
+src, root = sys.argv[1], sys.argv[2]
+data = open(src, "rb").read()
+if data[:8] != b"\x89PNG\r\n\x1a\n":
+    sys.exit(2)
+pos, w, h, color, depth, inter = 8, 0, 0, 0, 0, 0
+idat = b""
+while pos + 8 <= len(data):
+    ln, typ = struct.unpack(">I4s", data[pos:pos+8])
+    chunk = data[pos+8:pos+8+ln]
+    pos += 12 + ln
+    if typ == b"IHDR":
+        w, h, depth, color, _, _, inter = struct.unpack(">IIBBBBB", chunk[:13])
+    elif typ == b"IDAT":
+        idat += chunk
+    elif typ == b"IEND":
+        break
+if inter or depth != 8 or color not in (2, 6):
+    sys.exit(3)
+bpp = 4 if color == 6 else 3
+raw = zlib.decompress(idat)
+rows, i, prev = [], 0, bytearray(w * bpp)
+def paeth(a, b, c):
+    p = a + b - c
+    pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+    return a if pa <= pb and pa <= pc else b if pb <= pc else c
+for y in range(h):
+    f = raw[i]; i += 1
+    row = bytearray(raw[i:i + w * bpp]); i += w * bpp
+    for x in range(len(row)):
+        left = row[x - bpp] if x >= bpp else 0
+        up = prev[x]
+        ul = prev[x - bpp] if x >= bpp else 0
+        if f == 1: row[x] = (row[x] + left) & 255
+        elif f == 2: row[x] = (row[x] + up) & 255
+        elif f == 3: row[x] = (row[x] + ((left + up) // 2)) & 255
+        elif f == 4: row[x] = (row[x] + paeth(left, up, ul)) & 255
+    prev = row
+    rows.append(row)
+def pix(x, y):
+    r = rows[min(max(y, 0), h - 1)]
+    o = min(max(x, 0), w - 1) * bpp
+    if color == 6: return r[o], r[o+1], r[o+2], r[o+3]
+    return r[o], r[o+1], r[o+2], 255
+def cover(size):
+    # center-crop to a square, then box-sample
+    side = min(w, h)
+    x0 = (w - side) // 2
+    y0 = (h - side) // 2
+    out = bytearray()
+    for yy in range(size):
+        out.append(0)
+        for xx in range(size):
+            xa, xb = x0 + xx * side / size, x0 + (xx + 1) * side / size
+            ya, yb = y0 + yy * side / size, y0 + (yy + 1) * side / size
+            acc = [0, 0, 0, 0]; n = 0
+            step = max(1, int((xb - xa) / 2) or 1)
+            for y in range(int(ya), max(int(yb), int(ya) + 1), step):
+                for x in range(int(xa), max(int(xb), int(xa) + 1), step):
+                    p = pix(x, y)
+                    for k in range(4): acc[k] += p[k]
+                    n += 1
+            if n == 0:
+                p = pix(int(xa), int(ya)); acc = list(p); n = 1
+            out.extend(int(a / n) for a in acc)
+    return out
+def write_png(path, size, rgba):
+    import os
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    def chunk(tag, body):
+        return struct.pack(">I", len(body)) + tag + body + struct.pack(">I", zlib.crc32(tag + body) & 0xFFFFFFFF)
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
+    raw = zlib.compress(bytes(rgba), 9)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", raw) + chunk(b"IEND", b"")
+    open(path, "wb").write(png)
+    print(path)
+dens = [("mdpi", 48, 108), ("hdpi", 72, 162), ("xhdpi", 96, 216), ("xxhdpi", 144, 324), ("xxxhdpi", 192, 432)]
+for name, icon, fg in dens:
+    folder = root.rstrip("/") + "/mipmap-" + name
+    write_png(folder + "/ic_launcher.png", icon, cover(icon))
+    write_png(folder + "/ic_launcher_round.png", icon, cover(icon))
+    write_png(folder + "/ic_launcher_foreground.png", fg, cover(fg))
+PY
+}
+magick_icons() {
+  src="$1"; res="$2"
+  for spec in mdpi:48:108 hdpi:72:162 xhdpi:96:216 xxhdpi:144:324 xxxhdpi:192:432; do
+    name=${spec%%:*}; rest=${spec#*:}; icon=${rest%%:*}; fg=${rest#*:}
+    dir="$res/mipmap-$name"; mkdir -p "$dir"
+    scale_magick "$src" "$icon" "$dir/ic_launcher.png"
+    scale_magick "$src" "$icon" "$dir/ic_launcher_round.png"
+    scale_magick "$src" "$fg" "$dir/ic_launcher_foreground.png"
+    echo "✓ $dir"
+  done
+}
+assets_cmd() {
+  src="${1:?nibras-apk assets <image.png|jpg> [project dir]}"
+  dest="${2:-.}"
+  [ -f "$src" ] || { echo "not a file: $src"; exit 1; }
+  res=$(res_dir_of "$dest") || exit 1
+  if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
+    magick_icons "$src" "$res"
+  elif command -v python3 >/dev/null 2>&1 && png_icons "$src" "$res"; then
+    :
+  else
+    echo "PNG is scaled on the phone. A JPEG needs ImageMagick." >&2
+    nibras-need magick >/dev/null 2>&1 || nibras-need convert || exit 1
+    if command -v magick >/dev/null 2>&1 || command -v convert >/dev/null 2>&1; then
+      magick_icons "$src" "$res"
+    else
+      echo "could not scale $src"; exit 1
+    fi
+  fi
+  write_adaptive "$res"
+  echo "✓ $res/mipmap-*/ic_launcher.png"
+  mf=""
+  if [ -f "$dest/app/src/main/AndroidManifest.xml" ]; then mf="$dest/app/src/main/AndroidManifest.xml"
+  elif [ -f "$dest/AndroidManifest.xml" ]; then mf="$dest/AndroidManifest.xml"; fi
+  if [ -n "$mf" ]; then
+    icon=$(grep -o 'android:icon="[^"]*"' "$mf" | head -n 1 || true)
+    case "$icon" in
+      *mipmap/ic_launcher*) ;;
+      "") echo "Set android:icon=\"@mipmap/ic_launcher\" in $mf" ;;
+      *) echo "Manifest still says $icon — point it at @mipmap/ic_launcher to use these icons." ;;
+    esac
+  fi
+  echo "Build when you want: nibras-apk run $dest"
+}
+query_db() {
+  f="$1"; q="${2:-}"
+  if command -v sqlite3 >/dev/null 2>&1; then
+    if [ -n "$q" ]; then sqlite3 -header -column "$f" "$q"; else sqlite3 "$f" ".tables" ".schema"; fi
+    return
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$f" "$q" <<'PY'
+import sqlite3, sys
+con = sqlite3.connect(sys.argv[1])
+q = sys.argv[2]
+if q:
+    cur = con.execute(q)
+    if cur.description:
+        print("\t".join(d[0] for d in cur.description))
+    for row in cur:
+        print("\t".join("" if v is None else str(v) for v in row))
+else:
+    names = [r[0] for r in con.execute("select name from sqlite_master where type='table' and name not like 'sqlite_%' order by name")]
+    print("tables: " + (" ".join(names) if names else "(none)"))
+    for n in names:
+        sql = con.execute("select sql from sqlite_master where name=?", (n,)).fetchone()
+        if sql and sql[0]:
+            print(sql[0])
+PY
+    return
+  fi
+  nibras-need sqlite3
+  if [ -n "$q" ]; then sqlite3 -header -column "$f" "$q"; else sqlite3 "$f" ".tables" ".schema"; fi
+}
+db_ok() {
+  head -c 15 "$1" 2>/dev/null | grep -q "SQLite format 3"
+}
+db_cmd() {
+  arg="${1:-}"
+  [ -n "$arg" ] || { echo "usage: nibras-apk db <package|file.db> [database] [sql]"; exit 1; }
+  if [ -f "$arg" ]; then
+    query_db "$arg" "${2:-}"
+    return
+  fi
+  pkg="$arg"
+  if ! command -v adb >/dev/null 2>&1 || ! adb get-state >/dev/null 2>&1; then
+    echo "A .db file you already have opens with no extra step: nibras-apk db file.db"
+    echo "Another app's database needs a debug build and wireless debugging: nibras-adb pair"
+    exit 1
+  fi
+  info=$(nibras-api apps info "$pkg" 2>/dev/null) || { echo "not installed: $pkg"; exit 1; }
+  printf '%s\n' "$info" | grep -q 'debuggable: true' || {
+    echo "$pkg is not a debug build. Android only opens the database of an app you built yourself."
+    exit 1
+  }
+  raw=$(adb shell run-as "$pkg" ls databases 2>&1) || { echo "run-as failed for $pkg"; printf '%s\n' "$raw"; exit 1; }
+  dbs=$(printf '%s\n' "$raw" | tr -d '\r' | grep -v '\-journal$' | grep -v '\-wal$' | grep -v '\-shm$' | grep -v '^$' | grep -v ' ' || true)
+  [ -n "$dbs" ] || { echo "no databases/ inside $pkg"; exit 1; }
+  echo "databases:"
+  printf '%s\n' "$dbs" | sed 's/^/  /'
+  pick=""; sql=""
+  if [ -n "${2:-}" ] && printf '%s\n' "$dbs" | grep -qx "$2"; then pick="$2"; sql="${3:-}"; else sql="${2:-}"; fi
+  [ -n "$pick" ] || pick=$(printf '%s\n' "$dbs" | head -n 1)
+  dest="$HOME/.nibras/db/$pkg/$pick"
+  mkdir -p "$(dirname "$dest")"
+  adb exec-out run-as "$pkg" cat "databases/$pick" > "$dest" || { echo "could not copy $pick"; exit 1; }
+  adb exec-out run-as "$pkg" cat "databases/$pick-wal" > "$dest-wal" 2>/dev/null || rm -f "$dest-wal"
+  adb exec-out run-as "$pkg" cat "databases/$pick-shm" > "$dest-shm" 2>/dev/null || rm -f "$dest-shm"
+  if ! db_ok "$dest"; then
+    echo "That was not a SQLite file. run-as said:" >&2
+    head -c 300 "$dest" >&2 || true
+    echo >&2
+    rm -f "$dest" "$dest-wal" "$dest-shm"
+    exit 1
+  fi
+  echo "✓ $dest"
+  query_db "$dest" "$sql"
+}
+crash_cmd() {
+  pkg="${1:-}"
+  if command -v adb >/dev/null 2>&1 && adb get-state >/dev/null 2>&1; then
+    echo "crash buffer"
+    if [ -n "$pkg" ]; then
+      adb logcat -d -b crash -v time 2>/dev/null | grep -F "$pkg" | tail -n 100 || true
+      echo "AndroidRuntime"
+      adb logcat -d -v time AndroidRuntime:E '*:S' 2>/dev/null | grep -F "$pkg" | tail -n 160 || true
+    else
+      adb logcat -d -b crash -v time 2>/dev/null | tail -n 120 || true
+    fi
+    return 0
+  fi
+  echo "Crashes from other apps need wireless debugging: nibras-adb pair"
+  if command -v logcat >/dev/null 2>&1; then
+    echo "Trying the phone log anyway:"
+    logcat -d -b crash -t 40 -v time 2>&1 | tail -n 40 || true
+  fi
+}
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
   setup) setup "$@" ;;
@@ -448,7 +898,10 @@ G
   recompile|b) need apktool; dir="${1:?dir}"; out="${2:-${dir%/}-mod.apk}"; apktool b "$dir" -o "$out.unsigned.apk"
     "$0" align "$out.unsigned.apk" >/dev/null; mv "$out.unsigned.apk" "$out"; "$0" sign "$out" ;;
   java|jadx) need jadx; in="${1:?apk}"; out="${2:-${in%.apk}-java}"; jadx -d "$out" "$in" && echo "✓ $out" ;;
-  manifest) need aapt2; aapt2 dump xmltree --file AndroidManifest.xml "${1:?apk}" 2>/dev/null || aapt d xmltree "$1" AndroidManifest.xml ;;
+  manifest)
+    if [ "${1:-}" = edit ] || [ "${1:-}" = perms ]; then shift; perms_cmd "$@"; else
+      need aapt2; aapt2 dump xmltree --file AndroidManifest.xml "${1:?apk}" 2>/dev/null || aapt d xmltree "$1" AndroidManifest.xml
+    fi ;;
   info) need aapt; aapt dump badging "${1:?apk}" | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|native-code|application-label:|launchable)" ;;
   keystore) jdk; ks="${1:-$HOME/.nibras/release.jks}"; alias="${2:-nibras}"; mkdir -p "$(dirname "$ks")"
     keytool -genkeypair -v -keystore "$ks" -alias "$alias" -keyalg RSA -keysize 4096 -validity 10000 && chmod 600 "$ks" && echo "✓ $ks ($alias)" ;;
@@ -549,5 +1002,18 @@ G
     else
       echo "(full resource diff: nibras-apk diff \"$a\" \"$b\" --full)"
     fi ;;
-  help|-h|--help|*) sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//' ;;
+  test|unittest)
+    dir="${1:-.}"
+    echo "Report: $dir/app/build/reports/tests/testDebugUnitTest/index.html"
+    gradle_task "$dir" testDebugUnitTest ;;
+  lint)
+    dir="${1:-.}"
+    echo "Report: $dir/app/build/reports/lint-results-debug.html"
+    gradle_task "$dir" lintDebug ;;
+  analyze|apksize) analyze_cmd "$@" ;;
+  assets|icon) assets_cmd "$@" ;;
+  perms|permissions) perms_cmd "$@" ;;
+  db|database) db_cmd "$@" ;;
+  crash) crash_cmd "$@" ;;
+  help|-h|--help|*) awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0" ;;
 esac

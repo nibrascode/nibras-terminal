@@ -24,6 +24,12 @@ The public APK is published only when `versionName` changes. A later push with t
 
 `nibras-update` refuses an APK whose certificate is not the release key. `nibras-allow` limits widgets, cron, Tasker and boot. Private phone commands cannot be listed. `nibras-guest on` blocks those commands plus the vault and stored keys. `nibras-phrase` runs a sentence only when every part is a known command. `nibras-qr-run` asks before it runs, and only for a known sentence or an allowed command. `nibras-setup` does not contain SSH keys or passwords. Git asks `nibras-git-ask`; the password is not written in the terminal. A folder can carry `.nibras/keys` for its own buttons. `nibras-man <name>` is offline in 19 languages.
 
+## Phone, 1.0.6
+
+`nibras-apk test` `nibras-apk lint` `nibras-apk analyze` `nibras-apk assets` `nibras-apk perms` `nibras-apk db` `nibras-apk crash`
+
+`test` runs `testDebugUnitTest`. `lint` runs `lintDebug`. `analyze` splits an APK into dex, resources, native code and assets. `assets` turns one picture into launcher icons. `perms` adds or removes a `uses-permission`, then rebuilds only if you pass `--run` or answer yes. `nibras-apk manifest <apk>` still prints XML; `nibras-apk manifest edit` is the permission list. `db` opens a SQLite file you already have. Another app's database opens only when that app is your debug build and wireless debugging is paired (`nibras-adb pair`). `crash` reads the crash buffer the same way. The website's first screen is unchanged.
+
 ## Phone, 1.0.5
 
 `use` `here` `jump` `mark` `goto` `title` `layout` `palette` `hist` `again` `snip` `todo` `dotenv` `pretty` `check` `alert` `disk` `large` `clean` `pack` `alike` `open` `pick` `saf` `opacity` `quiet` `health` `crash` `hostfp` `sayit` `clone` `gdiff` `cmsg` `gpush` `apkbuild` `signapk` `installapk` `logmine` `pyfile` `runweb` `panes` `lesson` `moveto` `homebak` `homerestore` `daily` `pingdown` `sendtext` `scan` `shrinkpic` `trimaudio` `voicenote` `themehere` `links` `abbr` `hold` `qs` `incognito` `jobtest`

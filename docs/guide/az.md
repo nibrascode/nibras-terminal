@@ -121,9 +121,16 @@ nibras-apk merge app.apks
 nibras-apk install-split app.xapk
 nibras-apk apps
 nibras-apk extract com.example.app
+nibras-apk test MyApp
+nibras-apk lint MyApp
+nibras-apk analyze app.apk
+nibras-apk assets icon.png MyApp
+nibras-apk perms MyApp +CAMERA
+nibras-apk db com.example.myapp
+nibras-apk crash com.example.myapp
 ```
 
-Vizual resurs redaktoru (`nibras-apk res`) hər dil üçün mətnləri cədvəldə dəyişməyə, rəngləri redaktə etməyə, ikon və şəkilləri qalereyadan əvəz etməyə, tətbiqin adını, paket adını və versiyasını dəyişməyə imkan verir. Sonra bir toxunuşla tətbiq yenidən yığılır, imzalanır və quraşdırılır. Başqalarının lisenziya yoxlamasını və ya qorumasını sındıran funksiyalar qəsdən əlavə edilməyib.
+Vizual resurs redaktoru (`nibras-apk res`) hər dil üçün mətnləri cədvəldə dəyişməyə, rəngləri redaktə etməyə, ikon və şəkilləri qalereyadan əvəz etməyə, tətbiqin adını, paket adını və versiyasını dəyişməyə imkan verir. Sonra bir toxunuşla tətbiq yenidən yığılır, imzalanır və quraşdırılır. `perms` layihədə icazəni açır və ya bağlayır. `db` və `crash` başqa tətbiqi yalnız o, sənin debug quruluşun olanda və simsiz debugging qoşulanda oxuyur. Başqalarının lisenziya yoxlamasını və ya qorumasını sındıran funksiyalar qəsdən əlavə edilməyib.
 
 ## 11. Video, audio, yükləmələr və sənədlər
 
