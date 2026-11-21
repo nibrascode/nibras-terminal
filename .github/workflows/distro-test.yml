@@ -19,11 +19,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: rootfs-arch, abi: arm64-v8a, image: aarch64, pkg: nano }
-          - { id: rootfs-arch, abi: armeabi-v7a, image: arm, pkg: nano }
-          - { id: rootfs-fedora, abi: arm64-v8a, image: aarch64, pkg: nano }
-          - { id: rootfs-kali, abi: arm64-v8a, image: aarch64, pkg: nano }
-          - { id: rootfs-kali, abi: armeabi-v7a, image: arm, pkg: nano }
+          - { id: rootfs-arch, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-arch, abi: armeabi-v7a, image: arm, pkg: tree }
+          - { id: rootfs-fedora, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-kali, abi: arm64-v8a, image: aarch64, pkg: tree }
+          - { id: rootfs-kali, abi: armeabi-v7a, image: arm, pkg: tree }
     name: ${{ matrix.id }} ${{ matrix.abi }}
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
           P="$L/libproot.so --kill-on-exit --link2symlink --sysvipc -L -0 -r /t/rootfs -w /root -b /dev -b /proc -b /sys -b /dev/urandom:/dev/random -b /proc/self/fd:/dev/fd"
           E="/usr/bin/env -i HOME=/root TERM=xterm-256color LANG=C.UTF-8 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           $P $E /bin/sh -c 'grep -E "^(PRETTY_NAME|VERSION_ID)=" /etc/os-release; uname -m'
-          $P $E /bin/sh -c "pkg install $1 >/tmp/pkg.log 2>&1 || { tail -40 /tmp/pkg.log; exit 1; }; command -v $1"
+          $P $E /bin/sh -c "pkg install $1 >/tmp/pkg.log 2>&1 || { tail -40 /tmp/pkg.log; exit 1; }; command -v $1 && $1 --version | head -1"
           echo "DISTRO_TEST_OK"
           SH
           sudo chmod -R a+rwX t
