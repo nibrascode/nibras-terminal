@@ -132,6 +132,9 @@ object Rootfs {
         writeReplacing(f("usr/local/share/nibras/msg.sh"), guest(context, "nibras-msg.sh"))
         for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish", "nibras-usb")) exe(f("usr/local/bin/$tool"), guest(context, tool))
         runCatching { Files.deleteIfExists(f("usr/local/bin/termux-usb").toPath()); Files.createSymbolicLink(f("usr/local/bin/termux-usb").toPath(), Paths.get("nibras-usb")) }
+        // termux-chsh = nibras-shell (login shell of new sessions)
+        for ((l, t) in listOf("termux-chsh" to "nibras-shell", "nibras-chsh" to "nibras-shell"))
+            runCatching { Files.deleteIfExists(f("usr/local/bin/$l").toPath()); Files.createSymbolicLink(f("usr/local/bin/$l").toPath(), Paths.get(t)) }
         exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/banner /etc/nibras/help 2>/dev/null\n")
         for (cmd in API_COMMANDS) {
             // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.

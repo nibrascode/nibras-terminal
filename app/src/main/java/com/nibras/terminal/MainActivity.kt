@@ -110,6 +110,8 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
 
     override fun attachBaseContext(base: Context) = super.attachBaseContext(Lang.wrap(base))
 
+    private var startupKeyboardChecked = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = Prefs(this)
@@ -705,6 +707,11 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private fun applySettingsUnsafe() {
         val home = runCatching { Rootfs.homeOf(this) }.getOrNull()
         runCatching { com.nibras.terminal.ui.TermProps.load(this, home) }
+        if (!startupKeyboardChecked) {
+            startupKeyboardChecked = true
+            if (com.nibras.terminal.ui.TermProps.hideKeyboardOnStart)
+                window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+        }
         background = Themes.apply(prefs.theme, home)
         service?.sessions?.forEach { it.emulator?.mColors?.reset() }
         content.setBackgroundColor(background)
