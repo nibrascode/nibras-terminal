@@ -1,0 +1,12 @@
+nmsg.installing	Memasang %s…
+nmsg.no_pm	Tiada pengurus pakej dalam persekitaran ini
+nmsg.unknown_cmd	arahan tidak dikenali: %s
+nmsg.need_tool	%s diperlukan, memasang…
+nmsg.need_fail	Tidak dapat memasang %s
+nmsg.api_down	Jambatan aplikasi tidak menjawab (Nibras Terminal dibuka?)
+nmsg.shell_now	Sesi baharu akan menggunakan %s
+nmsg.running	berjalan
+nmsg.not_running	tidak berjalan
+nmsg.desk_wait	Memulakan desktop…
+nmsg.desk_stopped	Desktop dihentikan
+nmsg.lang_now	Bahasa kini: %s

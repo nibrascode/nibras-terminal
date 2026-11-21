@@ -93,6 +93,19 @@ class EditorActivity : Activity() {
             "php" to "$COMMON|function|class|public|private|echo|new|this|namespace|use|try|catch|foreach|as|array",
             "rb" to "$COMMON|def|class|module|end|unless|until|begin|rescue|ensure|yield|self|nil|require|puts|attr_accessor",
             "lua" to "$COMMON|function|local|end|repeat|until|nil|not|and|or",
+            "pl" to "$COMMON|my|our|sub|use|package|unless|foreach|last|next|print|say|undef|die|eval",
+            "dart" to "$COMMON|class|import|void|var|final|const|late|async|await|new|this|extends|implements|mixin|enum|switch|default|try|catch|throw|static|required|dynamic|String|int|double|bool|List|Map|Future",
+            "r" to "$COMMON|function|library|require|repeat|NULL|NA|TRUE|FALSE|Inf|NaN|next|print|c|list|data.frame",
+            "jl" to "$COMMON|function|end|module|using|import|export|struct|mutable|begin|let|local|global|const|try|catch|macro|nothing|abstract|type",
+            "hs" to "module|where|import|qualified|as|data|type|newtype|class|instance|deriving|let|in|case|of|do|if|then|else|forall|Maybe|Just|Nothing|IO|main",
+            "ex" to "$COMMON|def|defp|defmodule|do|end|fn|cond|with|receive|after|import|alias|require|use|nil|when|unless|raise|rescue",
+            "zig" to "$COMMON|const|var|fn|pub|struct|enum|union|try|catch|defer|errdefer|comptime|switch|orelse|unreachable|usize|u8|i32|void|anytype|test",
+            "nim" to "$COMMON|proc|func|var|let|const|type|object|import|from|of|elif|echo|result|discard|iterator|template|macro|nil|seq|string|int",
+            "ps1" to "$COMMON|function|param|foreach|switch|try|catch|finally|throw|Write-Host|Get-ChildItem|Set-Location|Where-Object|ForEach-Object|\$true|\$false|\$null",
+            "swift" to "$COMMON|func|let|var|struct|class|enum|protocol|extension|import|guard|switch|default|self|nil|try|catch|throw|async|await",
+            "scala" to "$COMMON|def|val|var|object|class|trait|extends|with|import|package|match|case|yield|implicit|given|using|new|this",
+            "cs" to "$COMMON|class|namespace|using|public|private|static|void|var|new|this|string|int|bool|async|await|foreach|try|catch|throw|interface",
+            "f90" to "program|end|subroutine|function|module|use|implicit|none|integer|real|logical|character|do|if|then|else|call|print|write|read|contains",
             "xml" to "android:layout_width|android:layout_height|android:id|android:text|android:textSize|android:textColor|android:textStyle|android:gravity|android:layout_gravity|" +
                 "android:orientation|android:padding|android:paddingStart|android:paddingEnd|android:paddingTop|android:paddingBottom|android:layout_margin|android:layout_marginTop|" +
                 "android:layout_marginBottom|android:layout_marginStart|android:layout_marginEnd|android:layout_weight|android:background|android:src|android:contentDescription|" +
@@ -104,7 +117,8 @@ class EditorActivity : Activity() {
                 "androidx.constraintlayout.widget.ConstraintLayout|androidx.recyclerview.widget.RecyclerView|com.google.android.material.button.MaterialButton|" +
                 "activity|service|receiver|provider|intent-filter|action|category|uses-permission|application|manifest|meta-data|string|color|dimen|style|item",
         )
-        private val ALIAS = mapOf("bash" to "sh", "zsh" to "sh", "ts" to "js", "mjs" to "js", "jsx" to "js", "tsx" to "js", "cpp" to "c", "cc" to "c", "h" to "c", "hpp" to "c", "kts" to "kt")
+        private val ALIAS = mapOf("bash" to "sh", "zsh" to "sh", "ts" to "js", "mjs" to "js", "jsx" to "js", "tsx" to "js", "cpp" to "c", "cc" to "c", "h" to "c", "hpp" to "c", "kts" to "kt",
+            "fish" to "sh", "exs" to "ex", "pyw" to "py", "sc" to "scala", "pm" to "pl", "psm1" to "ps1", "cxx" to "c", "f95" to "f90", "f" to "f90")
         private val STRINGS = Regex("\"(\\\\.|[^\"\\\\\\n])*\"|'(\\\\.|[^'\\\\\\n])*'|`[^`]*`")
         private val NUMBERS = Regex("\\b(0x[0-9a-fA-F]+|\\d+(\\.\\d+)?)\\b")
         private val TAGS = Regex("</?[A-Za-z][\\w:-]*|/?>")

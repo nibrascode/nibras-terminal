@@ -130,6 +130,11 @@ object Rootfs {
         exe(f("usr/local/bin/nibras-sshd"), guest(context, "nibras-sshd"))
         exe(f("usr/local/bin/nibras-shell"), guest(context, "nibras-shell"))
         writeReplacing(f("usr/local/share/nibras/msg.sh"), guest(context, "nibras-msg.sh"))
+        // Messages of nibras-* commands in every built-in language (English is the fallback).
+        runCatching {
+            val dir = f("usr/local/share/nibras/i18n").apply { mkdirs() }
+            context.assets.list("guest/i18n")?.forEach { n -> writeReplacing(File(dir, n), guest(context, "i18n/$n")) }
+        }
         for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish", "nibras-usb")) exe(f("usr/local/bin/$tool"), guest(context, tool))
         runCatching { Files.deleteIfExists(f("usr/local/bin/termux-usb").toPath()); Files.createSymbolicLink(f("usr/local/bin/termux-usb").toPath(), Paths.get("nibras-usb")) }
         // termux-chsh = nibras-shell (login shell of new sessions)
@@ -172,6 +177,10 @@ object Rootfs {
                 Files.deleteIfExists(short)
                 Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
             }
+        }
+        // Language words as commands ("az dili yukle", "türkçe yükle", "تحميل العربية"): last on PATH, never shadow programs.
+        for (w in LANG_WORDS) runCatching {
+            val short = File(shortDir, w).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
         }
         // Storage shortcuts like Termux's ~/storage (work after "nibras-setup-storage").
         mapOf("shared" to "/sdcard", "downloads" to "/sdcard/Download", "dcim" to "/sdcard/DCIM",
@@ -272,8 +281,9 @@ object Rootfs {
                 else append("$n() { sh \"\$NB/$n\" \"\$@\"; }\n")
             }
         }
+        val langFn = "lang() { sh \"\$NB/nibras-api\" lang \"\$@\"; }\ndil() { lang \"\$@\"; }\n"
         val user = "[ -r \"\$HOME/.nibras/android-rc.local\" ] && . \"\$HOME/.nibras/android-rc.local\"\n"
-        runCatching { writeReplacing(File(home, ".nibras/android-rc").apply { parentFile?.mkdirs() }, rc + user) }
+        runCatching { writeReplacing(File(home, ".nibras/android-rc").apply { parentFile?.mkdirs() }, rc + langFn + user) }
     }
 
     fun launch(context: Context, id: String, command: List<String>? = null, extraEnv: List<String> = emptyList()): Launch {
@@ -413,7 +423,7 @@ object Rootfs {
         "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
         "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo", "keystore", "nfc", "prayer-alarm", "media-builder", "env-install",
         "infrared-frequencies", "notification-channel", "sms-inbox", "tts-engines", "wifi-enable", "api-start", "api-stop",
-        "install-apk", "env-list", "env-open", "environments",
+        "install-apk", "env-list", "env-open", "environments", "lang",
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm",
     )
 
@@ -426,6 +436,12 @@ object Rootfs {
         "video", "audio", "image", "pdf", "download", "web", "py", "backup", "snapshot", "net", "share", "webterm",
         "qr", "ocr", "llm", "quran", "hadith", "prayer", "games", "learn", "ask", "explain", "recipes", "fix", "trash",
         "clip", "notes", "vault", "record", "cron", "plugin", "hs", "sysinfo", "monitor", "office", "media",
+        "lang", "run", "rtl",
+    )
+    val LANG_WORDS = listOf(
+        "az", "AZ", "en", "EN", "tr", "TR", "ru", "RU", "ar", "AR", "fa", "ur", "ms", "fr", "de", "es", "pt", "it", "zh", "ja", "ko", "hi", "bn",
+        "dil", "dili", "Dil", "DIL", "yukle", "yüklə", "yükle", "YUKLE", "language", "english", "English", "türkçe", "Türkçe", "azərbaycan", "Azərbaycan",
+        "azerbaycan", "русский", "Русский", "العربية", "تحميل", "اللغة", "فارسی", "اردو", "français", "deutsch", "español", "中文", "日本語", "한국어", "हिन्दी", "বাংলা",
     )
 
     fun quote(value: String) = "'" + value.replace("'", "'\\''") + "'"

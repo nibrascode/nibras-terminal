@@ -1,0 +1,12 @@
+nmsg.installing	Installazione di %s…
+nmsg.no_pm	Nessun gestore di pacchetti in questo ambiente
+nmsg.unknown_cmd	comando sconosciuto: %s
+nmsg.need_tool	Serve %s, installazione…
+nmsg.need_fail	Impossibile installare %s
+nmsg.api_down	Il ponte dell'app non risponde (Nibras Terminal è aperto?)
+nmsg.shell_now	Le nuove sessioni useranno %s
+nmsg.running	in esecuzione
+nmsg.not_running	non in esecuzione
+nmsg.desk_wait	Avvio del desktop…
+nmsg.desk_stopped	Desktop arrestato
+nmsg.lang_now	Lingua ora: %s

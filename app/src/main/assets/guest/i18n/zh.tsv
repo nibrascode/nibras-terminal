@@ -1,0 +1,12 @@
+nmsg.installing	正在安装 %s…
+nmsg.no_pm	此环境中没有软件包管理器
+nmsg.unknown_cmd	未知命令：%s
+nmsg.need_tool	需要 %s，正在安装…
+nmsg.need_fail	无法安装 %s
+nmsg.api_down	应用桥接无响应（Nibras Terminal 是否已打开？）
+nmsg.shell_now	新会话将使用 %s
+nmsg.running	运行中
+nmsg.not_running	未运行
+nmsg.desk_wait	正在启动桌面…
+nmsg.desk_stopped	桌面已停止
+nmsg.lang_now	当前语言：%s

@@ -1,0 +1,12 @@
+nmsg.installing	%s इंस्टॉल हो रहा है…
+nmsg.no_pm	इस परिवेश में पैकेज मैनेजर नहीं मिला
+nmsg.unknown_cmd	अज्ञात कमांड: %s
+nmsg.need_tool	%s चाहिए, इंस्टॉल हो रहा है…
+nmsg.need_fail	%s इंस्टॉल नहीं हो सका
+nmsg.api_down	ऐप ब्रिज जवाब नहीं दे रहा (क्या Nibras Terminal खुला है?)
+nmsg.shell_now	नए सत्र %s का उपयोग करेंगे
+nmsg.running	चल रहा है
+nmsg.not_running	नहीं चल रहा
+nmsg.desk_wait	डेस्कटॉप शुरू हो रहा है…
+nmsg.desk_stopped	डेस्कटॉप बंद हुआ
+nmsg.lang_now	अब भाषा: %s
