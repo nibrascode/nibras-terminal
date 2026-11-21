@@ -20,7 +20,7 @@ Dili istediğiniz zaman `lang` komutuyla veya Ayarlar'dan değiştirebilirsiniz.
 - Oturumlar, ortamlar, araçlar ve ayarların bulunduğu menüyü açmak için ekranın sol kenarından kaydırın veya ek tuş satırındaki `☰` simgesine dokunun.
 - Bir oturumu yeniden adlandırmak veya kapatmak için üzerine uzun basın. Ortamı (Alpine, Debian, Ubuntu veya Android kabuğu) seçmek için "Yeni oturum" düğmesine uzun basın.
 - Ek tuş satırında `ESC`, `TAB`, `CTRL`, `ALT`, yön tuşları ve daha fazlası bulunur. `CTRL` ve `ALT` bir sonraki tuşa kadar basılı kalır.
-- Termux'ta olduğu gibi ses kısma tuşu `CTRL`, ses açma tuşu ise ek tuş görevi görür.
+- Ses kısma tuşu `CTRL`, ses açma tuşu ise ek tuş görevi görür.
 - Tüm Nibras araçlarının menüsünü açmak için `nibras`, kısa bir komut listesi için `help` yazın.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` ve `color list` tüm seçenekleri gösterir. `customize` tüm ayarları tek bir menüde açar, `reset-look` ise her şeyi varsayılana döndürür. Ayarlar `~/.nibras/` klasöründe saklanır ve Termux'un `termux.properties` dosyasıyla uyumludur.
+`theme list`, `prompt list`, `font list` ve `color list` tüm seçenekleri gösterir. `customize` tüm ayarları tek bir menüde açar, `reset-look` ise her şeyi varsayılana döndürür. Ayarlar `~/.nibras/` klasöründe saklanır.
 
 ## 13. Dil komutları
 
@@ -201,5 +201,3 @@ Nibras Terminal bir izni yalnızca bir komut ona ihtiyaç duyduğunda ister. Kam
 **Uygulama neden bu kadar küçük?** İçinde yalnızca Alpine Linux ve çeviriler bulunur. Geri kalan her şey ihtiyaç duyduğunuzda `install` ile indirilir.
 
 **32 bit telefonlarda çalışır mı?** Evet. Tek bir APK hem arm64 hem de arm32 cihazları destekler.
-
-**Termux ayarlarımı kullanabilir miyim?** Evet. Nibras, `~/.termux/termux.properties`, `colors.properties`, `font.ttf` dosyalarını ve `termux-*` komut adlarını okur.

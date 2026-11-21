@@ -20,7 +20,7 @@ Sie können die Sprache jederzeit mit dem Befehl `lang` oder in den Einstellunge
 - Wischen Sie vom linken Bildschirmrand oder tippen Sie in der Zusatztastenleiste auf `☰`, um das Seitenmenü mit Sitzungen, Umgebungen, Werkzeugen und Einstellungen zu öffnen.
 - Halten Sie eine Sitzung gedrückt, um sie umzubenennen oder zu schließen. Halten Sie „Neue Sitzung“ gedrückt, um die Umgebung zu wählen (Alpine, Debian, Ubuntu oder die Android-Shell).
 - Die Zusatztastenleiste bietet `ESC`, `TAB`, `CTRL`, `ALT`, die Pfeiltasten und mehr. `CTRL` und `ALT` bleiben bis zur nächsten Taste gedrückt.
-- Wie in Termux wirkt die Leiser-Taste als `CTRL` und die Lauter-Taste als Modifikator für die Zusatztasten.
+- Die Leiser-Taste wirkt als `CTRL` und die Lauter-Taste als Modifikator für die Zusatztasten.
 - Geben Sie `nibras` ein, um das Menü aller Nibras-Werkzeuge zu öffnen, und `help` für eine kurze Befehlsliste.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` und `color list` zeigen alle Optionen. `customize` öffnet ein Menü mit allen Einstellungen, und `reset-look` setzt alles auf die Standardwerte zurück. Die Einstellungen werden in `~/.nibras/` gespeichert und sind mit der Datei `termux.properties` von Termux kompatibel.
+`theme list`, `prompt list`, `font list` und `color list` zeigen alle Optionen. `customize` öffnet ein Menü mit allen Einstellungen, und `reset-look` setzt alles auf die Standardwerte zurück. Die Einstellungen werden in `~/.nibras/` gespeichert.
 
 ## 13. Sprachbefehle
 
@@ -201,5 +201,3 @@ Nibras Terminal fragt nur dann nach einer Berechtigung, wenn ein Befehl sie ben�
 **Warum ist die App so klein?** Sie enthält nur Alpine Linux und die Übersetzungen. Alles andere wird bei Bedarf mit `install` heruntergeladen.
 
 **Läuft sie auf 32-Bit-Telefonen?** Ja. Eine einzige APK unterstützt sowohl arm64- als auch arm32-Geräte.
-
-**Kann ich meine Termux-Einstellungen verwenden?** Ja. Nibras liest `~/.termux/termux.properties`, `colors.properties`, `font.ttf` und versteht die Befehlsnamen `termux-*`.

@@ -93,8 +93,6 @@ customize            # look & feel menu
 | ⚙️ | **Automation** | Tasker plugin, RUN_COMMAND intent, `cron`, `~/.nibras/boot`, home-screen widget |
 | 🕌 | **Extras** | `quran`, `hadith`, `prayer`, `games`, `webterm`, split screen, floating window, XFCE desktop |
 
-Termux compatibility: `termux-*` command names, `~/.termux/termux.properties`, `colors.properties`, `font.ttf` and extra-keys all work.
-
 ## 🎨 Colors in one line
 
 ```sh
@@ -133,16 +131,21 @@ Every guide covers installation, basics, packs, distros, programming, the editor
 ## 🏗️ Under the hood
 
 - Package `com.nibras.terminal`, Kotlin, minimum Android 8 (API 26), one universal APK for **arm64-v8a** and **armeabi-v7a**.
-- Terminal view: Termux `terminal-view` / `terminal-emulator` (Apache-2.0) with 256 colors and truecolor.
+- Full VT100/xterm terminal with 256 colors and truecolor, scrollback, pinch-to-zoom and text selection.
 - Alpine 3.24 is unpacked from the APK on first launch; other systems are downloaded and checksum-verified ([`catalog/manifest.json`](catalog/manifest.json)).
-- Phone APIs (`termux-*` / `nibras-*`): battery, clipboard, notifications, camera, microphone, location, sensors, contacts, SMS and more. Permissions are asked only when a command needs them.
+- Phone APIs (`nibras-*`): battery, clipboard, notifications, camera, microphone, location, sensors, contacts, SMS and more. Permissions are asked only when a command needs them.
 - Web terminal: [nibrascode.github.io/nibras-terminal](https://nibrascode.github.io/nibras-terminal/) (a separate engine for the browser).
 
 ## 📚 More docs
 
-- [`docs/TEACHERS.md`](docs/TEACHERS.md) — feature parity checklist against Termux, Android Code Studio, AndroidIDE, MT Manager and other apps.
 - [`AGENTS.md`](AGENTS.md) — full command reference, also for AI agents.
 
 ## 📄 License
 
 [MIT](LICENSE) © 2026 nibrascode
+
+## 🙏 Open-source credits
+
+- terminal-emulator / terminal-view libraries — Apache-2.0
+- PRoot — GPL-2.0
+- Alpine Linux — MIT and other open-source licenses of its packages

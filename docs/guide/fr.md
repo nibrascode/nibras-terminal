@@ -20,7 +20,7 @@ Vous pouvez changer de langue à tout moment avec la commande `lang` ou dans les
 - Balayez depuis le bord gauche de l'écran, ou touchez `☰` dans la rangée de touches supplémentaires, pour ouvrir le menu latéral avec les sessions, les environnements, les outils et les paramètres.
 - Appuyez longuement sur une session pour la renommer ou la fermer. Appuyez longuement sur « Nouvelle session » pour choisir l'environnement (Alpine, Debian, Ubuntu ou le shell Android).
 - La rangée de touches supplémentaires propose `ESC`, `TAB`, `CTRL`, `ALT`, les flèches et d'autres touches. `CTRL` et `ALT` restent enfoncées jusqu'à la touche suivante.
-- Comme dans Termux, la touche de baisse du volume fait office de `CTRL` et la touche de hausse du volume sert de modificateur pour les touches supplémentaires.
+- La touche de baisse du volume fait office de `CTRL` et la touche de hausse du volume sert de modificateur pour les touches supplémentaires.
 - Tapez `nibras` pour ouvrir le menu de tous les outils Nibras, et `help` pour afficher une courte liste de commandes.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` et `color list` affichent toutes les options. `customize` ouvre un menu regroupant tous les réglages, et `reset-look` rétablit les valeurs par défaut. Les réglages sont enregistrés dans `~/.nibras/` et sont compatibles avec le fichier `termux.properties` de Termux.
+`theme list`, `prompt list`, `font list` et `color list` affichent toutes les options. `customize` ouvre un menu regroupant tous les réglages, et `reset-look` rétablit les valeurs par défaut. Les réglages sont enregistrés dans `~/.nibras/`.
 
 ## 13. Commandes de langue
 
@@ -201,5 +201,3 @@ Nibras Terminal ne demande une autorisation que lorsqu'une commande en a besoin.
 **Pourquoi l'application est-elle si légère ?** Elle ne contient qu'Alpine Linux et les traductions. Tout le reste se télécharge avec `install` quand vous en avez besoin.
 
 **Fonctionne-t-elle sur les téléphones 32 bits ?** Oui. Un seul APK prend en charge les appareils arm64 et arm32.
-
-**Puis-je utiliser mes réglages Termux ?** Oui. Nibras lit `~/.termux/termux.properties`, `colors.properties`, `font.ttf` et reconnaît les noms de commandes `termux-*`.

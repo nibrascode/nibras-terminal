@@ -20,7 +20,7 @@ Nibras Terminal は、Android スマートフォン向けの本格的な Linux �
 - 画面の左端からスワイプするか、追加キーの列にある `☰` をタップすると、セッション、環境、ツール、設定を含むサイドメニューが開きます。
 - セッションを長押しすると、名前の変更や終了ができます。「新しいセッション」を長押しすると、環境（Alpine、Debian、Ubuntu、Android シェル）を選べます。
 - 追加キーの列には `ESC`、`TAB`、`CTRL`、`ALT`、矢印キーなどがあります。`CTRL` と `ALT` は次のキーを押すまで押された状態のままです。
-- Termux と同じく、音量ダウンキーは `CTRL` として、音量アップキーは追加キーの修飾キーとして機能します。
+- 音量ダウンキーは `CTRL` として、音量アップキーは追加キーの修飾キーとして機能します。
 - `nibras` と入力するとすべての Nibras ツールのメニューが開き、`help` と入力すると主なコマンドの一覧が表示されます。
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`、`prompt list`、`font list`、`color list` ですべての選択肢を確認できます。`customize` はすべての設定をまとめたメニューを開き、`reset-look` はすべてを初期状態に戻します。設定は `~/.nibras/` に保存され、Termux の `termux.properties` と互換性があります。
+`theme list`、`prompt list`、`font list`、`color list` ですべての選択肢を確認できます。`customize` はすべての設定をまとめたメニューを開き、`reset-look` はすべてを初期状態に戻します。設定は `~/.nibras/` に保存されます。
 
 ## 13. 言語コマンド
 
@@ -201,5 +201,3 @@ Nibras Terminal は、コマンドが必要とするときにだけ権限を求�
 **なぜアプリがこんなに小さいのですか？** 含まれているのは Alpine Linux と翻訳だけです。それ以外はすべて、必要なときに `install` でダウンロードされます。
 
 **32 ビットのスマートフォンでも動きますか？** はい。1 つの APK で arm64 と arm32 の両方の端末に対応しています。
-
-**Termux の設定を使えますか？** はい。Nibras は `~/.termux/termux.properties`、`colors.properties`、`font.ttf` を読み込み、`termux-*` のコマンド名も認識します。

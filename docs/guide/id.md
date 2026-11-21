@@ -20,7 +20,7 @@ Anda dapat mengganti bahasa kapan saja dengan perintah `lang` atau melalui Setel
 - Geser dari tepi kiri layar, atau ketuk `☰` di baris tombol tambahan, untuk membuka menu samping yang berisi sesi, lingkungan, alat, dan setelan.
 - Tekan lama sebuah sesi untuk mengganti namanya atau menutupnya. Tekan lama "Sesi baru" untuk memilih lingkungan (Alpine, Debian, Ubuntu, atau shell Android).
 - Baris tombol tambahan menyediakan `ESC`, `TAB`, `CTRL`, `ALT`, tombol panah, dan lainnya. `CTRL` dan `ALT` tetap tertekan sampai tombol berikutnya.
-- Sama seperti di Termux, tombol volume turun berfungsi sebagai `CTRL` dan tombol volume naik berfungsi sebagai pengubah tombol tambahan.
+- Tombol volume turun berfungsi sebagai `CTRL` dan tombol volume naik berfungsi sebagai pengubah tombol tambahan.
 - Ketik `nibras` untuk membuka menu semua alat Nibras, dan ketik `help` untuk melihat daftar singkat perintah.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list`, dan `color list` menampilkan semua pilihan. `customize` membuka satu menu berisi semua setelan, dan `reset-look` mengembalikan semuanya ke bawaan. Setelan disimpan di `~/.nibras/` dan kompatibel dengan file `termux.properties` milik Termux.
+`theme list`, `prompt list`, `font list`, dan `color list` menampilkan semua pilihan. `customize` membuka satu menu berisi semua setelan, dan `reset-look` mengembalikan semuanya ke bawaan. Setelan disimpan di `~/.nibras/`.
 
 ## 13. Perintah bahasa
 
@@ -201,5 +201,3 @@ Nibras Terminal hanya meminta izin ketika sebuah perintah membutuhkannya. Perint
 **Mengapa aplikasinya sangat kecil?** Isinya hanya Alpine Linux dan terjemahan. Semua yang lain diunduh dengan `install` saat Anda membutuhkannya.
 
 **Apakah bisa berjalan di ponsel 32-bit?** Ya. Satu APK mendukung perangkat arm64 dan arm32.
-
-**Bisakah saya memakai setelan Termux saya?** Ya. Nibras membaca `~/.termux/termux.properties`, `colors.properties`, `font.ttf`, dan mengenali nama perintah `termux-*`.

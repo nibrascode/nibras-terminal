@@ -20,7 +20,7 @@ Dili istənilən vaxt `lang` əmri ilə və ya Ayarlarda dəyişə bilərsiniz.
 - Sessiyalar, mühitlər, alətlər və ayarlar olan menyunu açmaq üçün ekranın sol kənarından sürüşdürün və ya əlavə düymələr sırasındakı `☰` düyməsinə toxunun.
 - Sessiyanın adını dəyişmək və ya onu bağlamaq üçün üzərinə uzun basın. Mühiti (Alpine, Debian, Ubuntu və ya Android shell) seçmək üçün "Yeni sessiya" düyməsinə uzun basın.
 - Əlavə düymələr sırasında `ESC`, `TAB`, `CTRL`, `ALT`, ox düymələri və başqaları var. `CTRL` və `ALT` növbəti düyməyə qədər basılı qalır.
-- Termux-da olduğu kimi, səsi azaltma düyməsi `CTRL`, səsi artırma düyməsi isə əlavə düymə rolunu oynayır.
+- Səsi azaltma düyməsi `CTRL`, səsi artırma düyməsi isə əlavə düymə rolunu oynayır.
 - Bütün Nibras alətlərinin menyusunu açmaq üçün `nibras`, qısa əmr siyahısı üçün isə `help` yazın.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` və `color list` bütün seçimləri göstərir. `customize` bütün ayarları bir menyuda açır, `reset-look` isə hər şeyi standart vəziyyətə qaytarır. Ayarlar `~/.nibras/` qovluğunda saxlanılır və Termux-un `termux.properties` faylı ilə uyğundur.
+`theme list`, `prompt list`, `font list` və `color list` bütün seçimləri göstərir. `customize` bütün ayarları bir menyuda açır, `reset-look` isə hər şeyi standart vəziyyətə qaytarır. Ayarlar `~/.nibras/` qovluğunda saxlanılır.
 
 ## 13. Dil əmrləri
 
@@ -201,5 +201,3 @@ Nibras Terminal icazəni yalnız əmrə lazım olanda istəyir. Kamera, mikrofon
 **Tətbiq niyə bu qədər kiçikdir?** İçində yalnız Alpine Linux və tərcümələr var. Qalan hər şey lazım olanda `install` ilə yüklənir.
 
 **32-bit telefonlarda işləyirmi?** Bəli. Bir APK həm arm64, həm də arm32 cihazları dəstəkləyir.
-
-**Termux ayarlarımı istifadə edə bilərəmmi?** Bəli. Nibras `~/.termux/termux.properties`, `colors.properties`, `font.ttf` fayllarını və `termux-*` əmr adlarını oxuyur.

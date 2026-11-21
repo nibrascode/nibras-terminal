@@ -20,7 +20,7 @@ Puoi cambiare lingua in qualsiasi momento con il comando `lang` o dalle Impostaz
 - Scorri dal bordo sinistro dello schermo, oppure tocca `☰` nella riga dei tasti extra, per aprire il menu laterale con sessioni, ambienti, strumenti e impostazioni.
 - Tieni premuta una sessione per rinominarla o chiuderla. Tieni premuto "Nuova sessione" per scegliere l'ambiente (Alpine, Debian, Ubuntu o la shell di Android).
 - La riga dei tasti extra offre `ESC`, `TAB`, `CTRL`, `ALT`, le frecce e altro ancora. `CTRL` e `ALT` restano premuti fino al tasto successivo.
-- Come in Termux, il tasto volume giù funziona come `CTRL` e il tasto volume su funziona come modificatore dei tasti extra.
+- Il tasto volume giù funziona come `CTRL` e il tasto volume su funziona come modificatore dei tasti extra.
 - Digita `nibras` per aprire il menu di tutti gli strumenti Nibras e `help` per un breve elenco di comandi.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` e `color list` mostrano tutte le opzioni. `customize` apre un unico menu con tutte le impostazioni e `reset-look` riporta tutto ai valori predefiniti. Le impostazioni sono salvate in `~/.nibras/` e sono compatibili con il file `termux.properties` di Termux.
+`theme list`, `prompt list`, `font list` e `color list` mostrano tutte le opzioni. `customize` apre un unico menu con tutte le impostazioni e `reset-look` riporta tutto ai valori predefiniti. Le impostazioni sono salvate in `~/.nibras/`.
 
 ## 13. Comandi di lingua
 
@@ -201,5 +201,3 @@ Nibras Terminal chiede un'autorizzazione solo quando un comando ne ha bisogno. I
 **Perché l'app è così leggera?** Contiene solo Alpine Linux e le traduzioni. Tutto il resto si scarica con `install` quando serve.
 
 **Funziona sui telefoni a 32 bit?** Sì. Un solo APK supporta sia i dispositivi arm64 sia quelli arm32.
-
-**Posso usare le mie impostazioni di Termux?** Sì. Nibras legge `~/.termux/termux.properties`, `colors.properties`, `font.ttf` e riconosce i nomi dei comandi `termux-*`.

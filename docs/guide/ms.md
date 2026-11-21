@@ -20,7 +20,7 @@ Anda boleh menukar bahasa pada bila-bila masa dengan arahan `lang` atau melalui 
 - Leret dari tepi kiri skrin, atau ketik `☰` pada baris kekunci tambahan, untuk membuka menu sisi yang mengandungi sesi, persekitaran, alat dan tetapan.
 - Tekan lama pada sesi untuk menamakan semula atau menutupnya. Tekan lama "Sesi baharu" untuk memilih persekitaran (Alpine, Debian, Ubuntu atau shell Android).
 - Baris kekunci tambahan menyediakan `ESC`, `TAB`, `CTRL`, `ALT`, kekunci anak panah dan banyak lagi. `CTRL` dan `ALT` kekal ditekan sehingga kekunci seterusnya.
-- Sama seperti dalam Termux, butang kurangkan kelantangan berfungsi sebagai `CTRL` dan butang kuatkan kelantangan berfungsi sebagai pengubah suai kekunci tambahan.
+- Butang kurangkan kelantangan berfungsi sebagai `CTRL` dan butang kuatkan kelantangan berfungsi sebagai pengubah suai kekunci tambahan.
 - Taip `nibras` untuk membuka menu semua alat Nibras, dan taip `help` untuk melihat senarai ringkas arahan.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` dan `color list` memaparkan semua pilihan. `customize` membuka satu menu dengan semua tetapan, dan `reset-look` mengembalikan semuanya kepada lalai. Tetapan disimpan dalam `~/.nibras/` dan serasi dengan fail `termux.properties` milik Termux.
+`theme list`, `prompt list`, `font list` dan `color list` memaparkan semua pilihan. `customize` membuka satu menu dengan semua tetapan, dan `reset-look` mengembalikan semuanya kepada lalai. Tetapan disimpan dalam `~/.nibras/`.
 
 ## 13. Arahan bahasa
 
@@ -201,5 +201,3 @@ Nibras Terminal hanya meminta kebenaran apabila sesuatu arahan memerlukannya. Ar
 **Mengapakah aplikasi ini begitu kecil?** Ia hanya mengandungi Alpine Linux dan terjemahan. Semua yang lain dimuat turun dengan `install` apabila anda memerlukannya.
 
 **Adakah ia berfungsi pada telefon 32-bit?** Ya. Satu APK menyokong peranti arm64 dan arm32.
-
-**Bolehkah saya menggunakan tetapan Termux saya?** Ya. Nibras membaca `~/.termux/termux.properties`, `colors.properties`, `font.ttf` dan mengenali nama arahan `termux-*`.

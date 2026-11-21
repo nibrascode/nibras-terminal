@@ -20,7 +20,7 @@ Você pode mudar o idioma a qualquer momento com o comando `lang` ou nas Configu
 - Deslize a partir da borda esquerda da tela, ou toque em `☰` na fileira de teclas extras, para abrir o menu lateral com sessões, ambientes, ferramentas e configurações.
 - Toque e segure uma sessão para renomeá-la ou fechá-la. Toque e segure "Nova sessão" para escolher o ambiente (Alpine, Debian, Ubuntu ou o shell do Android).
 - A fileira de teclas extras oferece `ESC`, `TAB`, `CTRL`, `ALT`, as setas e mais. `CTRL` e `ALT` ficam pressionadas até a próxima tecla.
-- Assim como no Termux, o botão de diminuir volume funciona como `CTRL` e o de aumentar volume funciona como modificador das teclas extras.
+- O botão de diminuir volume funciona como `CTRL` e o de aumentar volume funciona como modificador das teclas extras.
 - Digite `nibras` para abrir o menu com todas as ferramentas do Nibras e `help` para ver uma lista curta de comandos.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` e `color list` mostram todas as opções. `customize` abre um menu com todas as configurações, e `reset-look` volta tudo ao padrão. As configurações ficam em `~/.nibras/` e são compatíveis com o arquivo `termux.properties` do Termux.
+`theme list`, `prompt list`, `font list` e `color list` mostram todas as opções. `customize` abre um menu com todas as configurações, e `reset-look` volta tudo ao padrão. As configurações ficam em `~/.nibras/`.
 
 ## 13. Comandos de idioma
 
@@ -201,5 +201,3 @@ O Nibras Terminal só pede uma permissão quando um comando precisa dela. Os com
 **Por que o aplicativo é tão pequeno?** Ele inclui apenas o Alpine Linux e as traduções. Todo o resto é baixado com `install` quando você precisa.
 
 **Funciona em celulares de 32 bits?** Sim. Um único APK suporta aparelhos arm64 e arm32.
-
-**Posso usar minhas configurações do Termux?** Sim. O Nibras lê `~/.termux/termux.properties`, `colors.properties`, `font.ttf` e reconhece os nomes de comando `termux-*`.

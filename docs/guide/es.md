@@ -20,7 +20,7 @@ Puedes cambiar el idioma en cualquier momento con el comando `lang` o desde Ajus
 - Desliza desde el borde izquierdo de la pantalla, o toca `☰` en la fila de teclas adicionales, para abrir el menú lateral con sesiones, entornos, herramientas y ajustes.
 - Mantén pulsada una sesión para cambiarle el nombre o cerrarla. Mantén pulsado «Nueva sesión» para elegir el entorno (Alpine, Debian, Ubuntu o el shell de Android).
 - La fila de teclas adicionales ofrece `ESC`, `TAB`, `CTRL`, `ALT`, las flechas y más. `CTRL` y `ALT` permanecen pulsadas hasta la siguiente tecla.
-- Igual que en Termux, la tecla de bajar volumen funciona como `CTRL` y la de subir volumen funciona como modificador de las teclas adicionales.
+- La tecla de bajar volumen funciona como `CTRL` y la de subir volumen funciona como modificador de las teclas adicionales.
 - Escribe `nibras` para abrir el menú de todas las herramientas de Nibras y `help` para ver una lista breve de comandos.
 
 ```sh
@@ -153,7 +153,7 @@ keys dev
 customize
 ```
 
-`theme list`, `prompt list`, `font list` y `color list` muestran todas las opciones. `customize` abre un menú con todos los ajustes y `reset-look` lo devuelve todo a los valores predeterminados. Los ajustes se guardan en `~/.nibras/` y son compatibles con el archivo `termux.properties` de Termux.
+`theme list`, `prompt list`, `font list` y `color list` muestran todas las opciones. `customize` abre un menú con todos los ajustes y `reset-look` lo devuelve todo a los valores predeterminados. Los ajustes se guardan en `~/.nibras/`.
 
 ## 13. Comandos de idioma
 
@@ -201,5 +201,3 @@ Nibras Terminal solo pide un permiso cuando un comando lo necesita. Los comandos
 **¿Por qué la aplicación es tan pequeña?** Solo incluye Alpine Linux y las traducciones. Todo lo demás se descarga con `install` cuando lo necesitas.
 
 **¿Funciona en teléfonos de 32 bits?** Sí. Un único APK es compatible con dispositivos arm64 y arm32.
-
-**¿Puedo usar mis ajustes de Termux?** Sí. Nibras lee `~/.termux/termux.properties`, `colors.properties`, `font.ttf` y reconoce los nombres de comandos `termux-*`.
