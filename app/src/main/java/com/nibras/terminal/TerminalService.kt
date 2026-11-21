@@ -78,6 +78,7 @@ class TerminalService : Service(), ApiBridge.Host {
         override fun onTextChanged(changedSession: TerminalSession) {
             ui?.sessionClient?.onTextChanged(changedSession)
             floatListener?.invoke(changedSession)
+            SessionLog.capture(this@TerminalService, changedSession)
         }
         override fun onTitleChanged(changedSession: TerminalSession) { ui?.sessionClient?.onTitleChanged(changedSession) }
         override fun onSessionFinished(finishedSession: TerminalSession) {
@@ -220,7 +221,7 @@ class TerminalService : Service(), ApiBridge.Host {
         }
         val blocked = scripts.filter { f ->
             val n = f.name.lowercase()
-            n.contains("sshd") || n == "remote" || n.contains("nibras-remote")
+            n.contains("sshd") || n == "remote" || n.contains("nibras-remote") || !AllowFile.bootOk(this, f)
         }
         val run = scripts - blocked.toSet()
         val shown = buildString {

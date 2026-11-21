@@ -681,7 +681,8 @@ cmd_pin() { # pinned commands for the home-screen shortcut widget
   case "${1:-}" in
     "") nl -w2 -s'. ' "$f"; say "pin \"<command>\" · pin rm <n> — shown in the Nibras shortcuts widget" "pin \"<əmr>\" · pin rm <n> — Nibras qısayol vidcetində görünür" "pin \"<komut>\" · pin rm <n> — Nibras kısayol widget'ında görünür" "pin \"<команда>\" · pin rm <n> — показывается в виджете ярлыков" ;;
     rm|remove|del) sed -i "${2:?n}d" "$f"; nl -w2 -s'. ' "$f" ;;
-    *) printf '%s\n' "$*" >> "$f"; printf '\033[32m✓\033[0m ★ %s\n' "$*" ;;
+    *) nibras-api allow-check "$*" >/dev/null || { echo "not allowed"; return; }
+      printf '%s\n' "$*" >> "$f"; printf '\033[32m✓\033[0m ★ %s\n' "$*" ;;
   esac
   nibras-api widget-refresh >/dev/null 2>&1
 }
@@ -1052,6 +1053,8 @@ cmd_notes() {
   esac
 }
 cmd_vault() {
+  g=$(nibras-api guest-mode 2>/dev/null || true)
+  [ "$g" = on ] && { echo "guest mode"; return 1; }
   need age tar; v=$(outdir)/vault; mkdir -p "$v"
   case "${1:-help}" in
     lock) d=${2:?folder}; out=$v/$(basename "$d").tar.age; tar -C "$(dirname "$(readlink -f "$d")")" -cz "$(basename "$d")" | age -p -o "$out" && \
@@ -1065,9 +1068,17 @@ cmd_record() {
   d=$(outdir)/recordings; mkdir -p "$d"
   case "${1:-start}" in
     start) f=$d/session-$(date +%F-%H%M%S)
-      say "Recording… type exit to stop" "Yazılır… dayandırmaq üçün exit yaz" "Kaydediliyor… durdurmak için exit" "Запись… exit для остановки"
-      if has asciinema; then asciinema rec "$f.cast"; else need script; script -q -t 2>"$f.time" "$f.log"; fi; echo "→ $f" ;;
-    play) f=$2; case "$f" in *.cast) asciinema play "$f" ;; *) scriptreplay "${f%.log}.time" "${f%.log}.log" ;; esac ;;
+      nibras-api record-log on "$f.txt" >/dev/null 2>&1 || true
+      if has asciinema; then
+        say "Recording… type exit to stop" "Yazılır… dayandırmaq üçün exit yaz" "Kaydediliyor… durdurmak için exit" "Запись… exit для остановки"
+        asciinema rec "$f.cast"; nibras-api record-log off >/dev/null 2>&1
+      elif has script; then
+        say "Recording… type exit to stop" "Yazılır… dayandırmaq üçün exit yaz" "Kaydediliyor… durdurmak için exit" "Запись… exit для остановки"
+        script -q -t 2>"$f.time" "$f.log"; nibras-api record-log off >/dev/null 2>&1
+      else echo "screen log → $f.txt"; echo "stop: record off"; fi
+      echo "→ $f" ;;
+    off|stop) nibras-api record-log off >/dev/null 2>&1 || true; echo "stopped" ;;
+    play) f=$2; case "$f" in *.cast) asciinema play "$f" ;; *.txt) cat "$f" ;; *) scriptreplay "${f%.log}.time" "${f%.log}.log" ;; esac ;;
     gif|video|mp4)
       f=${2:-$(ls -t "$d"/*.cast 2>/dev/null | head -1)}; [ -f "$f" ] || die "record gif <file.cast>  ($(say "record with asciinema first" "əvvəlcə asciinema ilə yaz" "önce asciinema ile kaydet" "сначала запишите через asciinema"))"
       install_agg; g=${f%.cast}.gif
@@ -1092,6 +1103,7 @@ cmd_cron() {
     list) crontab -l 2>/dev/null | nl -ba; [ -t 1 ] && say "(cron menu = buttons)" "(cron menu = düymələrlə)" "(cron menu = düğmelerle)" "(cron menu = кнопками)" ;;
     add) shift; when=$1; shift
       case "$when" in hourly) when="0 * * * *" ;; daily) when="0 9 * * *" ;; every5) when="*/5 * * * *" ;; weekly) when="0 9 * * 1" ;; esac
+      nibras-api allow-check "$*" >/dev/null || { echo "not allowed"; return; }
       (crontab -l 2>/dev/null; echo "$when $*") | crontab -; cron_start; echo "✓ $when $*" ;;
     rm|remove) crontab -l 2>/dev/null | sed "${2}d" | crontab - ;;
     menu|ui)
@@ -1099,7 +1111,7 @@ cmd_cron() {
       case "$w" in 0) when="*/5 * * * *" ;; 1) when="0 * * * *" ;; 2) when="0 9 * * *" ;; 3) when="0 9 * * 1" ;;
         4) when=$(nibras-dialog text -t "m h d M w" -i "30 7 * * *" 2>/dev/null | sed -n 's/.*"text": *"\([^"]*\)".*/\1/p') ;; *) return 0 ;; esac
       c=$(nibras-dialog text -t "$(say "Command" "Əmr" "Komut" "Команда")" -i "backup ~/projects" 2>/dev/null | sed -n 's/.*"text": *"\([^"]*\)".*/\1/p')
-      [ -n "$when" ] && [ -n "$c" ] && cmd_cron add "$when" "$c"; cmd_cron list ;;
+      [ -n "$when" ] && [ -n "$c" ] && { nibras-api allow-check "$c" >/dev/null || { echo "not allowed"; return; }; cmd_cron add "$when" "$c"; }; cmd_cron list ;;
     *) echo "cron list · cron add hourly|daily|weekly|every5|\"m h d M w\" <command> · cron rm N   ($(say "for jobs even when the app is closed:" "tətbiq bağlı olanda da işləmək üçün:" "uygulama kapalıyken de:" "даже при закрытом приложении:") nibras-job-scheduler)" ;;
   esac
 }

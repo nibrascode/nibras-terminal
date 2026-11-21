@@ -72,6 +72,10 @@
     <string name="set_back_esc">Back key sends Escape</string>
     <string name="set_fullscreen">Full screen</string>
     <string name="set_volume_keys">Volume keys: Down = Ctrl, Up + key = special</string>
+    <string name="set_guest">Guest mode</string>
+    <string name="guest_off_ask">Leave guest mode? Private phone commands will ask again.</string>
+    <string name="check_update">Check for an update</string>
+    <string name="whats_new_title">What is new</string>
     <string name="set_default_env">Default environment</string>
     <string name="set_storage">Shared storage (/sdcard)</string>
     <string name="granted">granted</string>

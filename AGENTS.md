@@ -87,7 +87,7 @@ nibras sign status
 nibras sign download
 ```
 
-SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. Sayt imza açarını yaratmır və əvəz etmir. Açar GitHub sirlərində qalır. Şifrə heç yerdə göstərilmir. `versionName` və `versionCode` yalnız sahib dəyişəndə artır. İndi `1.0.3` / `10003`. Eyni release açarı saxlanır, ona görə növbəti paket köhnənin üstünə quraşır. Köhnə debug APK varsa, bir dəfə silinir.
+SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. Sayt imza açarını yaratmır və əvəz etmir. Açar GitHub sirlərində qalır. Şifrə heç yerdə göstərilmir. `versionName` və `versionCode` yalnız sahib dəyişəndə artır. İndi `1.0.4` / `10004`. Eyni release açarı saxlanır, ona görə növbəti paket köhnənin üstünə quraşır. Köhnə debug APK varsa, bir dəfə silinir. 1.0.4: `nibras-update` imzanı yoxlayır, `nibras-apk diff`, `nibras-allow`, `nibras-guest`, `nibras-secret`, `record`, layihə düymələri, `nibras-job`, `nibras-peer`, `nibras-qr-run`, `nibras-mirror`, `nibras-setup`, `nibras-import-termux`, `nibras-phrase`, `nibras-man`, `nibras-ports`. Git parolu terminala düşmür. Saytın ilk ekranı dəyişməyib.
 
 Digər `nibras` əmrləri: `token`, `layihe`, `serve`, `md`, `stop`, `disk`, `zibil`, `qaytar`. Siyahıdan kənar fel yoxdur.
 

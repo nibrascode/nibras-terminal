@@ -143,6 +143,12 @@ object Rootfs {
         for ((l, t) in listOf("termux-chsh" to "nibras-shell", "nibras-chsh" to "nibras-shell"))
             runCatching { Files.deleteIfExists(f("usr/local/bin/$l").toPath()); Files.createSymbolicLink(f("usr/local/bin/$l").toPath(), Paths.get(t)) }
         exe(f("usr/local/bin/nibras-help"), guest(context, "nibras-help"))
+        exe(f("usr/local/bin/nibras-plus"), guest(context, "nibras-plus"))
+        for (cmd in listOf("update", "allow", "guest", "secret", "peer", "ports", "mirror", "setup", "import-termux", "phrase", "man", "job", "git-ask", "qr-run")) {
+            val link = f("usr/local/bin/nibras-$cmd").toPath()
+            runCatching { Files.deleteIfExists(link); Files.createSymbolicLink(link, Paths.get("nibras-plus")) }
+        }
+        writeReplacing(f("usr/local/share/nibras/man.tsv"), guest(context, "man.tsv"))
         exe(f("usr/local/bin/nibras-alias"), guest(context, "nibras-alias"))
         for (g in listOf("scripts", "remote", "learn")) exe(f("usr/local/bin/nibras-$g"), guest(context, "nibras-$g"))
         // Script store catalog (catalog/scripts, copied into the APK at build time).

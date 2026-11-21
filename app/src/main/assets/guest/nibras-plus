@@ -1,0 +1,183 @@
+#!/bin/sh
+# Phone additions that the Linux side cannot do alone.
+#   nibras-update · nibras-allow · nibras-guest · nibras-secret · nibras-peer
+#   nibras-ports · nibras-mirror · nibras-setup · nibras-import-termux
+#   nibras-phrase · nibras-man · nibras-job · nibras-git-ask · nibras-qr-run
+me=${0##*/}
+me=${me#nibras-}
+say() { # en az tr ru
+  L=${NIBRAS_LANG:-$(cat /etc/nibras/lang 2>/dev/null)}
+  case "$L" in az) printf '%s\n' "$2" ;; tr) printf '%s\n' "$3" ;; ru) printf '%s\n' "$4" ;; *) printf '%s\n' "$1" ;; esac
+}
+
+case "$me" in
+  update)
+    nibras-api app-update
+    ;;
+  allow)
+    f=$HOME/.nibras/allow
+    mkdir -p "$HOME/.nibras"
+    case "${1:-list}" in
+      list|"") [ -f "$f" ] && cat "$f" || say "No list yet. Widgets and cron may run anything except private phone commands." "Siyahı yoxdur. Vidcet və cron şəxsi telefon əmrlərindən başqa hər şeyi işlədə bilər." "Liste yok. Widget ve cron, özel telefon komutları dışında her şeyi çalıştırabilir." "Списка нет. Виджет и cron запускают всё, кроме личных команд телефона." ;;
+      add) shift; [ -n "${1:-}" ] || exit 1; printf '%s\n' "$*" >> "$f"; echo "✓ $*"; ;;
+      rm) grep -vxF "$2" "$f" > "$f.tmp" 2>/dev/null && mv "$f.tmp" "$f" ;;
+      clear) rm -f "$f"; echo "✓" ;;
+      *) echo "nibras-allow list · add <command> · rm <command> · clear" ;;
+    esac
+    ;;
+  guest)
+    case "${1:-status}" in
+      on) nibras-api guest-mode on ;;
+      off) nibras-api guest-mode off ;;
+      status|*) nibras-api guest-mode ;;
+    esac
+    ;;
+  secret)
+    nibras-api secret-box "$@"
+    ;;
+  peer)
+    if [ "${1:-}" = join ]; then
+      nibras-api peer-join "${2:?url}"
+    else
+      say "Same Wi-Fi. The other phone runs: nibras-peer join <the link below>" "Eyni Wi-Fi. O biri telefon: nibras-peer join <aşağıdakı link>" "Aynı Wi-Fi. Diğer telefon: nibras-peer join <aşağıdaki bağlantı>" "Та же сеть. Второй телефон: nibras-peer join <ссылка ниже>"
+      exec nibras-remote on
+    fi
+    ;;
+  ports)
+    if [ "${1:-}" = open ]; then nibras-api ports-open "${2:?port}"; exit; fi
+    say "Listening on this phone. Open one with: nibras-ports open <port>" "Bu telefonda dinləyən portlar. Açmaq: nibras-ports open <port>" "Bu telefonda dinleyen portlar. Açmak: nibras-ports open <port>" "Порты на этом телефоне. Открыть: nibras-ports open <port>"
+    awk 'function hex(s,    i, n, c) {
+      n = 0
+      for (i = 1; i <= length(s); i++) {
+        c = index("0123456789abcdef", tolower(substr(s, i, 1)))
+        if (c == 0) return -1
+        n = n * 16 + c - 1
+      }
+      return n
+    }
+    FNR > 1 && $4 == "0A" { split($2, a, ":"); p = hex(a[2]); if (p > 0) print p }' /proc/net/tcp /proc/net/tcp6 2>/dev/null | sort -nu
+    ;;
+  mirror)
+    case "${1:-}" in
+      use) nibras-api mirror-path use "${2:?folder}" ;;
+      save) nibras-api mirror-path save "${2:-/sdcard/nibras-mirror}" ;;
+      *) echo "nibras-mirror save [folder] · nibras-mirror use <folder>"
+         say "Copies already downloaded Linux images. The other phone installs from the card, checksum unchanged." "Artıq yüklənmiş Linux obrazlarını kopyalayır. O biri telefon kartdan qurur, checksum eynidir." "İndirilmiş Linux imajlarını kopyalar. Diğer telefon karttan kurar, sağlama aynıdır." "Копирует уже скачанные образы. Второй телефон ставит с карты, сумма та же." ;;
+    esac
+    ;;
+  setup)
+    case "${1:-}" in
+      export)
+        out=${2:-$HOME/downloads/nibras-look.tar}
+        mkdir -p "$(dirname "$out")" "$HOME/downloads"
+        tmp=$(mktemp -d)
+        mkdir -p "$tmp/nibras" "$tmp/config"
+        for f in colors.properties extra-keys nibras.properties aliases.sh prompt.sh motd; do
+          [ -f "$HOME/.nibras/$f" ] && cp "$HOME/.nibras/$f" "$tmp/nibras/"
+        done
+        if [ -f "$HOME/.nibras/font.ttf" ]; then
+          sz=$(wc -c < "$HOME/.nibras/font.ttf")
+          [ "$sz" -lt 2000000 ] && cp "$HOME/.nibras/font.ttf" "$tmp/nibras/"
+        fi
+        [ -f "$HOME/.config/nibras/pinned" ] && cp "$HOME/.config/nibras/pinned" "$tmp/config/pinned"
+        printf '%s\n' "Nibras look and pins. No SSH keys, no vault, no passwords." > "$tmp/README"
+        tar -cf "$out" -C "$tmp" .
+        rm -rf "$tmp"
+        echo "→ $out"
+        ;;
+      import)
+        in=${2:?file}
+        tar -tf "$in" | grep -E '(^|/)(id_|.*\.age|.*\.p12|.*\.jks|known_hosts|vault)(/|$)' && { echo "refused: this archive contains a secret"; exit 1; }
+        tmp=$(mktemp -d)
+        tar -xf "$in" -C "$tmp"
+        mkdir -p "$HOME/.nibras" "$HOME/.config/nibras"
+        for f in colors.properties extra-keys nibras.properties aliases.sh prompt.sh motd font.ttf; do
+          [ -f "$tmp/nibras/$f" ] && cp "$tmp/nibras/$f" "$HOME/.nibras/$f"
+        done
+        [ -f "$tmp/config/pinned" ] && cp "$tmp/config/pinned" "$HOME/.config/nibras/pinned"
+        rm -rf "$tmp"
+        nibras-api reload-settings >/dev/null 2>&1 || true
+        echo "✓"
+        ;;
+      *) echo "nibras-setup export [file] · nibras-setup import <file>" ;;
+    esac
+    ;;
+  import-termux)
+    src=${1:?path to a tar.gz or folder}
+    with=
+    [ "${2:-}" = --with-keys ] && with=1
+    say "Copies into your home. Private keys are skipped unless you add --with-keys and confirm." "Ev qovluğuna kopyalanır. Gizli açarlar --with-keys və təsdiq olmadan keçilir." "Ev klasörüne kopyalanır. Özel anahtarlar --with-keys ve onay olmadan atlanır." "Копирует в домашний каталог. Закрытые ключи пропускаются без --with-keys и подтверждения."
+    printf '%s ' "yes?"
+    read -r a
+    [ "$a" = yes ] || exit 1
+    if [ -n "$with" ]; then
+      printf '%s ' "keys too? yes?"
+      read -r b
+      [ "$b" = yes ] || with=
+    fi
+    if [ -d "$src" ]; then
+      if [ -n "$with" ]; then tar -C "$src" -cf - . | tar -C "$HOME" -xf -
+      else tar -C "$src" -cf - . | tar -C "$HOME" -xf - --exclude='id_*' --exclude='*.p12' --exclude='*.jks' --exclude='*.age' --exclude='known_hosts'
+      fi
+    else
+      if [ -n "$with" ]; then tar -xzf "$src" -C "$HOME"
+      else tar -xzf "$src" -C "$HOME" --exclude='id_*' --exclude='*.p12' --exclude='*.jks' --exclude='*.age' --exclude='known_hosts'
+      fi
+    fi
+    echo "✓"
+    ;;
+  phrase)
+    try=
+    [ "${1:-}" = --try ] && { try=1; shift; }
+    out=$(nibras-api phrase-parse "$*" 2>/dev/null) || exit 1
+    tmp=/tmp/nibras-phrase.$$
+    printf '%s\n' "$out" > "$tmp"
+    st=0
+    while IFS= read -r c || [ -n "$c" ]; do
+      [ -n "$c" ] || continue
+      set -f
+      set -- $c
+      set +f
+      case "$1" in
+        install) nibras-kit install "${2:-}" || st=$? ;;
+        run) nibras-kit run "${2:-}" || st=$? ;;
+        theme) nibras-look theme "${2:-}" || st=$? ;;
+        help) nibras-help || st=$? ;;
+        *) rm -f "$tmp"; exit 1 ;;
+      esac
+    done < "$tmp"
+    rm -f "$tmp"
+    # A recognised sentence must not also fall through to command-not-found's guess.
+    [ -n "$try" ] && exit 0
+    exit "$st"
+    ;;
+  man)
+    key=${1:-index}
+    L=${NIBRAS_LANG:-$(cat /etc/nibras/lang 2>/dev/null)}
+    L=${L:-en}
+    f=/usr/local/share/nibras/man.tsv
+    [ -f "$f" ] || { echo "no manual"; exit 1; }
+    awk -F '\t' -v key="$key" -v lang="$L" '
+      BEGIN { split("en az ar tr ru fa ur id ms fr de es pt it zh ja ko hi bn", names, " ")
+        for (i = 1; i <= 19; i++) col[names[i]] = i + 1 }
+      $1 == key { c = col[lang]; if (c < 2) c = 2; if ($c == "") c = 2; print $c; found = 1; exit }
+      END { if (!found) exit 1 }
+    ' "$f" || echo "nibras-man update|diff|allow|guest|secret|record|keys|job|peer|qr|mirror|setup|import|phrase|ports|git"
+    ;;
+  job)
+    [ -n "${1:-}" ] || { echo "nibras-job <command>"; exit 1; }
+    nibras-api run-job "$*"
+    ;;
+  git-ask)
+    nibras-api git-cred "${1:-Password}"
+    ;;
+  qr-run)
+    text=${1:-}
+    if [ -z "$text" ]; then text=$(nibras-clipboard-get 2>/dev/null | head -c 400); fi
+    [ -n "$text" ] || { echo "nibras-qr-run '<command from the QR>'"; exit 1; }
+    nibras-api qr-run "$text"
+    ;;
+  *)
+    echo "nibras-update · nibras-allow · nibras-guest · nibras-secret · nibras-peer · nibras-ports · nibras-mirror · nibras-setup · nibras-import-termux · nibras-phrase · nibras-man · nibras-job · nibras-git-ask · nibras-qr-run"
+    ;;
+esac

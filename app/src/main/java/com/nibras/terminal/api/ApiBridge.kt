@@ -178,6 +178,11 @@ class ApiBridge(private val context: Context, private val host: Host) {
             "install-apk" -> {
                 val f = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), args.let { if (it.startsWith("/")) it else "$pwd/$it" })
                 if (f == null || !f.isFile) return "ERR\nno such APK: $args"
+                val warn = com.nibras.terminal.ApkInspect.replaceWarning(context, f)
+                if (warn != null) {
+                    val answer = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "dialog", listOf("confirm", "-t", "Nibras", "-i", warn + "\nOpen the installer anyway?"), timeoutSec = 30))
+                    if (answer.optString("text") != "yes") return "ERR\nrefused"
+                }
                 if (!context.packageManager.canRequestPackageInstalls()) {
                     ui { context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                     return "ERR\nAllow \"Install unknown apps\" for Nibras Terminal (screen opened), then run again"
@@ -198,6 +203,103 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 (if (r.optInt("code") == -1) "OK\n" else "ERR\n") + r.optString("text")
             }
             "prayer-alarm" -> com.nibras.terminal.PrayerAlarms.command(context, words(raw))
+            "apk-diff" -> {
+                val w = words(raw)
+                if (w.size < 2) return "ERR\nusage: nibras-apk diff old.apk new.apk"
+                fun h(p: String) = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p")
+                val a = h(w[0]) ?: return "ERR\nno file ${w[0]}"
+                val b = h(w[1]) ?: return "ERR\nno file ${w[1]}"
+                "OK\n" + com.nibras.terminal.ApkInspect.diff(context, a, b)
+            }
+            "app-update" -> "OK\n" + com.nibras.terminal.Updater.run(context)
+            "allow-check" -> if (com.nibras.terminal.AllowFile.automatic(context, args.trim())) "OK\nyes" else "ERR\nnot allowed"
+            "guest-mode" -> when (args.trim()) {
+                "on" -> { com.nibras.terminal.GuestMode.set(context, true); "OK\non" }
+                "off" -> {
+                    val answer = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "dialog", listOf("confirm", "-t", "Nibras", "-i", "Leave guest mode?"), timeoutSec = 30))
+                    if (answer.optString("text") != "yes") "ERR\nrefused" else { com.nibras.terminal.GuestMode.set(context, false); "OK\noff" }
+                }
+                else -> "OK\n" + if (com.nibras.terminal.GuestMode.on(context)) "on" else "off"
+            }
+            "secret-box" -> com.nibras.terminal.Secrets.run(context, envId(env), pwd, words(raw))
+            "record-log" -> {
+                val w = words(raw)
+                when (w.firstOrNull()) {
+                    "on" -> {
+                        val p = w.getOrNull(1) ?: return "ERR\npath"
+                        val f = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") ?: return "ERR\npath"
+                        f.parentFile?.mkdirs()
+                        java.io.File(context.filesDir, "record.path").writeText(f.absolutePath)
+                        "OK\n" + f.absolutePath
+                    }
+                    "off" -> { java.io.File(context.filesDir, "record.path").delete(); "OK\noff" }
+                    else -> "ERR\nrecord-log on <file> | off"
+                }
+            }
+            "run-job" -> {
+                val cmd = args.trim()
+                if (cmd.isEmpty()) return "ERR\nnibras-job <command>"
+                if (com.nibras.terminal.GuestMode.on(context)) return "ERR\nguest mode"
+                if (!com.nibras.terminal.AllowFile.automatic(context, cmd)) return "ERR\nnot allowed"
+                val id = com.nibras.terminal.core.Rootfs.pick(context, null)
+                val name = "job-${System.currentTimeMillis()}.log"
+                val dir = java.io.File(com.nibras.terminal.core.Rootfs.homeOf(context, id), "downloads/jobs").apply { mkdirs() }
+                val guest = com.nibras.terminal.ui.HostPaths.toGuest(context, id, java.io.File(dir, name))
+                val started = runCatching {
+                    context.startForegroundService(android.content.Intent(context, com.nibras.terminal.JobRunService::class.java)
+                        .putExtra("cmd", cmd).putExtra("logName", name).putExtra("env", id))
+                }
+                if (started.isFailure) "ERR\n${started.exceptionOrNull()?.message}" else "OK\n$guest"
+            }
+            "peer-join" -> {
+                val url = args.trim().lineSequence().firstOrNull().orEmpty()
+                if (!com.nibras.terminal.LocalPage.allowed(url, lan = true)) return "ERR\nonly a private address on this Wi-Fi"
+                val answer = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "dialog", listOf("confirm", "-t", "Nibras", "-i", "Open the other phone's terminal?\n$url"), timeoutSec = 30))
+                if (answer.optString("text") != "yes") return "ERR\nrefused"
+                context.startActivity(android.content.Intent(context, com.nibras.terminal.LocalPageActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("url", url).putExtra("lan", true))
+                "OK"
+            }
+            "ports-open" -> {
+                val port = args.trim().toIntOrNull() ?: return "ERR\nport"
+                if (port !in 1..65535) return "ERR\nport"
+                val url = "http://127.0.0.1:$port/"
+                context.startActivity(android.content.Intent(context, com.nibras.terminal.LocalPageActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("url", url))
+                "OK\n$url"
+            }
+            "mirror-path" -> {
+                val w = words(raw)
+                when (w.firstOrNull()) {
+                    "use" -> com.nibras.terminal.Mirror.use(context, w.getOrNull(1) ?: return "ERR\nfolder")
+                    "save" -> com.nibras.terminal.Mirror.save(context, w.getOrNull(1) ?: "/sdcard/nibras-mirror")
+                    else -> "ERR\nuse|save"
+                }
+            }
+            "phrase-parse" -> {
+                val steps = com.nibras.terminal.PlusRules.parsePhrase(args) ?: return "ERR\nnot a known sentence"
+                "OK\n" + steps.joinToString("\n")
+            }
+            "git-cred" -> com.nibras.terminal.Secrets.gitCred(context, args)
+            "qr-run" -> {
+                val text = args.trim()
+                if (text.isEmpty() || text.length > 200 || '\n' in text) return "ERR\nrefused"
+                val steps = com.nibras.terminal.PlusRules.parsePhrase(text)
+                val listed = com.nibras.terminal.AllowFile.lines(context)?.let { com.nibras.terminal.PlusRules.allowAutomatic(text, it, com.nibras.terminal.Sensitive.names) } == true
+                if (steps == null && !listed) return "ERR\nonly a known sentence, or a command on your allow list"
+                val shown = steps?.joinToString("\n") ?: text
+                val answer = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "dialog", listOf("confirm", "-t", "Nibras", "-i", "Run this?\n$shown"), timeoutSec = 30))
+                if (answer.optString("text") != "yes") return "ERR\nrefused"
+                val cmd = if (steps != null) steps.joinToString(" && ") { step ->
+                    val bits = step.split(' ')
+                    when (bits[0]) {
+                        "install" -> "nibras-kit install " + com.nibras.terminal.core.Rootfs.quote(bits.getOrElse(1) { "" })
+                        "run" -> "nibras-kit run " + com.nibras.terminal.core.Rootfs.quote(bits.getOrElse(1) { "" })
+                        "theme" -> "nibras-look theme " + com.nibras.terminal.core.Rootfs.quote(bits.getOrElse(1) { "" })
+                        else -> "nibras-help"
+                    }
+                } else text
+                main.post { host.newSession(null, listOf("/bin/sh", "-c", cmd)) }
+                "OK"
+            }
             "media-builder" -> ui { context.startActivity(Intent(context, com.nibras.terminal.MediaActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra("tab", args.ifBlank { "video" })) }
             else -> phone(name, args)

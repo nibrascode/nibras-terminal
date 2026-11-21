@@ -17,3 +17,9 @@ The web shell also has its own `help` list. If `help` does not list a command, i
 ## Rule
 
 The public APK is published only when `versionName` changes. A later push with the same version does not overwrite the file.
+
+## Phone, 1.0.4
+
+`nibras-update` `nibras-apk diff` `nibras-allow` `nibras-guest` `nibras-secret` `record` `nibras-job` `nibras-peer` `nibras-qr-run` `nibras-mirror` `nibras-setup` `nibras-import-termux` `nibras-phrase` `nibras-man` `nibras-ports`
+
+`nibras-update` refuses an APK whose certificate is not the release key. `nibras-allow` limits widgets, cron, Tasker and boot. Private phone commands cannot be listed. `nibras-guest on` blocks those commands plus the vault and stored keys. `nibras-phrase` runs a sentence only when every part is a known command. `nibras-qr-run` asks before it runs, and only for a known sentence or an allowed command. `nibras-setup` does not contain SSH keys or passwords. Git asks `nibras-git-ask`; the password is not written in the terminal. A folder can carry `.nibras/keys` for its own buttons. `nibras-man <name>` is offline in 19 languages.

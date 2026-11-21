@@ -104,7 +104,11 @@ class PackagesViewModel(app: Application) : AndroidViewModel(app) {
                 runCatching {
                     val dest = payloadFile(app, component)
                     val have = dest.isFile && dest.length() == component.sizeBytes && sha256(dest) == component.sha256
-                    if (!have) {
+                    val mirrored = Mirror.hit(app, component.filename)
+                    if (!have && mirrored != null && sha256(mirrored) == component.sha256) {
+                        dest.parentFile?.mkdirs()
+                        mirrored.copyTo(dest, overwrite = true)
+                    } else if (!have) {
                         client.download(component.url, dest) { f -> state.update { s -> s.copy(progress = f) } }
                         if (sha256(dest) != component.sha256) {
                             dest.delete()

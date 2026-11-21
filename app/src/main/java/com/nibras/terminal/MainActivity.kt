@@ -92,6 +92,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     private var volumeDown = false
     private var volumeUp = false
     private var pendingIntent: Intent? = null
+    private var lastProjectCwd = ""
     private var background = Color.BLACK
     private lateinit var primary: TerminalView
     private var secondary: TerminalView? = null
@@ -393,6 +394,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         } else {
             showSession(svc.sessions.last())
             handleIntent(pendingIntent)
+            WhatsNew.maybe(this)
         }
     }
 
@@ -423,6 +425,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             runOnUiThread {
                 bootOverlay.visibility = View.GONE
                 if (problem != null) Toast.makeText(this, getString(R.string.boot_failed, problem), Toast.LENGTH_LONG).show()
+                WhatsNew.maybe(this)
                 val svc = service ?: return@runOnUiThread
                 if (!handleIntent(pendingIntent) && svc.sessions.isEmpty()) restoreOrNew(svc)
             }
@@ -455,6 +458,14 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             }
         }
         val command = intent.getStringArrayExtra(EXTRA_COMMAND)
+        if (command != null) {
+            val line = if (command.size >= 3 && command[0] == "sh" && command[1] == "-c") command[2] else command.joinToString(" ")
+            if (!AllowFile.automatic(this, line)) {
+                Toast.makeText(this, "not allowed", Toast.LENGTH_LONG).show()
+                intent.removeExtra(EXTRA_COMMAND)
+                return false
+            }
+        }
         if (command != null && intent.getBooleanExtra(EXTRA_BACKGROUND, false)) {
             service?.createSession(intent.getStringExtra(EXTRA_ENV), command.toList(), intent.getStringExtra(EXTRA_TITLE), inBackground = true)
             intent.removeExtra(EXTRA_COMMAND)
@@ -769,9 +780,12 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         keys.keyColor = if (light) Color.BLACK else Color.WHITE
-        keys.setRows(com.nibras.terminal.ui.TermProps.extraKeys ?: Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT.let { rows ->
-            listOf(rows[0], rows[1])
-        })
+        val sessionNow = currentSession()
+        val projectKeys = sessionNow?.let { s ->
+            val env = service?.envOf?.get(s) ?: return@let null
+            ProjectKeys.read(this, env, service?.cwdOf(s).orEmpty())
+        }
+        keys.setRows(projectKeys ?: com.nibras.terminal.ui.TermProps.extraKeys ?: Themes.extraKeys(home) ?: ExtraKeysView.DEFAULT)
         keys.visibility = if (prefs.extraKeys) View.VISIBLE else View.GONE
         // setTextSize must run before setTypeface: TerminalView has no renderer until a text size is set,
         // and setTypeface() dereferences it (this NPE closed 0.2.113 right after launch).
@@ -1121,6 +1135,11 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
             secondary?.let { if (it.currentSession == changedSession) it.onScreenUpdated() }
             if (terminal.currentSession == changedSession && prefs.sp.getBoolean("suggestions", true)) {
                 handler.removeCallbacks(suggestTask); handler.postDelayed(suggestTask, 250)
+            }
+            val cwd = service?.cwdOf(changedSession).orEmpty()
+            if (cwd.isNotEmpty() && cwd != lastProjectCwd && terminal.currentSession == changedSession) {
+                lastProjectCwd = cwd
+                applySettings()
             }
         }
         override fun onTitleChanged(changedSession: TerminalSession) { sessionAdapter.notifyDataSetChanged() }

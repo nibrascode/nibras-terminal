@@ -453,7 +453,20 @@ G
   keystore) jdk; ks="${1:-$HOME/.nibras/release.jks}"; alias="${2:-nibras}"; mkdir -p "$(dirname "$ks")"
     keytool -genkeypair -v -keystore "$ks" -alias "$alias" -keyalg RSA -keysize 4096 -validity 10000 && chmod 600 "$ks" && echo "✓ $ks ($alias)" ;;
   align) need zipalign; in="${1:?apk}"; zipalign -f -p 4 "$in" "$in.aligned" && mv "$in.aligned" "$in" && echo "✓ aligned $in" ;;
-  sign) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; in="${1:?apk}"; ks="${2:-$HOME/.nibras/release.jks}"; alias="${3:-nibras}"
+  sign) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup
+    if [ "${1:-}" = --release ]; then
+      shift
+      in="${1:?apk}"
+      info=$(nibras-api secret-box release) || exit 1
+      ks=$(printf '%s\n' "$info" | sed -n '1p')
+      pw=$(printf '%s\n' "$info" | sed -n '2p')
+      zipalign -c -p 4 "$in" >/dev/null 2>&1 || "$0" align "$in"
+      apksigner_ sign --ks "$ks" --ks-pass "file:$pw" --key-pass "file:$pw" --ks-key-alias nibras --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true "$in" && echo "✓ signed with the stored release key $in"
+      st=$?
+      rm -f "$ks" "$pw"
+      exit "$st"
+    fi
+    in="${1:?apk}"; ks="${2:-$HOME/.nibras/release.jks}"; alias="${3:-nibras}"
     [ -f "$ks" ] || "$0" keystore "$ks" "$alias"
     zipalign -c -p 4 "$in" >/dev/null 2>&1 || "$0" align "$in"
     apksigner_ sign --ks "$ks" --ks-key-alias "$alias" --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true "$in" && echo "✓ signed $in" ;;
@@ -528,7 +541,13 @@ G
   extract|backup) nibras-api apps extract "${1:?package}" "${2:-.}" ;;  # back up an app (base + splits → .apks)
   exported) nibras-api apps exported "${1:?package}" ;;  # exported components (security review)
   sigcheck|signature) "$0" verify "${1:?apk}" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|WARNING|DOES NOT VERIFY" ;;
-  diff) need apktool; a="${1:?old.apk}"; b="${2:?new.apk}"; apktool d -f -s "$a" -o /tmp/nd-a >/dev/null; apktool d -f -s "$b" -o /tmp/nd-b >/dev/null
-    diff -ru /tmp/nd-a /tmp/nd-b | head -400 ;;
+  diff) a="${1:?old.apk}"; b="${2:?new.apk}"
+    nibras-api apk-diff "$a" "$b" || true
+    if [ "${3:-}" = --full ]; then
+      need apktool; apktool d -f -s "$a" -o /tmp/nd-a >/dev/null; apktool d -f -s "$b" -o /tmp/nd-b >/dev/null
+      diff -ru /tmp/nd-a /tmp/nd-b | head -400
+    else
+      echo "(full resource diff: nibras-apk diff \"$a\" \"$b\" --full)"
+    fi ;;
   help|-h|--help|*) sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//' ;;
 esac

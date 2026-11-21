@@ -19,6 +19,7 @@ object Sensitive {
     fun allow(context: Context, command: String, detail: String = ""): Boolean {
         val bare = command.removePrefix("nibras-").removePrefix("termux-")
         if (bare !in names) return true
+        if (GuestMode.on(context)) return false
         if (!gate.tryAcquire()) return false
         return try {
             val raw = PromptActivity.ask(context, "sensitive", listOf(bare, detail), timeoutSec = 30)

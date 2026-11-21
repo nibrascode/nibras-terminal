@@ -53,8 +53,10 @@ install() {
 }
 # Friendly help when a command is missing (bash / zsh).
 __nibras_native() { _k=$(nibras-alias --lookup "$1" 2>/dev/null); [ -n "$_k" ] || return 1; shift; nibras-alias --run "$_k" "$@"; }
-command_not_found_handle() { __nibras_native "$@" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
-command_not_found_handler() { __nibras_native "$@" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+command_not_found_handle() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+command_not_found_handler() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+# Git asks the phone, not the terminal. The password stays in the phone keystore.
+export GIT_ASKPASS="${GIT_ASKPASS:-/usr/local/bin/nibras-git-ask}"
 # help: Nibras command list plus the command names in your language (overrides the shell builtin).
 help() { nibras-help "$@"; }
 # bash: after a failed command, a one-line hint that `fix` can explain it (not for Ctrl+C / not found).

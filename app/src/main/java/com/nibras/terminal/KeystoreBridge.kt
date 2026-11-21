@@ -20,6 +20,7 @@ object KeystoreBridge {
     private fun ks() = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
     fun run(context: Context, args: List<String>): String {
+        if (GuestMode.on(context)) return "ERR\nguest mode"
         val cmd = args.firstOrNull() ?: return usage()
         if (cmd == "sign" || cmd == "delete") {
             val alias = args.getOrNull(1) ?: return usage()

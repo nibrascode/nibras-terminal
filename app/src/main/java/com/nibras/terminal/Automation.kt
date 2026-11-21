@@ -102,7 +102,7 @@ class RunCommandService : Service() {
         val path = intent?.let { i -> termux("PATH").firstNotNullOfOrNull { i.getStringExtra(it) } }
         val argv = intent?.let { i -> termux("ARGUMENTS").firstNotNullOfOrNull { i.getStringArrayExtra(it) } }.orEmpty()
         val command = intent?.getStringExtra("command") ?: path?.let { (listOf(it) + argv).joinToString(" ") { a -> Rootfs.quote(a) } }
-        if (intent == null || command.isNullOrBlank() || !Automation.allowed(this)) { stopSelf(startId); return START_NOT_STICKY }
+        if (intent == null || command.isNullOrBlank() || !Automation.allowed(this) || !AllowFile.automatic(this, command)) { stopSelf(startId); return START_NOT_STICKY }
         termux("WORKDIR").firstNotNullOfOrNull { intent.getStringExtra(it) }?.let { intent.putExtra("workdir", it) }
         termux("STDIN").firstNotNullOfOrNull { intent.getStringExtra(it) }?.let { intent.putExtra("stdin", it) }
         termux("BACKGROUND").firstOrNull { intent.hasExtra(it) }?.let { intent.putExtra("background", intent.getBooleanExtra(it, false)) }
@@ -170,7 +170,7 @@ class TaskerFireReceiver : BroadcastReceiver() {
         if (!Automation.allowed(context)) return
         val b = intent.getBundleExtra("com.twofortyfouram.locale.intent.extra.BUNDLE") ?: return
         val command = b.getString("command").orEmpty()
-        if (command.isBlank()) return
+        if (command.isBlank() || !AllowFile.automatic(context, command)) return
         val env = RunCommandService.envId(b.getString("env"))
         val pending = goAsync()
         thread(name = "nibras-tasker") {
@@ -189,6 +189,7 @@ class TaskerFireReceiver : BroadcastReceiver() {
 class ScriptJobService : JobService() {
     override fun onStartJob(params: JobParameters): Boolean {
         val command = params.extras.getString("command") ?: return false
+        if (!AllowFile.automatic(this, command)) return false
         val env = params.extras.getString("env")
         thread(name = "nibras-job") {
             val r = Headless.run(this, env, command, timeoutSec = 540)

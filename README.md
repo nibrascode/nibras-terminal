@@ -30,7 +30,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.3-1f6feb?style=flat-square" alt="version 1.0.3">
+  <img src="https://img.shields.io/badge/version-1.0.4-1f6feb?style=flat-square" alt="version 1.0.4">
   <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-no%20copy-red?style=flat-square" alt="No copy. All rights reserved."></a>
@@ -38,7 +38,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.3-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.4-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
 </p>
 
 <p align="center">
@@ -65,7 +65,7 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 
 ## 🚀 Quick start
 
-1. Download the APK: [nibras-terminal.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.3).
+1. Download the APK: [nibras-terminal.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.4).
 2. Open the file on the phone and allow "Install unknown apps".
 
 
@@ -113,6 +113,7 @@ customize            # look & feel menu
 | 🎓 | **Lessons** | `learn`: interactive Linux, shell, git, Python and APK lessons in 19 languages, checked automatically |
 | 📱 | **Widgets** | home-screen shortcuts, server status and prayer-time widgets |
 | 🗣️ | **Commands in your language** | `kömək`, `qur python`, `yardım`, `помощь`, `مساعدة`… next to the English names (which always work) |
+| 🆕 | **1.0.4** | `nibras-update` checks the release signature · `nibras-apk diff` · `nibras-allow` · `nibras-guest` · `nibras-secret` · `record` · project `.nibras/keys` · `nibras-job` · `nibras-peer` · `nibras-qr-run` · `nibras-mirror` · `nibras-setup` · `nibras-import-termux` · `nibras-phrase` · `nibras-man` · `nibras-ports` · Git asks the phone, not the terminal |
 
 ## 🎨 Colors in one line
 

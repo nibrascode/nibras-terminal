@@ -212,3 +212,7 @@ Nibras Terminal asks for a permission only when a command needs it. Camera, micr
 **Why is the app so small?** Only Alpine Linux and the translations are included. Everything else is downloaded with `install` when you need it.
 
 **Does it work on 32-bit phones?** Yes. One APK supports both arm64 and arm32 devices.
+
+## 18. Additions in 1.0.4
+
+`nibras-man` explains each one in your language. Short list: `nibras-update` (checks the release signature), `nibras-apk diff`, `nibras-allow`, `nibras-guest`, `nibras-secret`, `record`, a `.nibras/keys` file in a project, `nibras-job`, `nibras-peer`, `nibras-qr-run`, `nibras-mirror`, `nibras-setup`, `nibras-import-termux`, `nibras-phrase`, `nibras-ports`. Git asks the phone for a password and does not print it. The first screen of the website is unchanged.

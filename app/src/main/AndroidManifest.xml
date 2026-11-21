@@ -168,6 +168,20 @@
                 android:value="Keeps user-started Linux terminal sessions running while the app is in the background." />
         </service>
 
+        <service
+            android:name=".JobRunService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Runs a command the user started until it finishes, so the screen can turn off." />
+        </service>
+
+        <activity
+            android:name=".LocalPageActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NibrasTerminal" />
+
         <receiver android:name=".PrayerReceiver" android:exported="false" />
         <receiver android:name=".InstallResultReceiver" android:exported="false" />
         <receiver android:name=".NotificationActionReceiver" android:exported="false" />

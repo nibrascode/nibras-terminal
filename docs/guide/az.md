@@ -243,3 +243,7 @@ Nibras Terminal icazəni yalnız əmrə lazım olanda istəyir. Kamera, mikrofon
 **Tətbiq niyə bu qədər kiçikdir?** İçində yalnız Alpine Linux və tərcümələr var. Qalan hər şey lazım olanda `install` ilə yüklənir.
 
 **32-bit telefonlarda işləyirmi?** Bəli. Bir APK həm arm64, həm də arm32 cihazları dəstəkləyir.
+
+## 18. 1.0.4 əlavələri
+
+`nibras-man` hər birini öz dilində izah edir. Qısa siyahı: `nibras-update` (release imzasını yoxlayır), `nibras-apk diff`, `nibras-allow`, `nibras-guest`, `nibras-secret`, `record`, layihədə `.nibras/keys`, `nibras-job`, `nibras-peer`, `nibras-qr-run`, `nibras-mirror`, `nibras-setup`, `nibras-import-termux`, `nibras-phrase`, `nibras-ports`. Git parolu telefondan soruşur və terminala yazmır. Saytın ilk ekranı dəyişməyib.

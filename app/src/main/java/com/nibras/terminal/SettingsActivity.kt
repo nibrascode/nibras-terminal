@@ -29,6 +29,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.key
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.nibras.terminal.core.DeviceAbi
 import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Prefs
@@ -113,6 +115,28 @@ class SettingsActivity : ComponentActivity() {
             Toggle(stringResource(R.string.set_back_esc), prefs.backIsEscape) { prefs.backIsEscape = it; bump() }
             Toggle(stringResource(R.string.set_fullscreen), prefs.fullscreen) { prefs.fullscreen = it; bump() }
             Toggle(stringResource(R.string.set_volume_keys), prefs.volumeKeys) { prefs.volumeKeys = it; bump() }
+            key(refresh) {
+                val guestOn = GuestMode.on(this@SettingsActivity)
+                Toggle(stringResource(R.string.set_guest), guestOn) { want ->
+                    if (want) {
+                        GuestMode.set(this@SettingsActivity, true)
+                        bump()
+                    } else {
+                        thread {
+                            val raw = PromptActivity.ask(this@SettingsActivity, "dialog", listOf("confirm", "-t", "Nibras", "-i", getString(R.string.guest_off_ask)), timeoutSec = 30)
+                            val yes = runCatching { org.json.JSONObject(raw).optString("text") == "yes" }.getOrDefault(false)
+                            if (yes) GuestMode.set(this@SettingsActivity, false)
+                            runOnUiThread { bump() }
+                        }
+                    }
+                }
+            }
+            TextButton(onClick = {
+                thread {
+                    val msg = Updater.run(this@SettingsActivity)
+                    runOnUiThread { Toast.makeText(this@SettingsActivity, msg, Toast.LENGTH_LONG).show() }
+                }
+            }) { Text(stringResource(R.string.check_update), color = Gold) }
 
             Section(stringResource(R.string.set_default_env))
             val envs = Rootfs.ready(this@SettingsActivity).map { it.id to it.name } + (Rootfs.ANDROID to stringResource(R.string.android_shell))
