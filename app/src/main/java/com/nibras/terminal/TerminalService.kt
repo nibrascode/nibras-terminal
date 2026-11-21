@@ -40,6 +40,9 @@ class TerminalService : Service(), ApiBridge.Host {
     }
 
     /** Implemented by MainActivity while it is bound. */
+    /** The floating window (FloatService) also renders sessions. */
+    var floatListener: ((TerminalSession) -> Unit)? = null
+
     interface Ui {
         val sessionClient: TerminalSessionClient
         fun onSessionsChanged()
@@ -71,7 +74,10 @@ class TerminalService : Service(), ApiBridge.Host {
 
     /** Forwards to the activity when attached; keeps background sessions running otherwise. */
     val client = object : TerminalSessionClient {
-        override fun onTextChanged(changedSession: TerminalSession) { ui?.sessionClient?.onTextChanged(changedSession) }
+        override fun onTextChanged(changedSession: TerminalSession) {
+            ui?.sessionClient?.onTextChanged(changedSession)
+            floatListener?.invoke(changedSession)
+        }
         override fun onTitleChanged(changedSession: TerminalSession) { ui?.sessionClient?.onTitleChanged(changedSession) }
         override fun onSessionFinished(finishedSession: TerminalSession) {
             if (finishedSession in background) {

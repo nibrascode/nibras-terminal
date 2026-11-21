@@ -175,4 +175,23 @@
     <string name="auto_command" formatted="false">Kabuk komutu</string>
     <string name="auto_wait" formatted="false">Sonucu bekle (%stdout, %stderr, %exit_code)</string>
     <string name="auto_title" formatted="false">Nibras Terminal: komut çalıştır</string>
+    <string name="tool_store">Mağaza</string>
+    <string name="tool_float">Yüzen pencere</string>
+    <string name="tool_voice">Ses</string>
+    <string name="store_hint">Paketler sadece kurulunca indirilir — uygulama küçük kalır.</string>
+    <string name="store_install">Kur</string>
+    <string name="store_try">Nasıl kullanılır</string>
+    <string name="float_permission">Yüzen terminal için \"Diğer uygulamaların üzerinde göster\" iznini ver</string>
+    <string name="root_shell">Root kabuk (su)</string>
+    <string name="menu_clipboard_history">Pano geçmişi</string>
+    <string name="menu_monitor">CPU/RAM monitörü</string>
+    <string name="menu_battery_saver">Pil tasarrufu</string>
+    <string name="menu_app_lock">Parmak iziyle kilitle</string>
+    <string name="app_lock_on">Uygulama kilidi açık</string>
+    <string name="app_lock_prompt">Nibras Terminal kilidini aç</string>
+    <string name="app_lock_no_screen_lock">Telefonda ekran kilidi yok</string>
+    <string name="battery_saver_on">Pil tasarrufu açık</string>
+    <string name="battery_saver_off">Pil tasarrufu kapalı</string>
+    <string name="voice_prompt">Bir komut söyle…</string>
+    <string name="voice_missing">Telefonda ses tanıma uygulaması yok</string>
 </resources>

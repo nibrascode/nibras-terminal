@@ -176,4 +176,23 @@
     <string name="auto_command" formatted="false">Shell command</string>
     <string name="auto_wait" formatted="false">Wait for the result (%stdout, %stderr, %exit_code)</string>
     <string name="auto_title" formatted="false">Nibras Terminal: run command</string>
+    <string name="tool_store">Store</string>
+    <string name="tool_float">Float</string>
+    <string name="tool_voice">Voice</string>
+    <string name="store_hint">Packs are downloaded only when you install them — the app stays small.</string>
+    <string name="store_install">Install</string>
+    <string name="store_try">How to use</string>
+    <string name="float_permission">Allow \"Display over other apps\" for the floating terminal</string>
+    <string name="root_shell">Root shell (su)</string>
+    <string name="menu_clipboard_history">Clipboard history</string>
+    <string name="menu_monitor">CPU/RAM monitor</string>
+    <string name="menu_battery_saver">Battery saver</string>
+    <string name="menu_app_lock">Lock with fingerprint</string>
+    <string name="app_lock_on">App lock is on</string>
+    <string name="app_lock_prompt">Unlock Nibras Terminal</string>
+    <string name="app_lock_no_screen_lock">No screen lock is set on this phone</string>
+    <string name="battery_saver_on">Battery saver on</string>
+    <string name="battery_saver_off">Battery saver off</string>
+    <string name="voice_prompt">Say a command…</string>
+    <string name="voice_missing">No speech recognition app on this phone</string>
 </resources>

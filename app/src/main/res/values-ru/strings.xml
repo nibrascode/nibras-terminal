@@ -175,4 +175,23 @@
     <string name="auto_command" formatted="false">Команда оболочки</string>
     <string name="auto_wait" formatted="false">Ждать результат (%stdout, %stderr, %exit_code)</string>
     <string name="auto_title" formatted="false">Nibras Terminal: выполнить команду</string>
+    <string name="tool_store">Магазин</string>
+    <string name="tool_float">Плавающее окно</string>
+    <string name="tool_voice">Голос</string>
+    <string name="store_hint">Пакеты скачиваются только при установке — приложение остаётся маленьким.</string>
+    <string name="store_install">Установить</string>
+    <string name="store_try">Как пользоваться</string>
+    <string name="float_permission">Разрешите «Поверх других приложений» для плавающего терминала</string>
+    <string name="root_shell">Root-оболочка (su)</string>
+    <string name="menu_clipboard_history">История буфера</string>
+    <string name="menu_monitor">Монитор CPU/RAM</string>
+    <string name="menu_battery_saver">Экономия батареи</string>
+    <string name="menu_app_lock">Блокировка отпечатком</string>
+    <string name="app_lock_on">Блокировка включена</string>
+    <string name="app_lock_prompt">Разблокируйте Nibras Terminal</string>
+    <string name="app_lock_no_screen_lock">На телефоне нет блокировки экрана</string>
+    <string name="battery_saver_on">Экономия батареи вкл.</string>
+    <string name="battery_saver_off">Экономия батареи выкл.</string>
+    <string name="voice_prompt">Скажите команду…</string>
+    <string name="voice_missing">Нет приложения распознавания речи</string>
 </resources>

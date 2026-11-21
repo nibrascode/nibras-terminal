@@ -61,6 +61,12 @@ class Prefs(context: Context) {
 object Lang {
     val supported = listOf("", "az", "tr", "en", "ru")
 
+    /** Effective UI language code (az / tr / ru / en). */
+    fun current(context: Context): String {
+        val code = Prefs(context).language.ifBlank { context.resources.configuration.locales[0].language }
+        return if (code in listOf("az", "tr", "ru")) code else "en"
+    }
+
     fun wrap(base: Context): Context {
         val code = Prefs(base).language
         if (code.isBlank()) return base

@@ -25,6 +25,8 @@
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="com.nibras.terminal.permission.RUN_COMMAND" />
 
     <!-- Other apps (Tasker, automation tools) may run commands only after the user grants this. -->
@@ -72,6 +74,8 @@
 
         <activity android:name=".HostsActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
             android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".StoreActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
+        <service android:name=".FloatService" android:exported="false" />
         <activity android:name=".FilesActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
         <activity android:name=".EditorActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
             android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />

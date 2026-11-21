@@ -278,3 +278,31 @@ object GuestPaths {
         }
     }
 }
+
+/** Spoken phrase (AZ/TR/EN/RU) → command text typed at the prompt (not executed). */
+object VoiceCommands {
+    private val table = listOf(
+        listOf("birləşdir", "birlesdir", "birleştir", "merge", "склеить", "объедин") to "video merge ",
+        listOf("sıx", "sikistir", "sıkıştır", "compress", "сжать") to "video compress ",
+        listOf("yüklə", "yukle", "indir", "download", "скачать", "загруз") to "download ",
+        listOf("mp3", "musiqi", "müzik", "music", "музык") to "download audio ",
+        listOf("pdf") to "pdf ",
+        listOf("şəkil", "sekil", "resim", "image", "photo", "фото", "изображ") to "image ",
+        listOf("mətn", "metin", "ocr", "текст") to "ocr ",
+        listOf("sürət", "hız", "speed", "скорость") to "net speed",
+        listOf("namaz", "prayer", "намаз") to "prayer",
+        listOf("quran", "kuran", "коран") to "quran random",
+        listOf("təmizlə", "temizle", "clear", "очист") to "clear",
+        listOf("yenilə", "güncelle", "update", "обнов") to "pkg upgrade",
+        listOf("qur", "kur", "install", "установ") to "install ",
+        listOf("siyahı", "liste", "list files", "список") to "ls -la",
+        listOf("öyrən", "öğren", "learn", "учить") to "learn",
+        listOf("oyun", "game", "игр") to "games",
+    )
+
+    fun toCommand(said: String): String {
+        val t = said.lowercase().trim()
+        for ((keys, cmd) in table) if (keys.any { t.contains(it) }) return cmd
+        return t
+    }
+}
