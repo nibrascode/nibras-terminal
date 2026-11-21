@@ -24,6 +24,18 @@ adb shell input text "echo%sNIBRAS_OK_\$((6*7))"
 adb shell input keyevent 66
 sleep 3
 adb exec-out screencap -p > "$OUT/screen-android-shell.png" || true
+# Termux:API compatible phone commands from the Android shell session.
+adb exec-in run-as com.nibras.terminal sh -c 'cat > files/home/apitest.sh' < "$(dirname "$0")/api-test.sh"
+adb shell input text "sh%sapitest.sh"
+adb shell input keyevent 66
+for i in $(seq 1 30); do
+  sleep 2
+  adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>/dev/null | grep -q API_TEST_DONE && break
+done
+adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>&1 | tee "$OUT/api-test.txt"
+grep -q '"percentage"' "$OUT/api-test.txt" && grep -q '"max_volume"' "$OUT/api-test.txt" && grep -q 'clip: hello-clip' "$OUT/api-test.txt" \
+  && grep -q '"sensors"' "$OUT/api-test.txt" && grep -q API_TEST_DONE "$OUT/api-test.txt" && echo "API OK" | tee -a "$OUT/alive.txt" \
+  || { echo "API test failed" | tee -a "$OUT/alive.txt"; ok=0; }
 # Open every tool screen once; each must come up without killing the app.
 for screen in store hosts files editor media packages; do
   adb shell am start -n com.nibras.terminal/.MainActivity --es open $screen >/dev/null
