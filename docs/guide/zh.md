@@ -2,6 +2,9 @@
 
 [← 返回 README](../../README.md) · [所有语言](../../README.md#-guides-in-your-language)
 
+> 手机应用和网页终端不是同一个程序。相机、麦克风、短信、通讯录和通话记录只在手机上，而且每次都会再问一次。网页不能运行它们。列表：[命令](../COMMANDS.md)。
+
+
 ## 1. 什么是 Nibras Terminal？
 
 Nibras Terminal 是一款适用于 Android 手机的完整 Linux 终端。应用打开后直接进入真正的终端，内置的 Alpine Linux 无需任何设置即可使用，还可以随时添加 Debian、Ubuntu、Arch、Fedora 和 Kali。它还包含支持语言服务器的代码编辑器、文件管理器、SSH 客户端、构建和修改 APK 文件的工具、多媒体工具，以及大量 Nibras 独有的命令。由于大型工具只会在你需要时下载，应用本身保持小巧。

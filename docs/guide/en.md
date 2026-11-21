@@ -2,6 +2,9 @@
 
 [← Back to the README](../../README.md) · [All languages](../../README.md#-guides-in-your-language)
 
+> The phone app and the web terminal are different. Camera, microphone, SMS, contacts and the call log work on the phone only, and each of those commands asks for a yes every time. The web terminal cannot run them. List: [Commands](../COMMANDS.md).
+
+
 ## 1. What is Nibras Terminal?
 
 Nibras Terminal is a full Linux terminal for Android phones. It opens straight into a real terminal, runs Alpine Linux out of the box, and can add Debian, Ubuntu, Arch, Fedora and Kali whenever you need them. It also includes a code editor with language-server support, a file manager, an SSH client, tools for building and modifying APK files, media tools and a large set of commands that only Nibras has. The app itself stays small, because heavy tools are downloaded only when you ask for them.

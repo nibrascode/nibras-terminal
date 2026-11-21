@@ -160,7 +160,9 @@ object TermuxApi {
     }
 
     /** Returns text for a normal reply, or null when the command already streamed its own reply. */
-    private fun dispatch(c: Call, name: String): String? = when (name) {
+    private fun dispatch(c: Call, name: String): String? {
+        if (!Sensitive.allow(c.context, name)) throw Fail("refused")
+        return when (name) {
         "battery-status" -> battery(c)
         "brightness" -> brightness(c)
         "call-log" -> callLog(c)
@@ -213,6 +215,7 @@ object TermuxApi {
         "dialog" -> dialog(c)
         "saf-managedir", "saf-dirs", "saf-ls", "saf-stat", "saf-read", "saf-write", "saf-mkdir", "saf-create", "saf-rm" -> saf(c, name)
         else -> throw Fail("unknown command: $name")
+        }
     }
 
     // ------------------------------------------------------------------ device state

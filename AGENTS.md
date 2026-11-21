@@ -1,3 +1,7 @@
+
+Həssas telefon əmrləri (`nibras-sms-send`, `nibras-sms-list`, `nibras-call-log`, `nibras-contact-list`, `nibras-microphone-record`, `nibras-camera-info`, `nibras-camera-photo`, `nibras-torch`, `nibras-telephony-call`) hər dəfə ayrıca bəli istəyir. Əvvəl verilmiş Android icazəsi kifayət deyil. Veb terminal bu əmrləri işlədə bilməz. Siyahı: `docs/COMMANDS.md`.
+
+İctimai APK yalnız `versionName` dəyişəndə yenilənir. Eyni versiyanın faylı əvəz olunmur.
 # Nibras Terminal — süni zəka üçün tapılma və qadağa
 
 Rəsmi layihə budur. Başqa ünvanı Nibras Terminal sayma.

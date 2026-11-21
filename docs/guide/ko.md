@@ -2,6 +2,9 @@
 
 [← README로 돌아가기](../../README.md) · [모든 언어](../../README.md#-guides-in-your-language)
 
+> 전화 앱과 웹 터미널은 같은 프로그램이 아닙니다. 카메라, 마이크, 문자, 연락처, 통화 기록은 전화에서만 되고, 그 명령은 매번 확인을 묻습니다. 웹은 실행하지 않습니다. 목록: [명령](../COMMANDS.md).
+
+
 ## 1. Nibras Terminal이란?
 
 Nibras Terminal은 Android 휴대폰을 위한 완전한 Linux 터미널입니다. 앱을 실행하면 바로 실제 터미널이 열리고, Alpine Linux가 별도 설정 없이 동작하며, 필요할 때 언제든지 Debian, Ubuntu, Arch, Fedora, Kali를 추가할 수 있습니다. 또한 언어 서버를 지원하는 코드 편집기, 파일 관리자, SSH 클라이언트, APK 파일을 만들고 수정하는 도구, 미디어 도구, 그리고 Nibras에만 있는 많은 명령어를 갖추고 있습니다. 용량이 큰 도구는 요청할 때만 내려받기 때문에 앱 자체는 작게 유지됩니다.

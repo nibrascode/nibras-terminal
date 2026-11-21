@@ -2,6 +2,9 @@
 
 [← README-yə qayıt](../../README.md) · [Bütün dillər](../../README.md#-guides-in-your-language)
 
+> Telefon tətbiqi ilə veb terminal eyni proqram deyil. Kamera, mikrofon, SMS, kontakt və zəng jurnalı yalnız telefondadır və hər dəfə ayrıca bəli istəyir. Veb onları işlədə bilməz. Siyahı: [Əmrlər](../COMMANDS.md).
+
+
 ## 1. Nibras Terminal nədir?
 
 Nibras Terminal Android telefonlar üçün tam Linux terminalıdır. Tətbiq açılan kimi birbaşa əsl terminal gəlir, Alpine Linux hazır işləyir, Debian, Ubuntu, Arch, Fedora və Kali isə lazım olanda əlavə edilir. Tətbiqin içində dil serveri dəstəkli kod redaktoru, fayl meneceri, SSH müştərisi, APK yığmaq və dəyişdirmək üçün alətlər, media alətləri və yalnız Nibras-da olan çoxlu əmr var. Ağır alətlər yalnız siz istəyəndə yükləndiyi üçün tətbiqin özü kiçik qalır.

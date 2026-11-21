@@ -2,6 +2,9 @@
 
 [← Kembali ke README](../../README.md) · [Semua bahasa](../../README.md#-guides-in-your-language)
 
+> Apl telefon dan terminal web bukan program yang sama. Kamera, mikrofon, SMS, kenalan dan log panggilan hanya pada telefon, dan setiap arahan meminta ya setiap kali. Web tidak menjalankannya. Senarai: [Arahan](../COMMANDS.md).
+
+
 ## 1. Apakah Nibras Terminal?
 
 Nibras Terminal ialah terminal Linux lengkap untuk telefon Android. Aplikasi ini terus dibuka dalam terminal sebenar, menjalankan Alpine Linux tanpa sebarang tetapan, dan boleh menambah Debian, Ubuntu, Arch, Fedora serta Kali bila-bila masa anda memerlukannya. Ia juga mempunyai editor kod dengan sokongan pelayan bahasa, pengurus fail, klien SSH, alat untuk membina dan mengubah suai fail APK, alat media dan banyak arahan yang hanya terdapat dalam Nibras. Saiz aplikasi kekal kecil kerana alat yang besar hanya dimuat turun apabila anda memintanya.

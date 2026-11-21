@@ -68,6 +68,9 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 1. Download the APK: [nibras-terminal-1.0.0.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.1).
 2. Open the file on the phone and allow "Install unknown apps".
 
+
+Phone and web are different programs. Where each command runs: [docs/COMMANDS.md](docs/COMMANDS.md). Camera, microphone, SMS, contacts and the call log are phone-only and ask every time.
+
 The file is signed with one release key that stays the same. If you installed the older debug APK, uninstall it once, then install this one. Later updates install on top.
 
 Camera, microphone, SMS, contacts and location are asked only when you run that command, not when the app opens.
