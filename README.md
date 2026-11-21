@@ -30,7 +30,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-1f6feb?style=flat-square" alt="version 1.0.0">
+  <img src="https://img.shields.io/badge/version-1.0.3-1f6feb?style=flat-square" alt="version 1.0.3">
   <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-no%20copy-red?style=flat-square" alt="No copy. All rights reserved."></a>
@@ -38,7 +38,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.1-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.3-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
 </p>
 
 <p align="center">
@@ -65,11 +65,11 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 
 ## 🚀 Quick start
 
-1. Download the APK: [nibras-terminal-1.0.0.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.1).
+1. Download the APK: [nibras-terminal.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.3).
 2. Open the file on the phone and allow "Install unknown apps".
 
 
-Phone and web are different programs. Where each command runs: [docs/COMMANDS.md](docs/COMMANDS.md). Camera, microphone, SMS, contacts and the call log are phone-only and ask every time.
+Phone and web are different programs. Where each command runs: [docs/COMMANDS.md](docs/COMMANDS.md). Camera, microphone, SMS, contacts, the call log, location, the clipboard and notifications are phone-only and ask every time. If you do not answer in 30 seconds, the answer is no.
 
 The file is signed with one release key that stays the same. If you installed the older debug APK, uninstall it once, then install this one. Later updates install on top.
 

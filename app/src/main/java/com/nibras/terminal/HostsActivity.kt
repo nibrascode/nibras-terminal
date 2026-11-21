@@ -224,8 +224,8 @@ class HostsActivity : Activity() {
             if (w == 5) { val m = listOf("group", "recent", "used", "name"); sortMode = m[(m.indexOf(sortMode) + 1) % m.size]; adapter.notifyDataSetChanged(); return@setItems }
             if (w == 0) {
                 save(this, hosts)
-                val out = File(cacheDir, "nibras-hosts.txt").also { file(this).copyTo(it, overwrite = true) }
-                val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", out)
+                val out = File(cacheDir, "shared/nibras-hosts.txt").also { it.parentFile?.mkdirs(); file(this).copyTo(it, overwrite = true) }
+                val uri = SharedFiles.expose(this, out)
                 startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain")
                     .putExtra(android.content.Intent.EXTRA_STREAM, uri).addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION), "hosts"))
             } else {

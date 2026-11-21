@@ -10,3 +10,6 @@ nmsg.not_running	未运行
 nmsg.desk_wait	正在启动桌面…
 nmsg.desk_stopped	桌面已停止
 nmsg.lang_now	当前语言：%s
+nmsg.sshd_ask	启动 SSH 服务？仅密钥。密码登录保持关闭。
+nmsg.sshd_need_key	请先写入 ~/.ssh/authorized_keys。密码登录已关闭。
+nmsg.sshd_boot	SSH 服务不会在开机时启动。

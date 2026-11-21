@@ -286,4 +286,39 @@
     <string name="remote_note">Buka pada komputer (Wi-Fi yang sama, pautan sekali guna):\n%1$s</string>
     <string name="remote_stop">Henti</string>
     <string name="remote_used">Pautan ini telah digunakan atau tamat tempoh. Jalankan “remote” dalam Nibras Terminal untuk pautan baharu.</string>
+    <string name="allow_sms_read">Baca SMS? Ini menunjukkan mesej peribadi.</string>
+    <string name="allow_sms_send">Hantar SMS kepada %1$s?
+%2$s</string>
+    <string name="allow_call_log">Baca log panggilan?</string>
+    <string name="allow_contacts">Baca kenalan?</string>
+    <string name="allow_mic">Guna mikrofon?</string>
+    <string name="allow_camera">Guna kamera?</string>
+    <string name="allow_torch">Hidupkan lampu?</string>
+    <string name="allow_call">Panggil %1$s?</string>
+    <string name="allow_location">Baca lokasi telefon ini?</string>
+    <string name="allow_clipboard">Baca papan keratan? Ia mungkin ada kata laluan.</string>
+    <string name="allow_notifications">Baca pemberitahuan? Ia mungkin ada kod mesej.</string>
+    <string name="allow_generic">Benarkan %1$s? Ini menggunakan data peribadi telefon.</string>
+    <string name="allow_sshd">Mulakan pelayan SSH? Kunci sahaja. Kata laluan kekal tutup.</string>
+    <string name="allow_keystore_sign">Tandatangan dengan kunci %1$s?</string>
+    <string name="allow_keystore_delete">Padam kunci %1$s?</string>
+    <string name="share_ask">Buka %1$s (%2$s)? Ia tidak jalan sebelum ya.</string>
+    <string name="boot_ran">But: %1$s</string>
+    <string name="sig_title">Tandatangan</string>
+    <string name="sig_fingerprint">SHA-256 tandatangan:
+%1$s</string>
+    <string name="sig_check">Semak fail yang diterbitkan</string>
+    <string name="sig_checking">Menyemak…</string>
+    <string name="sig_same">Terbitan %1$s sepadan dengan fail ini (%2$s). Tiada yang dipasang.</string>
+    <string name="sig_other">Terbitan %1$s tidak sepadan dengan fail ini.
+SHA-256 terbitan:
+%2$s
+Fail ini:
+%3$s
+Tiada yang dipasang.</string>
+    <string name="sig_fail">Fail terbitan tidak dapat dibaca. Tiada yang dipasang.</string>
+    <string name="remote_code_label">Kod: %1$s. Taipkannya dalam pelayar. Pautan sahaja tidak cukup.</string>
+    <string name="remote_code_short">Kod %1$s</string>
+    <string name="remote_enter_code">Taip kod yang terpapar pada telefon.</string>
+    <string name="remote_bad_code">Kod salah. Jika berterusan, jalankan remote semula pada telefon.</string>
 </resources>

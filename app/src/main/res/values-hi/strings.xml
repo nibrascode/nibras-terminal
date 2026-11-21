@@ -119,4 +119,39 @@
     <string name="remote_note">अपने कंप्यूटर पर खोलें (वही Wi-Fi, एक बार का लिंक):\n%1$s</string>
     <string name="remote_stop">रोकें</string>
     <string name="remote_used">यह लिंक पहले ही इस्तेमाल हो चुका है या समाप्त हो गया है। नया लिंक पाने के लिए Nibras Terminal में “remote” चलाएँ।</string>
+    <string name="allow_sms_read">SMS पढ़ें? यह निजी संदेश दिखाता है।</string>
+    <string name="allow_sms_send">%1$s को SMS भेजें?
+%2$s</string>
+    <string name="allow_call_log">कॉल लॉग पढ़ें?</string>
+    <string name="allow_contacts">संपर्क पढ़ें?</string>
+    <string name="allow_mic">माइक्रोफ़ोन इस्तेमाल करें?</string>
+    <string name="allow_camera">कैमरा इस्तेमाल करें?</string>
+    <string name="allow_torch">टॉर्च चालू करें?</string>
+    <string name="allow_call">%1$s को कॉल करें?</string>
+    <string name="allow_location">इस फ़ोन का स्थान पढ़ें?</string>
+    <string name="allow_clipboard">क्लिपबोर्ड पढ़ें? इसमें पासवर्ड हो सकता है।</string>
+    <string name="allow_notifications">सूचनाएँ पढ़ें? इनमें संदेश कोड हो सकता है।</string>
+    <string name="allow_generic">%1$s की अनुमति दें? यह फ़ोन का निजी डेटा इस्तेमाल करता है।</string>
+    <string name="allow_sshd">SSH सर्वर शुरू करें? केवल कुंजी। पासवर्ड बंद रहता है।</string>
+    <string name="allow_keystore_sign">कुंजी %1$s से हस्ताक्षर करें?</string>
+    <string name="allow_keystore_delete">कुंजी %1$s हटाएँ?</string>
+    <string name="share_ask">%1$s (%2$s) खोलें? हाँ से पहले नहीं चलेगा।</string>
+    <string name="boot_ran">बूट: %1$s</string>
+    <string name="sig_title">हस्ताक्षर</string>
+    <string name="sig_fingerprint">हस्ताक्षर SHA-256:
+%1$s</string>
+    <string name="sig_check">प्रकाशित फ़ाइल जाँचें</string>
+    <string name="sig_checking">जाँच हो रही है…</string>
+    <string name="sig_same">प्रकाशित %1$s इस फ़ाइल से मेल खाती है (%2$s)। कुछ स्थापित नहीं हुआ।</string>
+    <string name="sig_other">प्रकाशित %1$s इस फ़ाइल से मेल नहीं खाती।
+प्रकाशित SHA-256:
+%2$s
+यह फ़ाइल:
+%3$s
+कुछ स्थापित नहीं हुआ।</string>
+    <string name="sig_fail">प्रकाशित फ़ाइल पढ़ी नहीं जा सकी। कुछ स्थापित नहीं हुआ।</string>
+    <string name="remote_code_label">कोड: %1$s। इसे ब्राउज़र में लिखें। केवल लिंक काफी नहीं।</string>
+    <string name="remote_code_short">कोड %1$s</string>
+    <string name="remote_enter_code">फ़ोन पर दिख रहा कोड लिखें।</string>
+    <string name="remote_bad_code">गलत कोड। जारी रहे तो फ़ोन पर remote फिर चलाएँ।</string>
 </resources>

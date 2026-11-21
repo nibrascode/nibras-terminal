@@ -238,35 +238,14 @@ async function githubError(response: Response) {
 
 const SECRET_NAMES = ["NIBRAS_KEYSTORE_B64", "NIBRAS_STORE_PASSWORD", "NIBRAS_KEY_PASSWORD", "NIBRAS_KEY_ALIAS"] as const;
 
-async function ensureReleaseKey(token: string, headers: Record<string, string>) {
+async function ensureReleaseKey(_token: string, headers: Record<string, string>) {
   const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
   if (!listed.ok) throw new Error("Release key was not saved.");
   const body = (await listed.json()) as { secrets?: Array<{ name: string }> };
   const names = new Set((body.secrets ?? []).map((item) => item.name));
   if (SECRET_NAMES.every((name) => names.has(name))) return;
-  const made = await createReleaseKey();
-  await putSecret(token, headers, "NIBRAS_KEY_ALIAS", made.alias);
-  await putSecret(token, headers, "NIBRAS_STORE_PASSWORD", made.password);
-  await putSecret(token, headers, "NIBRAS_KEY_PASSWORD", made.password);
-  await putSecret(token, headers, "NIBRAS_KEYSTORE_B64", made.p12);
-}
-
-async function putSecret(token: string, headers: Record<string, string>, name: string, value: string) {
-  const keyRes = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets/public-key`, { headers });
-  if (keyRes.status === 401) throw new Error("Token qəbul edilmədi.");
-  if (!keyRes.ok) throw new Error("Release key was not saved.");
-  const key = (await keyRes.json()) as { key_id: string; key: string };
-  const sodium = (await import("libsodium-wrappers")).default;
-  await sodium.ready;
-  const sealed = sodium.crypto_box_seal(value, sodium.from_base64(key.key, sodium.base64_variants.ORIGINAL));
-  const saved = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets/${name}`, {
-    method: "PUT",
-    headers: { ...headers, "Content-Type": "application/json" },
-    body: JSON.stringify({ encrypted_value: sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL), key_id: key.key_id }),
-  });
-  if (saved.status === 401) throw new Error("Token qəbul edilmədi.");
-  if (!saved.ok) throw new Error("Release key was not saved.");
+  throw new Error("The website does not create or replace the release key.");
 }
 
 export async function createReleaseKey() {

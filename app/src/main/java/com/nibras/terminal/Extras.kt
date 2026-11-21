@@ -16,7 +16,9 @@ import android.widget.RemoteViewsService
 import android.widget.Toast
 import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Rootfs
+import org.json.JSONObject
 import java.io.File
+import kotlin.concurrent.thread
 
 /** Termux:Boot equivalent: runs scripts in ~/.nibras/boot (and ~/.termux/boot) after the phone starts. */
 class BootReceiver : BroadcastReceiver() {
@@ -125,20 +127,29 @@ class ShareActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        runCatching { handle() }.onFailure { Toast.makeText(this, it.message ?: "error", Toast.LENGTH_LONG).show() }
-        finish()
-    }
-
-    private fun handle() {
-        val id = Rootfs.pick(this, null)
-        val home = Rootfs.homeOf(this, id)
-        val downloads = File(home, "downloads").apply { mkdirs() }
-        val bin = File(home, "bin")
+        val app = applicationContext
         val text = intent.getStringExtra(Intent.EXTRA_TEXT)
         val stream: Uri? = if (intent.action == Intent.ACTION_VIEW) intent.data else {
             @Suppress("DEPRECATION")
             intent.getParcelableExtra(Intent.EXTRA_STREAM)
         }
+        val type = stream?.let { contentResolver.getType(it) } ?: if (!text.isNullOrBlank()) "text/plain" else "file"
+        val name = stream?.let { displayName(it) }?.replace('/', '_') ?: if (!text.isNullOrBlank()) "shared.txt" else "shared"
+        val message = getString(R.string.share_ask, name, type)
+        val title = getString(R.string.app_name)
+        thread {
+            val raw = PromptActivity.ask(app, "dialog", listOf("confirm", "-t", title, "-i", message), timeoutSec = 30)
+            val yes = runCatching { JSONObject(raw).optString("text") == "yes" }.getOrDefault(false)
+            if (yes) runCatching { handle(text, stream) }.onFailure { Toast.makeText(app, it.message ?: "error", Toast.LENGTH_LONG).show() }
+            runOnUiThread { finish() }
+        }
+    }
+
+    private fun handle(text: String?, stream: Uri?) {
+        val id = Rootfs.pick(this, null)
+        val home = Rootfs.homeOf(this, id)
+        val downloads = File(home, "downloads").apply { mkdirs() }
+        val bin = File(home, "bin")
         val guestHome = if (id == Rootfs.ANDROID) home.absolutePath else "/root"
         if (stream != null) {
             val name = displayName(stream)?.replace('/', '_') ?: "shared-${System.currentTimeMillis()}"

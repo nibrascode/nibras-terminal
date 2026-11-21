@@ -137,3 +137,6 @@ Nim compiler	مترجم Nim
 PowerShell 7 (pwsh, Debian/Ubuntu)	PowerShell 7 (pwsh، Debian/Ubuntu)
 run <file> [args] — python, js/ts, java, kotlin, c/c++, go, rust, php, ruby, perl, lua, dart, r, julia, haskell, elixir, zig, nim, bash, powershell…	run <ملف> [وسائط] — يتعرف على لغة الملف ويشغّله: python، js/ts، java، kotlin، c/c++، go، rust، php، ruby، perl، lua، dart، r، julia، haskell، elixir، zig، nim، bash، powershell…
 No project file found (Cargo.toml, go.mod, package.json, Makefile…)	لم يُعثر على ملف مشروع (Cargo.toml، go.mod، package.json، Makefile…)
+nmsg.sshd_ask	تشغيل خادم SSH؟ بالمفتاح فقط. كلمة المرور متوقفة.
+nmsg.sshd_need_key	اكتب ~/.ssh/authorized_keys أولاً. الدخول بكلمة المرور متوقف.
+nmsg.sshd_boot	خادم SSH لا يبدأ عند الإقلاع.

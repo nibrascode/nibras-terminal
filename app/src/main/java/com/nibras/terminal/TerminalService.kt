@@ -166,13 +166,14 @@ class TerminalService : Service(), ApiBridge.Host {
 
     fun createSession(
         env: String?, command: List<String>? = null, title: String? = null, inBackground: Boolean = false,
-        startDir: String? = null, key: String? = null,
+        startDir: String? = null, key: String? = null, boot: Boolean = false,
     ): TerminalSession {
         val id = Rootfs.pick(this, env)
         if (id != Rootfs.ANDROID) runCatching { Rootfs.refreshSessionFiles(this, id, api.port, api.token) }
         else runCatching { Rootfs.refreshAndroidApi(this, api.port, api.token) }
         val sessionKey = key ?: java.util.UUID.randomUUID().toString().take(8)
         val extra = mutableListOf("NIBRAS_SESSION=$sessionKey")
+        if (boot) extra += "NIBRAS_BOOT=1"
         (startDir?.takeIf { it.isNotBlank() } ?: com.nibras.terminal.ui.TermProps.workingDir)?.let { extra += "NIBRAS_START_DIR=$it" }
         val launch = Rootfs.launch(this, id, command, extra)
         val session = TerminalSession(launch.exe, launch.cwd, launch.args, launch.env, com.nibras.terminal.ui.TermProps.transcriptRows.takeIf { it > 0 } ?: TRANSCRIPT_ROWS, client)
@@ -206,7 +207,7 @@ class TerminalService : Service(), ApiBridge.Host {
         }
     }
 
-    /** Termux:Boot: executables in ~/.nibras/boot (or ~/.termux/boot) run once per boot. */
+    /** Termux:Boot: executables in ~/.nibras/boot (or ~/.termux/boot) run once per boot. sshd and remote never start here. */
     private fun runBootScripts() {
         val home = Rootfs.homeOf(this)
         val scripts = listOf(File(home, ".nibras/boot"), File(home, ".termux/boot"))
@@ -217,10 +218,34 @@ class TerminalService : Service(), ApiBridge.Host {
             if (sessions.isEmpty()) stopSelf()
             return
         }
+        val blocked = scripts.filter { f ->
+            val n = f.name.lowercase()
+            n.contains("sshd") || n == "remote" || n.contains("nibras-remote")
+        }
+        val run = scripts - blocked.toSet()
+        val shown = buildString {
+            if (run.isNotEmpty()) append(run.joinToString(", ") { it.name })
+            if (blocked.isNotEmpty()) {
+                if (isNotEmpty()) append(" · ")
+                append("skipped: ")
+                append(blocked.joinToString(", ") { it.name })
+            }
+        }
+        val nm = getSystemService(NotificationManager::class.java)
+        nm?.createNotificationChannel(NotificationChannel("boot", getString(R.string.app_name), NotificationManager.IMPORTANCE_DEFAULT))
+        nm?.notify(7401, Notification.Builder(this, "boot")
+            .setSmallIcon(R.drawable.ic_stat_terminal)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.boot_ran, shown))
+            .build())
+        if (run.isEmpty()) {
+            if (sessions.isEmpty()) stopSelf()
+            return
+        }
         setWakeLock(true)
-        for (f in scripts) {
+        for (f in run) {
             val guest = "/root/" + f.relativeTo(home).path
-            createSession(null, listOf(guest), "boot: ${f.name}", inBackground = true)
+            createSession(null, listOf(guest), "boot: ${f.name}", inBackground = true, boot = true)
         }
     }
 

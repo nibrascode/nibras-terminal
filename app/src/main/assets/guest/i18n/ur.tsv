@@ -10,3 +10,6 @@ nmsg.not_running	نہیں چل رہا
 nmsg.desk_wait	ڈیسک ٹاپ شروع ہو رہا ہے…
 nmsg.desk_stopped	ڈیسک ٹاپ بند ہو گیا
 nmsg.lang_now	اب زبان: %s
+nmsg.sshd_ask	SSH سرور چلے؟ صرف کلید۔ پاس ورڈ بند ہے۔
+nmsg.sshd_need_key	پہلے ~/.ssh/authorized_keys لکھیں۔ پاس ورڈ بند ہے۔
+nmsg.sshd_boot	SSH سرور بوٹ پر نہیں چلتا۔

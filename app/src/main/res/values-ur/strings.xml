@@ -286,4 +286,39 @@
     <string name="remote_note">اپنے کمپیوٹر پر کھولیں (وہی Wi-Fi، ایک بار کا لنک):\n%1$s</string>
     <string name="remote_stop">روکیں</string>
     <string name="remote_used">یہ لنک استعمال ہو چکا یا ختم ہو گیا۔ نیا لنک لینے کے لیے Nibras Terminal میں “remote” چلائیں۔</string>
+    <string name="allow_sms_read">ایس ایم ایس پڑھا جائے؟ یہ نجی پیغام دکھاتا ہے۔</string>
+    <string name="allow_sms_send">ایس ایم ایس %1$s کو بھیجا جائے؟
+%2$s</string>
+    <string name="allow_call_log">کال لاگ پڑھا جائے؟</string>
+    <string name="allow_contacts">رابطے پڑھے جائیں؟</string>
+    <string name="allow_mic">مائیکروفون استعمال ہو؟</string>
+    <string name="allow_camera">کیمرہ استعمال ہو؟</string>
+    <string name="allow_torch">فلیش لائٹ جلے؟</string>
+    <string name="allow_call">%1$s کو کال ہو؟</string>
+    <string name="allow_location">اس فون کا مقام پڑھا جائے؟</string>
+    <string name="allow_clipboard">کلپ بورڈ پڑھا جائے؟ اس میں پاس ورڈ ہو سکتا ہے۔</string>
+    <string name="allow_notifications">اطلاعات پڑھی جائیں؟ ان میں پیغام کا کوڈ ہو سکتا ہے۔</string>
+    <string name="allow_generic">%1$s کی اجازت؟ یہ فون کا نجی ڈیٹا استعمال کرتا ہے۔</string>
+    <string name="allow_sshd">SSH سرور چلے؟ صرف کلید۔ پاس ورڈ بند ہے۔</string>
+    <string name="allow_keystore_sign">کلید %1$s سے دستخط ہوں؟</string>
+    <string name="allow_keystore_delete">کلید %1$s مٹے؟</string>
+    <string name="share_ask">%1$s (%2$s) کھلے؟ ہاں سے پہلے نہیں چلے گا۔</string>
+    <string name="boot_ran">بوٹ: %1$s</string>
+    <string name="sig_title">دستخط</string>
+    <string name="sig_fingerprint">دستخط SHA-256:
+%1$s</string>
+    <string name="sig_check">شائع شدہ فائل چیک کریں</string>
+    <string name="sig_checking">چیک ہو رہا ہے…</string>
+    <string name="sig_same">شائع شدہ %1$s اس فائل سے ملتی ہے (%2$s)۔ کچھ انسٹال نہیں ہوا۔</string>
+    <string name="sig_other">شائع شدہ %1$s اس فائل سے نہیں ملتی۔
+شائع شدہ SHA-256:
+%2$s
+یہ فائل:
+%3$s
+کچھ انسٹال نہیں ہوا۔</string>
+    <string name="sig_fail">شائع شدہ فائل نہ پڑھی جا سکی۔ کچھ انسٹال نہیں ہوا۔</string>
+    <string name="remote_code_label">کوڈ: %1$s۔ اسے براؤزر میں لکھیں۔ صرف لنک کافی نہیں۔</string>
+    <string name="remote_code_short">کوڈ %1$s</string>
+    <string name="remote_enter_code">فون پر نظر آنے والا کوڈ لکھیں۔</string>
+    <string name="remote_bad_code">غلط کوڈ۔ اگر جاری رہے تو فون پر remote دوبارہ چلائیں۔</string>
 </resources>

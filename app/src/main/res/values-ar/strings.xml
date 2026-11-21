@@ -306,4 +306,39 @@
     <string name="remote_note">افتح على حاسوبك (نفس شبكة Wi-Fi، رابط لمرة واحدة):\n%1$s</string>
     <string name="remote_stop">إيقاف</string>
     <string name="remote_used">هذا الرابط استُخدم أو انتهت صلاحيته. شغّل «remote» في Nibras Terminal للحصول على رابط جديد.</string>
+    <string name="allow_sms_read">قراءة الرسائل؟ هذا يعرض رسائل خاصة.</string>
+    <string name="allow_sms_send">إرسال رسالة إلى %1$s؟
+%2$s</string>
+    <string name="allow_call_log">قراءة سجل المكالمات؟</string>
+    <string name="allow_contacts">قراءة جهات الاتصال؟</string>
+    <string name="allow_mic">استخدام الميكروفون؟</string>
+    <string name="allow_camera">استخدام الكاميرا؟</string>
+    <string name="allow_torch">تشغيل المصباح؟</string>
+    <string name="allow_call">الاتصال بـ %1$s؟</string>
+    <string name="allow_location">قراءة موقع هذا الهاتف؟</string>
+    <string name="allow_clipboard">قراءة الحافظة؟ قد تحتوي على كلمة مرور.</string>
+    <string name="allow_notifications">قراءة الإشعارات؟ قد تحتوي على رمز رسالة.</string>
+    <string name="allow_generic">السماح بـ %1$s؟ هذا يستخدم بيانات خاصة.</string>
+    <string name="allow_sshd">تشغيل خادم SSH؟ بالمفتاح فقط. كلمة المرور متوقفة.</string>
+    <string name="allow_keystore_sign">التوقيع بالمفتاح %1$s؟</string>
+    <string name="allow_keystore_delete">حذف المفتاح %1$s؟</string>
+    <string name="share_ask">فتح %1$s (%2$s)؟ لن يعمل قبل نعم.</string>
+    <string name="boot_ran">الإقلاع: %1$s</string>
+    <string name="sig_title">التوقيع</string>
+    <string name="sig_fingerprint">SHA-256 للتوقيع:
+%1$s</string>
+    <string name="sig_check">التحقق من الملف المنشور</string>
+    <string name="sig_checking">جار التحقق…</string>
+    <string name="sig_same">الإصدار المنشور %1$s يطابق هذا الملف (%2$s). لم يُثبَّت شيء.</string>
+    <string name="sig_other">الإصدار المنشور %1$s لا يطابق هذا الملف.
+SHA-256 المنشور:
+%2$s
+هذا الملف:
+%3$s
+لم يُثبَّت شيء.</string>
+    <string name="sig_fail">تعذر قراءة الملف المنشور. لم يُثبَّت شيء.</string>
+    <string name="remote_code_label">الرمز: %1$s. اكتبه في المتصفح. الرابط وحده لا يكفي.</string>
+    <string name="remote_code_short">الرمز %1$s</string>
+    <string name="remote_enter_code">اكتب الرمز الظاهر على الهاتف.</string>
+    <string name="remote_bad_code">رمز خاطئ. إذا تكرر، شغّل remote على الهاتف من جديد.</string>
 </resources>

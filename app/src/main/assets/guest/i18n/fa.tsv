@@ -10,3 +10,6 @@ nmsg.not_running	اجرا نمی‌شود
 nmsg.desk_wait	در حال راه‌اندازی دسکتاپ…
 nmsg.desk_stopped	دسکتاپ متوقف شد
 nmsg.lang_now	زبان اکنون: %s
+nmsg.sshd_ask	سرور SSH روشن شود؟ فقط کلید. رمز خاموش است.
+nmsg.sshd_need_key	اول ~/.ssh/authorized_keys را بنویسید. ورود با رمز خاموش است.
+nmsg.sshd_boot	سرور SSH هنگام راه‌اندازی شروع نمی‌شود.

@@ -160,7 +160,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).putExtra("install", id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 "OK\n${Rootfs.name(id)}: download started in the Environments screen"
             }
-            "keystore" -> com.nibras.terminal.KeystoreBridge.run(words(raw))
+            "keystore" -> com.nibras.terminal.KeystoreBridge.run(context, words(raw))
             "am" -> "OK\n" + AmCommand.run(context, words(raw))
             "env-list" -> "OK\n" + Rootfs.all.joinToString("\n") { e ->
                 val ready = Rootfs.isReady(context, e.id)
@@ -182,7 +182,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
                     ui { context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                     return "ERR\nAllow \"Install unknown apps\" for Nibras Terminal (screen opened), then run again"
                 }
-                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.files", f)
+                val uri = SharedFiles.expose(context, f)
                 ui { context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 "OK\nAndroid installer opened for ${f.name}"

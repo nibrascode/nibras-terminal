@@ -10,3 +10,6 @@ nmsg.not_running	detenido
 nmsg.desk_wait	Iniciando el escritorio…
 nmsg.desk_stopped	Escritorio detenido
 nmsg.lang_now	Idioma ahora: %s
+nmsg.sshd_ask	¿Iniciar el servidor SSH? Solo clave. La contraseña queda apagada.
+nmsg.sshd_need_key	Escribe primero ~/.ssh/authorized_keys. La contraseña está apagada.
+nmsg.sshd_boot	El servidor SSH no arranca al iniciar.

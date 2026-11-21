@@ -10,3 +10,6 @@ nmsg.not_running	läuft nicht
 nmsg.desk_wait	Desktop wird gestartet…
 nmsg.desk_stopped	Desktop gestoppt
 nmsg.lang_now	Sprache jetzt: %s
+nmsg.sshd_ask	SSH-Server starten? Nur Schlüssel. Passwort bleibt aus.
+nmsg.sshd_need_key	Schreibe zuerst ~/.ssh/authorized_keys. Passwort ist aus.
+nmsg.sshd_boot	Der SSH-Server startet nicht beim Hochfahren.

@@ -307,4 +307,39 @@
     <string name="remote_note">Bilgisayarında aç (aynı Wi-Fi, tek kullanımlık bağlantı):\n%1$s</string>
     <string name="remote_stop">Durdur</string>
     <string name="remote_used">Bu bağlantı zaten kullanıldı veya süresi doldu. Yenisi için Nibras Terminal\'de “remote” yaz.</string>
+    <string name="allow_sms_read">SMS okunsun mu? Bu, özel mesajları gösterir.</string>
+    <string name="allow_sms_send">SMS gönderilsin: %1$s?
+%2$s</string>
+    <string name="allow_call_log">Arama kaydı okunsun mu?</string>
+    <string name="allow_contacts">Kişiler okunsun mu?</string>
+    <string name="allow_mic">Mikrofon kullanılsın mı?</string>
+    <string name="allow_camera">Kamera kullanılsın mı?</string>
+    <string name="allow_torch">Fener açılsın mı?</string>
+    <string name="allow_call">Aransın: %1$s?</string>
+    <string name="allow_location">Bu telefonun konumu okunsun mu?</string>
+    <string name="allow_clipboard">Pano okunsun mu? İçinde parola olabilir.</string>
+    <string name="allow_notifications">Bildirimler okunsun mu? İçinde mesaj kodu olabilir.</string>
+    <string name="allow_generic">%1$s için izin verilsin mi? Bu, telefonun özel verisini kullanır.</string>
+    <string name="allow_sshd">SSH sunucusu açılsın mı? Yalnızca anahtar. Parola kapalı.</string>
+    <string name="allow_keystore_sign">%1$s anahtarıyla imzalansın mı?</string>
+    <string name="allow_keystore_delete">%1$s anahtarı silinsin mi?</string>
+    <string name="share_ask">%1$s (%2$s) açılsın mı? Evet demeden çalışmaz.</string>
+    <string name="boot_ran">Açılış: %1$s</string>
+    <string name="sig_title">İmza</string>
+    <string name="sig_fingerprint">İmza SHA-256:
+%1$s</string>
+    <string name="sig_check">Yayımlanan dosyayı denetle</string>
+    <string name="sig_checking">Denetleniyor…</string>
+    <string name="sig_same">Yayımlanan %1$s bu dosyayla aynı (%2$s). Hiçbir şey kurulmadı.</string>
+    <string name="sig_other">Yayımlanan %1$s bu dosyayla aynı değil.
+Yayımlanan SHA-256:
+%2$s
+Bu dosya:
+%3$s
+Hiçbir şey kurulmadı.</string>
+    <string name="sig_fail">Yayımlanan dosya okunamadı. Hiçbir şey kurulmadı.</string>
+    <string name="remote_code_label">Kod: %1$s. Onu tarayıcıya yaz. Yalnızca bağlantı yetmez.</string>
+    <string name="remote_code_short">Kod %1$s</string>
+    <string name="remote_enter_code">Telefonda görünen kodu yaz.</string>
+    <string name="remote_bad_code">Kod yanlış. Sürerse telefonda remote komutunu yeniden çalıştır.</string>
 </resources>

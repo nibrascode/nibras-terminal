@@ -308,4 +308,39 @@
     <string name="remote_note">Open on your computer (same Wi-Fi, one-time link):\n%1$s</string>
     <string name="remote_stop">Stop</string>
     <string name="remote_used">This link was already used or has expired. Run “remote” in Nibras Terminal for a new one.</string>
+    <string name="allow_sms_read">Read SMS? This shows private messages.</string>
+    <string name="allow_sms_send">Send SMS to %1$s?
+%2$s</string>
+    <string name="allow_call_log">Read the call log?</string>
+    <string name="allow_contacts">Read contacts?</string>
+    <string name="allow_mic">Use the microphone?</string>
+    <string name="allow_camera">Use the camera?</string>
+    <string name="allow_torch">Turn the flashlight on?</string>
+    <string name="allow_call">Call %1$s?</string>
+    <string name="allow_location">Read the location of this phone?</string>
+    <string name="allow_clipboard">Read the clipboard? It may contain a password.</string>
+    <string name="allow_notifications">Read notifications? They may contain message codes.</string>
+    <string name="allow_generic">Allow %1$s? It uses private phone data.</string>
+    <string name="allow_sshd">Start the SSH server? Key only. Password login stays off.</string>
+    <string name="allow_keystore_sign">Sign with the key %1$s?</string>
+    <string name="allow_keystore_delete">Delete the key %1$s?</string>
+    <string name="share_ask">Open %1$s (%2$s)? It will not run until you say yes.</string>
+    <string name="boot_ran">Boot: %1$s</string>
+    <string name="sig_title">Signature</string>
+    <string name="sig_fingerprint">Signer SHA-256:
+%1$s</string>
+    <string name="sig_check">Check the published file</string>
+    <string name="sig_checking">Checking…</string>
+    <string name="sig_same">Published %1$s matches this file (%2$s). Nothing was installed.</string>
+    <string name="sig_other">Published %1$s does not match this file.
+Published SHA-256:
+%2$s
+This file:
+%3$s
+Nothing was installed.</string>
+    <string name="sig_fail">The published file could not be read. Nothing was installed.</string>
+    <string name="remote_code_label">Code: %1$s. Type it in the browser. The link alone is not enough.</string>
+    <string name="remote_code_short">Code %1$s</string>
+    <string name="remote_enter_code">Type the code shown on the phone.</string>
+    <string name="remote_bad_code">Wrong code. Run remote again on the phone if this keeps failing.</string>
 </resources>

@@ -13,6 +13,11 @@ if [ "$name" = nibras-api ]; then
   name=$1; shift
 fi
 name=${name#termux-}; name=${name#nibras-}
+if [ -n "${NIBRAS_BOOT:-}" ]; then
+  case "$name" in
+    remote-server|sshd) echo "does not start at boot" >&2; exit 1 ;;
+  esac
+fi
 conf=${NIBRAS_API_CONF:-/etc/nibras/api}
 [ -r "$conf" ] || conf=$HOME/.nibras/api
 if [ ! -r "$conf" ]; then nmsg api_down >&2; exit 1; fi

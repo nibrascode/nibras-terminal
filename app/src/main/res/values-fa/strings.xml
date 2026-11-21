@@ -286,4 +286,39 @@
     <string name="remote_note">روی رایانه باز کنید (همان Wi-Fi، پیوند یک‌بارمصرف):\n%1$s</string>
     <string name="remote_stop">توقف</string>
     <string name="remote_used">این پیوند قبلاً استفاده شده یا منقضی شده است. برای پیوند جدید «remote» را در Nibras Terminal اجرا کنید.</string>
+    <string name="allow_sms_read">پیامک خوانده شود؟ این پیام‌های خصوصی را نشان می‌دهد.</string>
+    <string name="allow_sms_send">پیامک به %1$s فرستاده شود؟
+%2$s</string>
+    <string name="allow_call_log">گزارش تماس خوانده شود؟</string>
+    <string name="allow_contacts">مخاطبان خوانده شوند؟</string>
+    <string name="allow_mic">میکروفون استفاده شود؟</string>
+    <string name="allow_camera">دوربین استفاده شود؟</string>
+    <string name="allow_torch">چراغ‌قوه روشن شود؟</string>
+    <string name="allow_call">تماس با %1$s؟</string>
+    <string name="allow_location">مکان این تلفن خوانده شود؟</string>
+    <string name="allow_clipboard">کلیپ‌بورد خوانده شود؟ ممکن است رمز داشته باشد.</string>
+    <string name="allow_notifications">اعلان‌ها خوانده شوند؟ ممکن است کد پیام داشته باشند.</string>
+    <string name="allow_generic">%1$s مجاز شود؟ این از دادهٔ خصوصی تلفن استفاده می‌کند.</string>
+    <string name="allow_sshd">سرور SSH روشن شود؟ فقط کلید. ورود با رمز خاموش است.</string>
+    <string name="allow_keystore_sign">با کلید %1$s امضا شود؟</string>
+    <string name="allow_keystore_delete">کلید %1$s حذف شود؟</string>
+    <string name="share_ask">%1$s (%2$s) باز شود؟ تا بله نگویید اجرا نمی‌شود.</string>
+    <string name="boot_ran">راه‌اندازی: %1$s</string>
+    <string name="sig_title">امضا</string>
+    <string name="sig_fingerprint">SHA-256 امضا:
+%1$s</string>
+    <string name="sig_check">فایل منتشرشده را بررسی کن</string>
+    <string name="sig_checking">در حال بررسی…</string>
+    <string name="sig_same">نسخهٔ منتشرشده %1$s با این فایل یکی است (%2$s). چیزی نصب نشد.</string>
+    <string name="sig_other">نسخهٔ منتشرشده %1$s با این فایل یکی نیست.
+SHA-256 منتشرشده:
+%2$s
+این فایل:
+%3$s
+چیزی نصب نشد.</string>
+    <string name="sig_fail">فایل منتشرشده خوانده نشد. چیزی نصب نشد.</string>
+    <string name="remote_code_label">کد: %1$s. آن را در مرورگر بنویس. پیوند به‌تنهایی کافی نیست.</string>
+    <string name="remote_code_short">کد %1$s</string>
+    <string name="remote_enter_code">کدی را که روی تلفن دیده می‌شود بنویس.</string>
+    <string name="remote_bad_code">کد نادرست است. اگر ادامه داشت، remote را دوباره روی تلفن اجرا کن.</string>
 </resources>

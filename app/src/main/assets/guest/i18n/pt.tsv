@@ -10,3 +10,6 @@ nmsg.not_running	parado
 nmsg.desk_wait	Iniciando a área de trabalho…
 nmsg.desk_stopped	Área de trabalho parada
 nmsg.lang_now	Idioma agora: %s
+nmsg.sshd_ask	Iniciar o servidor SSH? Só chave. A senha fica desligada.
+nmsg.sshd_need_key	Escreva primeiro ~/.ssh/authorized_keys. A senha está desligada.
+nmsg.sshd_boot	O servidor SSH não inicia na partida.

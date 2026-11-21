@@ -54,7 +54,7 @@ object AppTools {
                 }.map { p -> Triple(p.packageName, p.applicationInfo?.loadLabel(pm)?.toString() ?: p.packageName, p.versionName ?: "") }
                     .filter { filter == null || it.first.lowercase().contains(filter) || it.second.lowercase().contains(filter) }
                     .sortedBy { it.second.lowercase() }
-                "OK\n" + list.joinToString("\n") { "%-45s %-28s %s".format(it.first, it.second.take(28), it.third) } + "\n(${list.size})"
+                "OK\n" + list.joinToString("\n") { "%-45s %-28s %s".format(it.first, it.second.take(28), it.third) } + "\n(${list.size})\nvisible apps only"
             }
             "info" -> {
                 val pkg = args.getOrNull(1) ?: return "ERR\nusage: apps info <package>"
@@ -108,6 +108,46 @@ object AppTools {
             }
             else -> "ERR\nusage: apps list [-s|-a] [filter] | info <pkg> | exported <pkg> | extract <pkg> [dir]"
         }
+    }
+
+    fun ownSigner(context: Context): String = signer(context, context.packageName)
+
+    /** Shows the published checksum next to this installed file. Never installs anything. */
+    fun publishedStatus(context: Context): String {
+        val finger = ownSigner(context)
+        val head = context.getString(R.string.sig_fingerprint, finger)
+        val local = runCatching {
+            val info = if (Build.VERSION.SDK_INT >= 33) context.packageManager.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(0))
+            else @Suppress("DEPRECATION") context.packageManager.getPackageInfo(context.packageName, 0)
+            val path = info.applicationInfo?.sourceDir ?: return@runCatching ""
+            com.nibras.terminal.data.sha256(File(path))
+        }.getOrDefault("")
+        if (local.isBlank()) return head + "\n" + context.getString(R.string.sig_fail)
+        val body = runCatching {
+            val conn = java.net.URL("https://api.github.com/repos/nibrascode/nibras-terminal/releases/latest").openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 8000; conn.readTimeout = 8000
+            conn.setRequestProperty("User-Agent", "Nibras-Terminal")
+            conn.setRequestProperty("Accept", "application/vnd.github+json")
+            val latest = org.json.JSONObject(conn.inputStream.bufferedReader().readText())
+            conn.disconnect()
+            val tag = latest.optString("tag_name").ifBlank { "?" }
+            val assets = latest.optJSONArray("assets")
+            var sumsUrl = ""
+            if (assets != null) for (i in 0 until assets.length()) {
+                val a = assets.getJSONObject(i)
+                if (a.optString("name") == "SHA256SUMS") sumsUrl = a.optString("browser_download_url")
+            }
+            if (sumsUrl.isBlank()) return@runCatching context.getString(R.string.sig_fail)
+            val sumsConn = java.net.URL(sumsUrl).openConnection() as java.net.HttpURLConnection
+            sumsConn.connectTimeout = 8000; sumsConn.readTimeout = 8000
+            sumsConn.setRequestProperty("User-Agent", "Nibras-Terminal")
+            val sums = sumsConn.inputStream.bufferedReader().readText()
+            sumsConn.disconnect()
+            val published = sums.lineSequence().firstOrNull { it.contains("nibras-terminal.apk") }?.substringBefore(" ")?.trim().orEmpty()
+            if (published.equals(local, true)) context.getString(R.string.sig_same, tag, local)
+            else context.getString(R.string.sig_other, tag, published.ifBlank { "?" }, local)
+        }.getOrElse { context.getString(R.string.sig_fail) }
+        return "$head\n$body"
     }
 
     /** Installs one app from several APK files or a bundle archive (.apks/.xapk/.apkm) with a PackageInstaller session. */

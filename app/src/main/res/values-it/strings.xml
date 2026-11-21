@@ -119,4 +119,39 @@
     <string name="remote_note">Apri sul computer (stessa Wi-Fi, link monouso):\n%1$s</string>
     <string name="remote_stop">Ferma</string>
     <string name="remote_used">Questo link è già stato usato o è scaduto. Esegui “remote” in Nibras Terminal per averne uno nuovo.</string>
+    <string name="allow_sms_read">Leggere gli SMS? Mostra messaggi privati.</string>
+    <string name="allow_sms_send">Inviare un SMS a %1$s?
+%2$s</string>
+    <string name="allow_call_log">Leggere il registro chiamate?</string>
+    <string name="allow_contacts">Leggere i contatti?</string>
+    <string name="allow_mic">Usare il microfono?</string>
+    <string name="allow_camera">Usare la fotocamera?</string>
+    <string name="allow_torch">Accendere la torcia?</string>
+    <string name="allow_call">Chiamare %1$s?</string>
+    <string name="allow_location">Leggere la posizione di questo telefono?</string>
+    <string name="allow_clipboard">Leggere gli appunti? Potrebbero contenere una password.</string>
+    <string name="allow_notifications">Leggere le notifiche? Potrebbero contenere un codice.</string>
+    <string name="allow_generic">Consentire %1$s? Usa dati privati del telefono.</string>
+    <string name="allow_sshd">Avviare il server SSH? Solo chiave. La password resta spenta.</string>
+    <string name="allow_keystore_sign">Firmare con la chiave %1$s?</string>
+    <string name="allow_keystore_delete">Eliminare la chiave %1$s?</string>
+    <string name="share_ask">Aprire %1$s (%2$s)? Non parte finché non dici sì.</string>
+    <string name="boot_ran">Avvio: %1$s</string>
+    <string name="sig_title">Firma</string>
+    <string name="sig_fingerprint">SHA-256 della firma:
+%1$s</string>
+    <string name="sig_check">Controlla il file pubblicato</string>
+    <string name="sig_checking">Controllo…</string>
+    <string name="sig_same">La versione pubblicata %1$s coincide con questo file (%2$s). Non è stato installato nulla.</string>
+    <string name="sig_other">La versione pubblicata %1$s non coincide con questo file.
+SHA-256 pubblicato:
+%2$s
+Questo file:
+%3$s
+Non è stato installato nulla.</string>
+    <string name="sig_fail">Il file pubblicato non è stato letto. Non è stato installato nulla.</string>
+    <string name="remote_code_label">Codice: %1$s. Scrivilo nel browser. Il solo link non basta.</string>
+    <string name="remote_code_short">Codice %1$s</string>
+    <string name="remote_enter_code">Scrivi il codice mostrato sul telefono.</string>
+    <string name="remote_bad_code">Codice errato. Se continua, esegui di nuovo remote sul telefono.</string>
 </resources>

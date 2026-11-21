@@ -30,14 +30,15 @@ class PromptActivity : Activity() {
         private const val REQ_TREE = 34
         private const val REQ_PUT = 35
 
-        /** Blocks the API worker thread until the user answers (max 10 min). */
-        fun ask(context: Context, kind: String, args: List<String>, target: File? = null): String {
+        /** Blocks the API worker thread until the user answers. Sensitive confirms pass 30 seconds. */
+        fun ask(context: Context, kind: String, args: List<String>, target: File? = null, timeoutSec: Long = 600): String {
             val id = ids.getAndIncrement()
             val future = CompletableFuture<String>()
             waiting[id] = future
             context.startActivity(Intent(context, PromptActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                .putExtra("id", id).putExtra("kind", kind).putExtra("args", args.toTypedArray()).putExtra("target", target?.absolutePath))
-            return try { future.get(10, TimeUnit.MINUTES) } catch (_: Throwable) { JSONObject().put("code", -2).put("text", "").toString() } finally { waiting.remove(id) }
+                .putExtra("id", id).putExtra("kind", kind).putExtra("args", args.toTypedArray())
+                .putExtra("target", target?.absolutePath).putExtra("timeout", timeoutSec))
+            return try { future.get(timeoutSec, TimeUnit.SECONDS) } catch (_: Throwable) { JSONObject().put("code", -2).put("text", "").toString() } finally { waiting.remove(id) }
         }
     }
 
@@ -71,8 +72,8 @@ class PromptActivity : Activity() {
                 val target = File(intent.getStringExtra("target") ?: run { answer(1, "no target"); return })
                 target.parentFile?.mkdirs()
                 // Camera apps cannot write into the app's private rootfs; capture to cache, copy after.
-                val tmp = File(cacheDir, "camera-${System.nanoTime()}.jpg")
-                val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", tmp.also { it.parentFile?.mkdirs(); it.createNewFile() })
+                val tmp = File(cacheDir, "camera/camera-${System.nanoTime()}.jpg")
+                val uri = SharedFiles.expose(this, tmp.also { it.parentFile?.mkdirs(); it.createNewFile() })
                 camTmp = tmp
                 val i = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).putExtra(android.provider.MediaStore.EXTRA_OUTPUT, uri)
                     .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -88,6 +89,7 @@ class PromptActivity : Activity() {
                 runCatching { startActivityForResult(i, REQ_STT) }.onFailure { answer(1, it.message ?: "no speech app") }
                 return
             }
+            "sensitive" -> { confirmSensitive(args); return }
         }
         val widget = args.firstOrNull { !it.startsWith("-") && args.indexOf(it).let { i -> i == 0 || !args[i - 1].startsWith("-") } } ?: "text"
         val title = opt("-t") ?: "Nibras"
@@ -121,8 +123,11 @@ class PromptActivity : Activity() {
         }
         val b = AlertDialog.Builder(this).setTitle(title).setOnCancelListener { answer(-2, "") }
         when (widget) {
-            "confirm" -> b.setMessage(hint.ifBlank { "?" })
-                .setPositiveButton(R.string.yes) { _, _ -> answer(-1, "yes") }.setNegativeButton(R.string.no) { _, _ -> answer(-1, "no") }
+            "confirm" -> {
+                if (hint == "@sshd") { confirmSensitive(listOf("sshd", "")); return }
+                b.setMessage(hint.ifBlank { "?" })
+                    .setPositiveButton(R.string.yes) { _, _ -> answer(-1, "yes") }.setNegativeButton(R.string.no) { _, _ -> answer(-1, "no") }
+            }
             "radio", "spinner", "sheet" -> b.setItems(values.toTypedArray()) { _, w -> answer(-1, values[w]) { put("index", w) } }
             "checkbox" -> {
                 val checked = BooleanArray(values.size)
@@ -150,6 +155,39 @@ class PromptActivity : Activity() {
         }
         if (widget != "confirm") b.setNegativeButton(R.string.cancel) { _, _ -> answer(-2, "") }
         b.show()
+        val timeout = intent.getLongExtra("timeout", 0)
+        if (timeout in 1..120) window.decorView.postDelayed({ if (!done) answer(if (widget == "confirm") -1 else -2, if (widget == "confirm") "no" else "") }, timeout * 1000)
+    }
+
+    private fun confirmSensitive(args: List<String>) {
+        val bare = args.getOrNull(0).orEmpty()
+        val detail = args.getOrNull(1).orEmpty()
+        val parts = detail.split('\n', limit = 2)
+        val first = parts.getOrElse(0) { "" }.ifBlank { "?" }
+        val second = parts.getOrElse(1) { "" }
+        val msg = when (bare) {
+            "sms-send" -> getString(R.string.allow_sms_send, first, second)
+            "telephony-call" -> getString(R.string.allow_call, first)
+            "sms-list", "sms-inbox" -> getString(R.string.allow_sms_read)
+            "call-log" -> getString(R.string.allow_call_log)
+            "contact-list" -> getString(R.string.allow_contacts)
+            "microphone-record" -> getString(R.string.allow_mic)
+            "camera-info", "camera-photo" -> getString(R.string.allow_camera)
+            "torch" -> getString(R.string.allow_torch)
+            "location" -> getString(R.string.allow_location)
+            "clipboard-get" -> getString(R.string.allow_clipboard)
+            "notification-list" -> getString(R.string.allow_notifications)
+            "sshd" -> getString(R.string.allow_sshd)
+            "keystore-sign" -> getString(R.string.allow_keystore_sign, first)
+            "keystore-delete" -> getString(R.string.allow_keystore_delete, first)
+            else -> getString(R.string.allow_generic, bare)
+        }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.app_name).setMessage(msg).setOnCancelListener { answer(-2, "") }
+            .setPositiveButton(R.string.yes) { _, _ -> answer(-1, "yes") }
+            .setNegativeButton(R.string.no) { _, _ -> answer(-1, "no") }
+            .create()
+        dialog.show()
+        window.decorView.postDelayed({ if (!done) answer(-1, "no") }, 30_000)
     }
 
     @Deprecated("Deprecated in Java")

@@ -307,4 +307,39 @@
     <string name="remote_note">Откройте на компьютере (тот же Wi-Fi, одноразовая ссылка):\n%1$s</string>
     <string name="remote_stop">Остановить</string>
     <string name="remote_used">Эта ссылка уже использована или истекла. Выполните «remote» в Nibras Terminal, чтобы получить новую.</string>
+    <string name="allow_sms_read">Прочитать SMS? Будут показаны личные сообщения.</string>
+    <string name="allow_sms_send">Отправить SMS на %1$s?
+%2$s</string>
+    <string name="allow_call_log">Прочитать журнал звонков?</string>
+    <string name="allow_contacts">Прочитать контакты?</string>
+    <string name="allow_mic">Использовать микрофон?</string>
+    <string name="allow_camera">Использовать камеру?</string>
+    <string name="allow_torch">Включить фонарик?</string>
+    <string name="allow_call">Позвонить на %1$s?</string>
+    <string name="allow_location">Прочитать местоположение этого телефона?</string>
+    <string name="allow_clipboard">Прочитать буфер обмена? Там может быть пароль.</string>
+    <string name="allow_notifications">Прочитать уведомления? Там может быть код из сообщения.</string>
+    <string name="allow_generic">Разрешить %1$s? Это личные данные телефона.</string>
+    <string name="allow_sshd">Запустить SSH-сервер? Только ключ. Вход по паролю выключен.</string>
+    <string name="allow_keystore_sign">Подписать ключом %1$s?</string>
+    <string name="allow_keystore_delete">Удалить ключ %1$s?</string>
+    <string name="share_ask">Открыть %1$s (%2$s)? Без «да» ничего не запустится.</string>
+    <string name="boot_ran">Загрузка: %1$s</string>
+    <string name="sig_title">Подпись</string>
+    <string name="sig_fingerprint">SHA-256 подписи:
+%1$s</string>
+    <string name="sig_check">Проверить опубликованный файл</string>
+    <string name="sig_checking">Проверка…</string>
+    <string name="sig_same">Опубликованная %1$s совпадает с этим файлом (%2$s). Ничего не установлено.</string>
+    <string name="sig_other">Опубликованная %1$s не совпадает с этим файлом.
+Опубликованный SHA-256:
+%2$s
+Этот файл:
+%3$s
+Ничего не установлено.</string>
+    <string name="sig_fail">Опубликованный файл не прочитан. Ничего не установлено.</string>
+    <string name="remote_code_label">Код: %1$s. Введите его в браузере. Одной ссылки недостаточно.</string>
+    <string name="remote_code_short">Код %1$s</string>
+    <string name="remote_enter_code">Введите код, показанный на телефоне.</string>
+    <string name="remote_bad_code">Неверный код. Если повторяется, снова выполните remote на телефоне.</string>
 </resources>

@@ -10,3 +10,6 @@ nmsg.not_running	नहीं चल रहा
 nmsg.desk_wait	डेस्कटॉप शुरू हो रहा है…
 nmsg.desk_stopped	डेस्कटॉप बंद हुआ
 nmsg.lang_now	अब भाषा: %s
+nmsg.sshd_ask	SSH सर्वर शुरू करें? केवल कुंजी। पासवर्ड बंद है।
+nmsg.sshd_need_key	पहले ~/.ssh/authorized_keys लिखें। पासवर्ड बंद है।
+nmsg.sshd_boot	SSH सर्वर बूट पर नहीं चलता।

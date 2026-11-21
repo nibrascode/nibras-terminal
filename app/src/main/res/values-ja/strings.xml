@@ -119,4 +119,39 @@
     <string name="remote_note">パソコンで開いてください（同じ Wi-Fi、1回限りのリンク）：\n%1$s</string>
     <string name="remote_stop">停止</string>
     <string name="remote_used">このリンクは使用済みか期限切れです。Nibras Terminal で「remote」を実行して新しいリンクを取得してください。</string>
+    <string name="allow_sms_read">SMSを読みますか？個人的なメッセージが表示されます。</string>
+    <string name="allow_sms_send">%1$s にSMSを送りますか？
+%2$s</string>
+    <string name="allow_call_log">通話履歴を読みますか？</string>
+    <string name="allow_contacts">連絡先を読みますか？</string>
+    <string name="allow_mic">マイクを使いますか？</string>
+    <string name="allow_camera">カメラを使いますか？</string>
+    <string name="allow_torch">ライトをつけますか？</string>
+    <string name="allow_call">%1$s に電話しますか？</string>
+    <string name="allow_location">この電話の位置を読みますか？</string>
+    <string name="allow_clipboard">クリップボードを読みますか？パスワードが入っていることがあります。</string>
+    <string name="allow_notifications">通知を読みますか？メッセージのコードが入っていることがあります。</string>
+    <string name="allow_generic">%1$s を許可しますか？電話の個人データを使います。</string>
+    <string name="allow_sshd">SSHサーバーを起動しますか？鍵のみ。パスワードはオフのままです。</string>
+    <string name="allow_keystore_sign">鍵 %1$s で署名しますか？</string>
+    <string name="allow_keystore_delete">鍵 %1$s を削除しますか？</string>
+    <string name="share_ask">%1$s（%2$s）を開きますか？はいと言うまで実行しません。</string>
+    <string name="boot_ran">起動: %1$s</string>
+    <string name="sig_title">署名</string>
+    <string name="sig_fingerprint">署名の SHA-256:
+%1$s</string>
+    <string name="sig_check">公開ファイルを確認</string>
+    <string name="sig_checking">確認しています…</string>
+    <string name="sig_same">公開された %1$s はこのファイルと一致します（%2$s）。何もインストールしていません。</string>
+    <string name="sig_other">公開された %1$s はこのファイルと一致しません。
+公開 SHA-256:
+%2$s
+このファイル:
+%3$s
+何もインストールしていません。</string>
+    <string name="sig_fail">公開ファイルを読めませんでした。何もインストールしていません。</string>
+    <string name="remote_code_label">コード: %1$s。ブラウザに入力してください。リンクだけでは足りません。</string>
+    <string name="remote_code_short">コード %1$s</string>
+    <string name="remote_enter_code">電話に表示されたコードを入力してください。</string>
+    <string name="remote_bad_code">コードが違います。続く場合は電話で remote をやり直してください。</string>
 </resources>

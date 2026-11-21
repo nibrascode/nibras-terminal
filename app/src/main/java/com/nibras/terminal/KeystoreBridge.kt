@@ -1,5 +1,6 @@
 package com.nibras.terminal
 
+import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -18,8 +19,14 @@ import java.security.spec.RSAKeyGenParameterSpec
 object KeystoreBridge {
     private fun ks() = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
-    fun run(args: List<String>): String {
+    fun run(context: Context, args: List<String>): String {
         val cmd = args.firstOrNull() ?: return usage()
+        if (cmd == "sign" || cmd == "delete") {
+            val alias = args.getOrNull(1) ?: return usage()
+            val which = if (cmd == "sign") "keystore-sign" else "keystore-delete"
+            val raw = PromptActivity.ask(context, "sensitive", listOf(which, alias), timeoutSec = 30)
+            if (JSONObject(raw).optString("text") != "yes") return "ERR\nrefused"
+        }
         val ks = ks()
         return when (cmd) {
             "list" -> "OK\n" + JSONArray().apply {

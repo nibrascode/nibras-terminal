@@ -10,3 +10,6 @@ nmsg.not_running	tidak berjalan
 nmsg.desk_wait	Memulai desktop…
 nmsg.desk_stopped	Desktop dihentikan
 nmsg.lang_now	Bahasa sekarang: %s
+nmsg.sshd_ask	Jalankan server SSH? Hanya kunci. Sandi mati.
+nmsg.sshd_need_key	Tulis dulu ~/.ssh/authorized_keys. Sandi mati.
+nmsg.sshd_boot	Server SSH tidak mulai saat boot.

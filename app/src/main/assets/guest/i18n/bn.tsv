@@ -10,3 +10,6 @@ nmsg.not_running	চলছে না
 nmsg.desk_wait	ডেস্কটপ চালু হচ্ছে…
 nmsg.desk_stopped	ডেস্কটপ বন্ধ হয়েছে
 nmsg.lang_now	এখন ভাষা: %s
+nmsg.sshd_ask	SSH সার্ভার চালু হবে? শুধু চাবি। পাসওয়ার্ড বন্ধ।
+nmsg.sshd_need_key	আগে ~/.ssh/authorized_keys লিখুন। পাসওয়ার্ড বন্ধ।
+nmsg.sshd_boot	SSH সার্ভার বুটে চালু হয় না।

@@ -286,4 +286,39 @@
     <string name="remote_note">Auf dem Computer öffnen (gleiches WLAN, Einmal-Link):\n%1$s</string>
     <string name="remote_stop">Stoppen</string>
     <string name="remote_used">Dieser Link wurde bereits benutzt oder ist abgelaufen. Führen Sie „remote“ in Nibras Terminal aus, um einen neuen zu erhalten.</string>
+    <string name="allow_sms_read">SMS lesen? Das zeigt private Nachrichten.</string>
+    <string name="allow_sms_send">SMS an %1$s senden?
+%2$s</string>
+    <string name="allow_call_log">Anrufliste lesen?</string>
+    <string name="allow_contacts">Kontakte lesen?</string>
+    <string name="allow_mic">Mikrofon verwenden?</string>
+    <string name="allow_camera">Kamera verwenden?</string>
+    <string name="allow_torch">Taschenlampe einschalten?</string>
+    <string name="allow_call">%1$s anrufen?</string>
+    <string name="allow_location">Den Standort dieses Telefons lesen?</string>
+    <string name="allow_clipboard">Zwischenablage lesen? Sie kann ein Passwort enthalten.</string>
+    <string name="allow_notifications">Benachrichtigungen lesen? Sie können einen Nachrichtencode enthalten.</string>
+    <string name="allow_generic">%1$s erlauben? Das nutzt private Telefondaten.</string>
+    <string name="allow_sshd">SSH-Server starten? Nur Schlüssel. Passwort bleibt aus.</string>
+    <string name="allow_keystore_sign">Mit dem Schlüssel %1$s signieren?</string>
+    <string name="allow_keystore_delete">Schlüssel %1$s löschen?</string>
+    <string name="share_ask">%1$s (%2$s) öffnen? Ohne Ja wird nichts ausgeführt.</string>
+    <string name="boot_ran">Start: %1$s</string>
+    <string name="sig_title">Signatur</string>
+    <string name="sig_fingerprint">Signatur-SHA-256:
+%1$s</string>
+    <string name="sig_check">Veröffentlichte Datei prüfen</string>
+    <string name="sig_checking">Prüfung…</string>
+    <string name="sig_same">Veröffentlichtes %1$s entspricht dieser Datei (%2$s). Nichts wurde installiert.</string>
+    <string name="sig_other">Veröffentlichtes %1$s entspricht dieser Datei nicht.
+Veröffentlichtes SHA-256:
+%2$s
+Diese Datei:
+%3$s
+Nichts wurde installiert.</string>
+    <string name="sig_fail">Die veröffentlichte Datei konnte nicht gelesen werden. Nichts wurde installiert.</string>
+    <string name="remote_code_label">Code: %1$s. Tippe ihn im Browser. Der Link allein reicht nicht.</string>
+    <string name="remote_code_short">Code %1$s</string>
+    <string name="remote_enter_code">Tippe den Code, der auf dem Telefon steht.</string>
+    <string name="remote_bad_code">Falscher Code. Wenn es so bleibt, starte remote auf dem Telefon neu.</string>
 </resources>

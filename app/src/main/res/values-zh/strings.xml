@@ -286,4 +286,39 @@
     <string name="remote_note">在电脑上打开（同一 Wi-Fi，一次性链接）：\n%1$s</string>
     <string name="remote_stop">停止</string>
     <string name="remote_used">此链接已被使用或已过期。在 Nibras Terminal 中运行 “remote” 获取新链接。</string>
+    <string name="allow_sms_read">读取短信？这会显示私人消息。</string>
+    <string name="allow_sms_send">向 %1$s 发送短信？
+%2$s</string>
+    <string name="allow_call_log">读取通话记录？</string>
+    <string name="allow_contacts">读取通讯录？</string>
+    <string name="allow_mic">使用麦克风？</string>
+    <string name="allow_camera">使用相机？</string>
+    <string name="allow_torch">打开手电筒？</string>
+    <string name="allow_call">呼叫 %1$s？</string>
+    <string name="allow_location">读取这台手机的位置？</string>
+    <string name="allow_clipboard">读取剪贴板？里面可能有密码。</string>
+    <string name="allow_notifications">读取通知？里面可能有验证码。</string>
+    <string name="allow_generic">允许 %1$s？这会使用手机上的私人数据。</string>
+    <string name="allow_sshd">启动 SSH 服务？仅密钥。密码登录保持关闭。</string>
+    <string name="allow_keystore_sign">用密钥 %1$s 签名？</string>
+    <string name="allow_keystore_delete">删除密钥 %1$s？</string>
+    <string name="share_ask">打开 %1$s（%2$s）？在你说是之前不会运行。</string>
+    <string name="boot_ran">开机：%1$s</string>
+    <string name="sig_title">签名</string>
+    <string name="sig_fingerprint">签名 SHA-256：
+%1$s</string>
+    <string name="sig_check">核对已发布的文件</string>
+    <string name="sig_checking">正在核对…</string>
+    <string name="sig_same">已发布的 %1$s 与此文件一致（%2$s）。没有安装任何东西。</string>
+    <string name="sig_other">已发布的 %1$s 与此文件不一致。
+已发布 SHA-256：
+%2$s
+此文件：
+%3$s
+没有安装任何东西。</string>
+    <string name="sig_fail">无法读取已发布的文件。没有安装任何东西。</string>
+    <string name="remote_code_label">代码：%1$s。在浏览器里输入。只有链接不够。</string>
+    <string name="remote_code_short">代码 %1$s</string>
+    <string name="remote_enter_code">输入手机上显示的代码。</string>
+    <string name="remote_bad_code">代码错误。如果继续失败，请在手机上重新运行 remote。</string>
 </resources>

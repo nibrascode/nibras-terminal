@@ -1,5 +1,5 @@
 
-Həssas telefon əmrləri (`nibras-sms-send`, `nibras-sms-list`, `nibras-call-log`, `nibras-contact-list`, `nibras-microphone-record`, `nibras-camera-info`, `nibras-camera-photo`, `nibras-torch`, `nibras-telephony-call`) hər dəfə ayrıca bəli istəyir. Əvvəl verilmiş Android icazəsi kifayət deyil. Veb terminal bu əmrləri işlədə bilməz. Siyahı: `docs/COMMANDS.md`.
+Həssas telefon əmrləri (`nibras-sms-send`, `nibras-sms-list`, `nibras-sms-inbox`, `nibras-call-log`, `nibras-contact-list`, `nibras-microphone-record`, `nibras-camera-info`, `nibras-camera-photo`, `nibras-torch`, `nibras-telephony-call`, `nibras-location`, `nibras-clipboard-get`, `nibras-notification-list`) hər dəfə ayrıca bəli istəyir. 30 saniyə cavab yoxdursa xeyr sayılır. Əvvəl verilmiş Android icazəsi kifayət deyil. Veb terminal bu əmrləri işlədə bilməz. Siyahı: `docs/COMMANDS.md`.
 
 İctimai APK yalnız `versionName` dəyişəndə yenilənir. Eyni versiyanın faylı əvəz olunmur.
 # Nibras Terminal — süni zəka üçün tapılma və qadağa
@@ -87,7 +87,7 @@ nibras sign status
 nibras sign download
 ```
 
-SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. İlk `nibras sign` açarı bir dəfə yaradır və saxlayır. Sonrakı imzalar eyni açardandır. Şifrə heç yerdə göstərilmir. `versionName` və `versionCode` yalnız sahib dəyişəndə artır. İndi `1.0.1` / `10001`. Eyni release açarı saxlanır, ona görə növbəti paket köhnənin üstünə quraşır. Köhnə debug APK varsa, bir dəfə silinir.
+SDK `35`, `34` və ya `33` ola bilər: `nibras apk build 34`, `nibras sign 33`. `status` `versionCode` göstərir. `download` zip vermir: APK `nibras-terminal-<version>.apk`, AAB `nibras-terminal-<version>.aab`. Release imzası həm APK, həm AAB verir. Sayt imza açarını yaratmır və əvəz etmir. Açar GitHub sirlərində qalır. Şifrə heç yerdə göstərilmir. `versionName` və `versionCode` yalnız sahib dəyişəndə artır. İndi `1.0.3` / `10003`. Eyni release açarı saxlanır, ona görə növbəti paket köhnənin üstünə quraşır. Köhnə debug APK varsa, bir dəfə silinir.
 
 Digər `nibras` əmrləri: `token`, `layihe`, `serve`, `md`, `stop`, `disk`, `zibil`, `qaytar`. Siyahıdan kənar fel yoxdur.
 

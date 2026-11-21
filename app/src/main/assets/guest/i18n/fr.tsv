@@ -10,3 +10,6 @@ nmsg.not_running	arrêté
 nmsg.desk_wait	Démarrage du bureau…
 nmsg.desk_stopped	Bureau arrêté
 nmsg.lang_now	Langue : %s
+nmsg.sshd_ask	Démarrer le serveur SSH ? Clé seulement. Mot de passe coupé.
+nmsg.sshd_need_key	Écrivez d'abord ~/.ssh/authorized_keys. Le mot de passe est coupé.
+nmsg.sshd_boot	Le serveur SSH ne démarre pas au démarrage.

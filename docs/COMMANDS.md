@@ -2,7 +2,7 @@
 
 The phone app and the web terminal share a name. They do not share an engine. A command from one side is not a command on the other.
 
-Sensitive phone commands ask for a yes every time: SMS, call log, contacts, microphone, camera, torch, and placing a call. An Android permission granted earlier is not enough.
+Sensitive phone commands ask for a yes every time: SMS, call log, contacts, microphone, camera, torch, placing a call, location, the clipboard and notifications. An Android permission granted earlier is not enough. No answer within 30 seconds means no. SMS and calls show the number. The web terminal cannot run them.
 
 ## Phone only
 

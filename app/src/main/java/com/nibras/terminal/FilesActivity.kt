@@ -19,7 +19,6 @@ import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Rootfs
 import com.nibras.terminal.ui.HostPaths
@@ -207,7 +206,7 @@ class FilesActivity : Activity() {
         }
     }
 
-    private fun uri(f: File): Uri = FileProvider.getUriForFile(this, "$packageName.files", f)
+    private fun uri(f: File): Uri = SharedFiles.expose(this, f)
     private fun mime(f: File) = MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension.lowercase()) ?: "*/*"
 
     private fun openWith(f: File) = runCatching {

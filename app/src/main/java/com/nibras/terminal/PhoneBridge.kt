@@ -68,7 +68,11 @@ object PhoneBridge {
         val cmd = line.substringBefore(" ")
         val rest = line.substringAfter(" ", "").trim()
         if (!cmd.startsWith("nibras-")) return null
-        if (!Sensitive.allow(context, cmd)) return "refused"
+        val detail = when (cmd) {
+            "nibras-sms-send" -> rest.substringBefore(" ").take(24) + "\n" + rest.substringAfter(" ", "").replace("\n", " ").take(80)
+            else -> ""
+        }
+        if (!Sensitive.allow(context, cmd, detail)) return "refused"
         return try {
             when (cmd) {
                 "nibras-battery-status" -> battery(context)

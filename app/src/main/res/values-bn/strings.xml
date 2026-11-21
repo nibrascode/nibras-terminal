@@ -119,4 +119,39 @@
     <string name="remote_note">কম্পিউটারে খুলুন (একই Wi-Fi, একবারের লিংক):\n%1$s</string>
     <string name="remote_stop">থামান</string>
     <string name="remote_used">এই লিংক আগেই ব্যবহার হয়েছে বা মেয়াদ শেষ। নতুন লিংকের জন্য Nibras Terminal-এ “remote” চালান।</string>
+    <string name="allow_sms_read">এসএমএস পড়া হবে? এতে ব্যক্তিগত বার্তা দেখা যায়।</string>
+    <string name="allow_sms_send">%1$s-কে এসএমএস পাঠানো হবে?
+%2$s</string>
+    <string name="allow_call_log">কল লগ পড়া হবে?</string>
+    <string name="allow_contacts">পরিচিতি পড়া হবে?</string>
+    <string name="allow_mic">মাইক্রোফোন ব্যবহার হবে?</string>
+    <string name="allow_camera">ক্যামেরা ব্যবহার হবে?</string>
+    <string name="allow_torch">টর্চ জ্বলবে?</string>
+    <string name="allow_call">%1$s-কে কল হবে?</string>
+    <string name="allow_location">এই ফোনের অবস্থান পড়া হবে?</string>
+    <string name="allow_clipboard">ক্লিপবোর্ড পড়া হবে? এতে পাসওয়ার্ড থাকতে পারে।</string>
+    <string name="allow_notifications">বিজ্ঞপ্তি পড়া হবে? এতে বার্তার কোড থাকতে পারে।</string>
+    <string name="allow_generic">%1$s অনুমতি দেওয়া হবে? এটি ফোনের ব্যক্তিগত তথ্য ব্যবহার করে।</string>
+    <string name="allow_sshd">SSH সার্ভার চালু হবে? শুধু চাবি। পাসওয়ার্ড বন্ধ থাকে।</string>
+    <string name="allow_keystore_sign">%1$s চাবি দিয়ে স্বাক্ষর হবে?</string>
+    <string name="allow_keystore_delete">%1$s চাবি মুছে ফেলা হবে?</string>
+    <string name="share_ask">%1$s (%2$s) খোলা হবে? হ্যাঁ বলার আগে চলবে না।</string>
+    <string name="boot_ran">বুট: %1$s</string>
+    <string name="sig_title">স্বাক্ষর</string>
+    <string name="sig_fingerprint">স্বাক্ষর SHA-256:
+%1$s</string>
+    <string name="sig_check">প্রকাশিত ফাইল মিলিয়ে দেখুন</string>
+    <string name="sig_checking">মিলানো হচ্ছে…</string>
+    <string name="sig_same">প্রকাশিত %1$s এই ফাইলের সাথে মিলে (%2$s)। কিছু ইনস্টল হয়নি।</string>
+    <string name="sig_other">প্রকাশিত %1$s এই ফাইলের সাথে মেলে না।
+প্রকাশিত SHA-256:
+%2$s
+এই ফাইল:
+%3$s
+কিছু ইনস্টল হয়নি।</string>
+    <string name="sig_fail">প্রকাশিত ফাইল পড়া যায়নি। কিছু ইনস্টল হয়নি।</string>
+    <string name="remote_code_label">কোড: %1$s। ব্রাউজারে লিখুন। শুধু লিংক যথেষ্ট নয়।</string>
+    <string name="remote_code_short">কোড %1$s</string>
+    <string name="remote_enter_code">ফোনে দেখা কোডটি লিখুন।</string>
+    <string name="remote_bad_code">ভুল কোড। চলতে থাকলে ফোনে remote আবার চালান।</string>
 </resources>

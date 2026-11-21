@@ -119,4 +119,39 @@
     <string name="remote_note">Abra no computador (mesma Wi-Fi, link de uso único):\n%1$s</string>
     <string name="remote_stop">Parar</string>
     <string name="remote_used">Este link já foi usado ou expirou. Execute “remote” no Nibras Terminal para obter um novo.</string>
+    <string name="allow_sms_read">Ler os SMS? Isso mostra mensagens privadas.</string>
+    <string name="allow_sms_send">Enviar SMS para %1$s?
+%2$s</string>
+    <string name="allow_call_log">Ler o registro de chamadas?</string>
+    <string name="allow_contacts">Ler os contatos?</string>
+    <string name="allow_mic">Usar o microfone?</string>
+    <string name="allow_camera">Usar a câmera?</string>
+    <string name="allow_torch">Acender a lanterna?</string>
+    <string name="allow_call">Ligar para %1$s?</string>
+    <string name="allow_location">Ler a localização deste telefone?</string>
+    <string name="allow_clipboard">Ler a área de transferência? Pode ter uma senha.</string>
+    <string name="allow_notifications">Ler as notificações? Podem ter um código.</string>
+    <string name="allow_generic">Permitir %1$s? Isso usa dados privados do telefone.</string>
+    <string name="allow_sshd">Iniciar o servidor SSH? Só chave. A senha fica desligada.</string>
+    <string name="allow_keystore_sign">Assinar com a chave %1$s?</string>
+    <string name="allow_keystore_delete">Apagar a chave %1$s?</string>
+    <string name="share_ask">Abrir %1$s (%2$s)? Não executa até você dizer sim.</string>
+    <string name="boot_ran">Arranque: %1$s</string>
+    <string name="sig_title">Assinatura</string>
+    <string name="sig_fingerprint">SHA-256 da assinatura:
+%1$s</string>
+    <string name="sig_check">Verificar o arquivo publicado</string>
+    <string name="sig_checking">Verificando…</string>
+    <string name="sig_same">A versão publicada %1$s coincide com este arquivo (%2$s). Nada foi instalado.</string>
+    <string name="sig_other">A versão publicada %1$s não coincide com este arquivo.
+SHA-256 publicado:
+%2$s
+Este arquivo:
+%3$s
+Nada foi instalado.</string>
+    <string name="sig_fail">O arquivo publicado não pôde ser lido. Nada foi instalado.</string>
+    <string name="remote_code_label">Código: %1$s. Digite-o no navegador. Só o link não basta.</string>
+    <string name="remote_code_short">Código %1$s</string>
+    <string name="remote_enter_code">Digite o código mostrado no telefone.</string>
+    <string name="remote_bad_code">Código errado. Se continuar, execute remote de novo no telefone.</string>
 </resources>

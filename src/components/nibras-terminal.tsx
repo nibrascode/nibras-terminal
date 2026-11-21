@@ -356,6 +356,12 @@ export function NibrasTerminal() {
   const nodeScope = useRef<Record<string, unknown>>({});
 
   useEffect(() => {
+    const clear = () => sessionStorage.removeItem(TOKEN_KEY);
+    window.addEventListener("pagehide", clear);
+    return () => window.removeEventListener("pagehide", clear);
+  }, []);
+
+  useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     try {
       const saved = JSON.parse(localStorage.getItem("nibras.favs") || "[]") as unknown;

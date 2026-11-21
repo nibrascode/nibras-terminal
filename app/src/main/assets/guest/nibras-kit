@@ -635,6 +635,12 @@ settings_backup() { # drive | settings: encrypted archive of your setup
     printf '%s ' "$(say "Include your SSH private keys? (only inside the encrypted file) [y/N]" "SSH gizli açarların da daxil edilsin? (yalnız şifrəli faylın içində) [b/X]" "SSH özel anahtarların da eklensin mi? (yalnızca şifreli dosyada) [e/H]" "Включить приватные SSH-ключи? (только в зашифрованном файле) [д/Н]")"; read -r a
     case "$a" in y|Y|b|B|e|E|д|Д) for k in $keys; do list="$list .ssh/${k##*/}"; done ;; esac
   fi
+  echo
+  say "This backup contains:" "Bu ehtiyat nüsxədə bunlar var:" "Bu yedekte şunlar var:" "В этой копии:"
+  printf '%s\n' "$list" | tr ' ' '\n' | sed '/^$/d;s/^/  /'
+  echo "  app-data (hosts and settings)"
+  printf '%s ' "$(say "Continue? [y/N]" "Davam? [b/X]" "Devam? [e/H]" "Продолжить? [д/Н]")"; read -r go
+  case "$go" in y|Y|b|B|e|E|д|Д) ;; *) rm -rf "$tmp"; exit 1 ;; esac
   # shellcheck disable=SC2086
   tar -czf "$tmp/setup.tar.gz" -C "$HOME" $list -C "$tmp" app-data.json 2>/dev/null || die "tar failed"
   read_pass "$(say "Passphrase (8+ characters, you need it to restore):" "Parol (8+ simvol, bərpa üçün lazımdır):" "Parola (8+ karakter, geri yüklemek için gerekir):" "Парольная фраза (8+ символов, нужна для восстановления):")"; p1=$PASS
@@ -642,8 +648,8 @@ settings_backup() { # drive | settings: encrypted archive of your setup
   [ "$p1" = "$PASS" ] || die "$(say "Passphrases do not match" "Parollar uyğun gəlmir" "Parolalar eşleşmiyor" "Фразы не совпадают")"
   [ ${#p1} -ge 8 ] || die "$(say "Passphrase too short (8+)" "Parol çox qısadır (8+)" "Parola çok kısa (8+)" "Фраза слишком короткая (8+)")"
   name=nibras-setup-$(date +%Y%m%d-%H%M).nbk
-  printf '%s\n' "$p1" | nibras-api crypt enc "$tmp/setup.tar.gz" "$tmp/$name" || { rm -rf "$tmp"; exit 1; }
-  p1=; PASS=
+  printf '%s\n' "$p1" | nibras-api crypt enc "$tmp/setup.tar.gz" "$tmp/$name" || { p1=; PASS=; unset p1 PASS; rm -rf "$tmp"; exit 1; }
+  p1=; PASS=; unset p1 PASS
   mkdir -p "$o"; cp "$tmp/$name" "$o/$name"
   printf '\033[32m✓\033[0m %s %s\n' "$(say "Encrypted backup:" "Şifrəli ehtiyat nüsxə:" "Şifreli yedek:" "Зашифрованная копия:")" "$o/$name"
   if [ "$1" = drive ]; then

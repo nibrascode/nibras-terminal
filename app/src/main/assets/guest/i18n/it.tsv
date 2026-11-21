@@ -10,3 +10,6 @@ nmsg.not_running	non in esecuzione
 nmsg.desk_wait	Avvio del desktop…
 nmsg.desk_stopped	Desktop arrestato
 nmsg.lang_now	Lingua ora: %s
+nmsg.sshd_ask	Avviare il server SSH? Solo chiave. Password spenta.
+nmsg.sshd_need_key	Scrivi prima ~/.ssh/authorized_keys. La password è spenta.
+nmsg.sshd_boot	Il server SSH non parte all'avvio.

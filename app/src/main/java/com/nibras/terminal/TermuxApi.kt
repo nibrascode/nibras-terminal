@@ -51,7 +51,6 @@ import android.view.Gravity
 import android.webkit.MimeTypeMap
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.FileProvider
 import com.nibras.terminal.ui.HostPaths
 import org.json.JSONArray
 import org.json.JSONObject
@@ -161,7 +160,17 @@ object TermuxApi {
 
     /** Returns text for a normal reply, or null when the command already streamed its own reply. */
     private fun dispatch(c: Call, name: String): String? {
-        if (!Sensitive.allow(c.context, name)) throw Fail("refused")
+        val detail = when (name) {
+            "sms-send" -> {
+                val o = Opts(c.args, setOf("-n", "-s"))
+                val numbers = o["-n"].orEmpty().take(40)
+                val text = (if (o.rest.isNotEmpty()) o.rest.joinToString(" ") else c.text()).replace("\n", " ").take(80)
+                "$numbers\n$text"
+            }
+            "telephony-call" -> c.args.firstOrNull().orEmpty().take(24)
+            else -> ""
+        }
+        if (!Sensitive.allow(c.context, name, detail)) throw Fail("refused")
         return when (name) {
         "battery-status" -> battery(c)
         "brightness" -> brightness(c)
@@ -789,7 +798,7 @@ object TermuxApi {
 
     // ------------------------------------------------------------------ share / open / download
 
-    private fun uriFor(c: Call, f: File): Uri = FileProvider.getUriForFile(c.context, "${c.context.packageName}.files", f)
+    private fun uriFor(c: Call, f: File): Uri = SharedFiles.expose(c.context, f)
     private fun mime(f: File) = MimeTypeMap.getSingleton().getMimeTypeFromExtension(f.extension.lowercase()) ?: "application/octet-stream"
 
     private fun share(c: Call): String {

@@ -307,4 +307,39 @@
     <string name="remote_note">Kompüterdə aç (eyni Wi-Fi, birdəfəlik link):\n%1$s</string>
     <string name="remote_stop">Dayandır</string>
     <string name="remote_used">Bu link artıq işlədilib və ya vaxtı bitib. Yenisi üçün Nibras Terminal-da “remote” yaz.</string>
+    <string name="allow_sms_read">SMS oxunsun? Bu, şəxsi mesajları göstərir.</string>
+    <string name="allow_sms_send">SMS göndərilsin: %1$s?
+%2$s</string>
+    <string name="allow_call_log">Zəng jurnalı oxunsun?</string>
+    <string name="allow_contacts">Kontaktlar oxunsun?</string>
+    <string name="allow_mic">Mikrofon işlədilsin?</string>
+    <string name="allow_camera">Kamera işlədilsin?</string>
+    <string name="allow_torch">Fənər yandırılsın?</string>
+    <string name="allow_call">Zəng edilsin: %1$s?</string>
+    <string name="allow_location">Bu telefonun yeri oxunsun?</string>
+    <string name="allow_clipboard">Bufer oxunsun? İçində parol ola bilər.</string>
+    <string name="allow_notifications">Bildirişlər oxunsun? İçində mesaj kodu ola bilər.</string>
+    <string name="allow_generic">%1$s icazəsi verilsin? Bu, telefonun şəxsi məlumatını işlədir.</string>
+    <string name="allow_sshd">SSH server açılsın? Yalnız açar. Parol bağlıdır.</string>
+    <string name="allow_keystore_sign">%1$s açarı ilə imza atılsın?</string>
+    <string name="allow_keystore_delete">%1$s açarı silinsin?</string>
+    <string name="share_ask">%1$s (%2$s) açılsın? Bəli deməyənə qədər işləməz.</string>
+    <string name="boot_ran">Açılış: %1$s</string>
+    <string name="sig_title">İmza</string>
+    <string name="sig_fingerprint">İmza SHA-256:
+%1$s</string>
+    <string name="sig_check">Yayımlanmış faylı yoxla</string>
+    <string name="sig_checking">Yoxlanır…</string>
+    <string name="sig_same">Yayımlanmış %1$s bu faylla eynidir (%2$s). Heç nə quraşdırılmadı.</string>
+    <string name="sig_other">Yayımlanmış %1$s bu faylla eyni deyil.
+Yayımlanmış SHA-256:
+%2$s
+Bu fayl:
+%3$s
+Heç nə quraşdırılmadı.</string>
+    <string name="sig_fail">Yayımlanmış fayl oxunmadı. Heç nə quraşdırılmadı.</string>
+    <string name="remote_code_label">Kod: %1$s. Onu brauzerdə yaz. Tək link kifayət deyil.</string>
+    <string name="remote_code_short">Kod %1$s</string>
+    <string name="remote_enter_code">Telefonda görünən kodu yaz.</string>
+    <string name="remote_bad_code">Kod səhvdir. Davam edərsə, telefonda remote-u yenidən işlət.</string>
 </resources>

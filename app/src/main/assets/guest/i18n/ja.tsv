@@ -10,3 +10,6 @@ nmsg.not_running	停止中
 nmsg.desk_wait	デスクトップを起動中…
 nmsg.desk_stopped	デスクトップを停止しました
 nmsg.lang_now	現在の言語: %s
+nmsg.sshd_ask	SSHサーバーを起動しますか？鍵のみ。パスワードはオフです。
+nmsg.sshd_need_key	先に ~/.ssh/authorized_keys を書いてください。パスワードはオフです。
+nmsg.sshd_boot	SSHサーバーは起動時に始まりません。

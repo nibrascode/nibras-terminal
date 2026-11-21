@@ -10,3 +10,6 @@ nmsg.not_running	tidak berjalan
 nmsg.desk_wait	Memulakan desktop…
 nmsg.desk_stopped	Desktop dihentikan
 nmsg.lang_now	Bahasa kini: %s
+nmsg.sshd_ask	Mulakan pelayan SSH? Kunci sahaja. Kata laluan tutup.
+nmsg.sshd_need_key	Tulis ~/.ssh/authorized_keys dahulu. Kata laluan tutup.
+nmsg.sshd_boot	Pelayan SSH tidak bermula semasa but.

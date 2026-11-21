@@ -10,3 +10,6 @@ nmsg.not_running	실행 안 됨
 nmsg.desk_wait	데스크톱 시작 중…
 nmsg.desk_stopped	데스크톱 중지됨
 nmsg.lang_now	현재 언어: %s
+nmsg.sshd_ask	SSH 서버를 시작할까요? 키만. 암호는 꺼져 있습니다.
+nmsg.sshd_need_key	먼저 ~/.ssh/authorized_keys를 쓰세요. 암호 로그인은 꺼져 있습니다.
+nmsg.sshd_boot	SSH 서버는 부팅 때 시작하지 않습니다.

@@ -46,6 +46,7 @@ import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Prefs
 import com.nibras.terminal.core.Rootfs
 import com.nibras.terminal.ui.Themes
+import kotlin.concurrent.thread
 
 private val Bg = Color(0xFF0B0F14)
 private val Ink = Color(0xFFEDEDED)
@@ -146,6 +147,18 @@ class SettingsActivity : ComponentActivity() {
                     }
                 }
             }
+
+            Spacer(Modifier.padding(8.dp))
+            Section(stringResource(R.string.sig_title))
+            var report by remember { mutableStateOf(getString(R.string.sig_fingerprint, AppTools.ownSigner(this@SettingsActivity))) }
+            Text(report, color = Muted, fontSize = 13.sp)
+            TextButton(onClick = {
+                report = getString(R.string.sig_checking)
+                thread {
+                    val text = AppTools.publishedStatus(this@SettingsActivity)
+                    runOnUiThread { report = text }
+                }
+            }) { Text(stringResource(R.string.sig_check), color = Gold) }
 
             Spacer(Modifier.padding(8.dp))
             Text(stringResource(R.string.set_custom_hint), color = Muted, fontSize = 13.sp)

@@ -42,12 +42,15 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 object RemoteServer {
     private const val IDLE_MS = 30 * 60_000L
+    private const val PAIR_MS = 10 * 60_000L
     private const val NOTE_ID = 7351
     private const val CHANNEL = "remote"
     private val rnd = SecureRandom()
 
     @Volatile private var server: ServerSocket? = null
     @Volatile private var token: String? = null
+    @Volatile private var code: String? = null
+    @Volatile private var misses = 0
     @Volatile private var envId: String = Rootfs.ANDROID
     @Volatile private var lastActive = 0L
     private val sessions = ConcurrentHashMap.newKeySet<String>()
@@ -74,12 +77,17 @@ object RemoteServer {
         app = context.applicationContext
         return when (args.firstOrNull() ?: "status") {
             "on", "start" -> {
+                if (System.getenv("NIBRAS_BOOT") == "1") return "refused"
                 val port = args.getOrNull(1)?.toIntOrNull() ?: 8765
                 if (!running) start(env, port)
-                token = hex(16); sessions.clear(); lastActive = System.currentTimeMillis()
+                token = hex(16)
+                code = (100000 + rnd.nextInt(900000)).toString()
+                misses = 0
+                sessions.clear(); lastActive = System.currentTimeMillis()
                 val ip = lanAddress() ?: "127.0.0.1"
                 val url = "http://$ip:${server!!.localPort}/?t=$token"
-                notifyOn(url); url
+                notifyOn(url)
+                url + "\n" + app.getString(R.string.remote_code_label, code)
             }
             "off", "stop" -> { stop(); "off" }
             else -> if (running) "on · port ${server?.localPort} · browsers: ${live.get()}" else "off"
@@ -99,7 +107,9 @@ object RemoteServer {
         Thread({
             while (!s.isClosed) {
                 Thread.sleep(30_000)
-                if (live.get() == 0 && System.currentTimeMillis() - lastActive > IDLE_MS) stop()
+                val idle = System.currentTimeMillis() - lastActive
+                val limit = if (sessions.isEmpty()) PAIR_MS else IDLE_MS
+                if (idle > limit) stop()
             }
         }, "remote-idle").apply { isDaemon = true }.start()
     }
@@ -107,7 +117,7 @@ object RemoteServer {
     @Synchronized
     fun stop() {
         runCatching { server?.close() }
-        server = null; token = null; sessions.clear()
+        server = null; token = null; code = null; misses = 0; sessions.clear()
         if (::app.isInitialized) app.getSystemService(NotificationManager::class.java)?.cancel(NOTE_ID)
     }
 
@@ -118,7 +128,8 @@ object RemoteServer {
         val open = PendingIntent.getActivity(app, 7352, Intent(app, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val n = android.app.Notification.Builder(app, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_terminal).setContentTitle(app.getString(R.string.remote_title))
-            .setContentText(url.substringBefore("/?")).setStyle(android.app.Notification.BigTextStyle().bigText(app.getString(R.string.remote_note, url)))
+            .setContentText(app.getString(R.string.remote_code_short, code ?: ""))
+            .setStyle(android.app.Notification.BigTextStyle().bigText(app.getString(R.string.remote_code_label, code ?: "")))
             .setOngoing(true).setContentIntent(open)
             .addAction(android.app.Notification.Action.Builder(null, app.getString(R.string.remote_stop), stop).build())
             .build()
@@ -171,14 +182,13 @@ object RemoteServer {
         val i = BufferedInputStream(c.getInputStream()); val o = c.getOutputStream()
         val r = parse(i) ?: return
         lastActive = System.currentTimeMillis()
-        // One-time link: trade the token for a session cookie, then drop the token from the address bar.
+        if (r.path == "/pair" && r.method == "POST") { pair(r, o); return }
+        // The link only opens a code form. The session starts after the phone's code matches.
         val t = r.query["t"]
         if (t != null) {
             val ok = token != null && MessageDigest.isEqual(t.toByteArray(), token!!.toByteArray())
             if (!ok) { send(o, 403, "text/html; charset=utf-8", page(app.getString(R.string.remote_used))); return }
-            token = null
-            val sid = hex(24); sessions += sid
-            send(o, 302, "text/plain", ByteArray(0), "Location: /\r\nSet-Cookie: nt=$sid; HttpOnly; SameSite=Strict; Path=/\r\n"); return
+            send(o, 200, "text/html; charset=utf-8", form(t)); return
         }
         val sid = cookie(r)
         if (sid == null || sid !in sessions) { send(o, 403, "text/html; charset=utf-8", page(app.getString(R.string.remote_used))); return }
@@ -198,7 +208,55 @@ object RemoteServer {
         }
     }
 
-    private fun page(msg: String) = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Nibras Terminal</title><body style='background:#101418;color:#ddd;font:16px sans-serif;padding:2em'><h2 style='color:#D6B36A'>Nibras Terminal</h2><p>$msg</p>".toByteArray()
+    private fun esc(s: String) = buildString(s.length) {
+        for (ch in s) when (ch) {
+            '&' -> append("&amp;")
+            '<' -> append("&lt;")
+            '>' -> append("&gt;")
+            '"' -> append("&quot;")
+            '\'' -> append("&#39;")
+            else -> if (ch.code in 32..126 || ch.code > 159) append(ch)
+        }
+    }
+
+    private fun page(msg: String) = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Nibras Terminal</title><body style='background:#101418;color:#ddd;font:16px sans-serif;padding:2em'><h2 style='color:#D6B36A'>Nibras Terminal</h2><p>${esc(msg)}</p>".toByteArray()
+
+    private fun form(tokenValue: String): ByteArray {
+        val msg = esc(app.getString(R.string.remote_enter_code))
+        return ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>Nibras Terminal</title>" +
+            "<body style='background:#101418;color:#ddd;font:16px sans-serif;padding:2em'><h2 style='color:#D6B36A'>Nibras Terminal</h2><p>$msg</p>" +
+            "<form method=POST action=/pair><input type=hidden name=t value=\"${esc(tokenValue)}\">" +
+            "<input name=code inputmode=numeric autocomplete=off maxlength=6 style='font-size:20px;padding:8px'>" +
+            "<button type=submit style='margin-left:8px'>OK</button></form>").toByteArray()
+    }
+
+    private fun pair(r: Req, o: OutputStream) {
+        val len = r.headers["content-length"]?.toIntOrNull()?.coerceIn(0, 400) ?: 0
+        val buf = ByteArray(len)
+        var got = 0
+        while (got < len) {
+            val n = r.input.read(buf, got, len - got)
+            if (n < 0) break
+            got += n
+        }
+        val fields = String(buf, 0, got).split('&').mapNotNull { part ->
+            val k = part.substringBefore('='); val v = part.substringAfter('=', "")
+            if (k.isEmpty()) null else URLDecoder.decode(k, "UTF-8") to URLDecoder.decode(v, "UTF-8")
+        }.toMap()
+        val sentToken = fields["t"].orEmpty()
+        val sentCode = fields["code"].orEmpty()
+        val tokenOk = token != null && sentToken.length == token!!.length && MessageDigest.isEqual(sentToken.toByteArray(), token!!.toByteArray())
+        val codeOk = code != null && sentCode.length == code!!.length && MessageDigest.isEqual(sentCode.toByteArray(), code!!.toByteArray())
+        if (!tokenOk || !codeOk) {
+            misses += 1
+            if (misses >= 5) { token = null; code = null }
+            send(o, 403, "text/html; charset=utf-8", page(app.getString(R.string.remote_bad_code)))
+            return
+        }
+        token = null; code = null; misses = 0
+        val sid = hex(24); sessions += sid
+        send(o, 302, "text/plain", ByteArray(0), "Location: /\r\nSet-Cookie: nt=$sid; HttpOnly; SameSite=Strict; Path=/\r\n")
+    }
 
     private fun asset(o: OutputStream, name: String, type: String) =
         send(o, 200, type, app.assets.open(name).use { it.readBytes() })

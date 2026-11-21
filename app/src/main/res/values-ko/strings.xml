@@ -119,4 +119,39 @@
     <string name="remote_note">컴퓨터에서 여세요(같은 Wi-Fi, 일회용 링크):\n%1$s</string>
     <string name="remote_stop">중지</string>
     <string name="remote_used">이 링크는 이미 사용되었거나 만료되었습니다. Nibras Terminal에서 “remote”를 실행해 새 링크를 받으세요.</string>
+    <string name="allow_sms_read">문자를 읽을까요? 개인 메시지가 보입니다.</string>
+    <string name="allow_sms_send">%1$s(으)로 문자를 보낼까요?
+%2$s</string>
+    <string name="allow_call_log">통화 기록을 읽을까요?</string>
+    <string name="allow_contacts">연락처를 읽을까요?</string>
+    <string name="allow_mic">마이크를 사용할까요?</string>
+    <string name="allow_camera">카메라를 사용할까요?</string>
+    <string name="allow_torch">손전등을 켤까요?</string>
+    <string name="allow_call">%1$s(으)로 전화할까요?</string>
+    <string name="allow_location">이 휴대전화의 위치를 읽을까요?</string>
+    <string name="allow_clipboard">클립보드를 읽을까요? 암호가 들어 있을 수 있습니다.</string>
+    <string name="allow_notifications">알림을 읽을까요? 메시지 코드가 들어 있을 수 있습니다.</string>
+    <string name="allow_generic">%1$s을(를) 허용할까요? 휴대전화의 개인 데이터를 사용합니다.</string>
+    <string name="allow_sshd">SSH 서버를 시작할까요? 키만 사용합니다. 암호 로그인은 꺼져 있습니다.</string>
+    <string name="allow_keystore_sign">키 %1$s(으)로 서명할까요?</string>
+    <string name="allow_keystore_delete">키 %1$s을(를) 삭제할까요?</string>
+    <string name="share_ask">%1$s(%2$s)을(를) 열까요? 예를 누르기 전에는 실행되지 않습니다.</string>
+    <string name="boot_ran">부팅: %1$s</string>
+    <string name="sig_title">서명</string>
+    <string name="sig_fingerprint">서명 SHA-256:
+%1$s</string>
+    <string name="sig_check">게시된 파일 확인</string>
+    <string name="sig_checking">확인 중…</string>
+    <string name="sig_same">게시된 %1$s이(가) 이 파일과 같습니다(%2$s). 아무것도 설치하지 않았습니다.</string>
+    <string name="sig_other">게시된 %1$s이(가) 이 파일과 다릅니다.
+게시된 SHA-256:
+%2$s
+이 파일:
+%3$s
+아무것도 설치하지 않았습니다.</string>
+    <string name="sig_fail">게시된 파일을 읽지 못했습니다. 아무것도 설치하지 않았습니다.</string>
+    <string name="remote_code_label">코드: %1$s. 브라우저에 입력하세요. 링크만으로는 부족합니다.</string>
+    <string name="remote_code_short">코드 %1$s</string>
+    <string name="remote_enter_code">휴대전화에 표시된 코드를 입력하세요.</string>
+    <string name="remote_bad_code">코드가 틀립니다. 계속되면 휴대전화에서 remote를 다시 실행하세요.</string>
 </resources>

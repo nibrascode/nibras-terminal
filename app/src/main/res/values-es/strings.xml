@@ -286,4 +286,39 @@
     <string name="remote_note">Ábrelo en tu ordenador (misma Wi-Fi, enlace de un solo uso):\n%1$s</string>
     <string name="remote_stop">Detener</string>
     <string name="remote_used">Este enlace ya se usó o caducó. Ejecuta «remote» en Nibras Terminal para obtener uno nuevo.</string>
+    <string name="allow_sms_read">¿Leer los SMS? Esto muestra mensajes privados.</string>
+    <string name="allow_sms_send">¿Enviar SMS a %1$s?
+%2$s</string>
+    <string name="allow_call_log">¿Leer el registro de llamadas?</string>
+    <string name="allow_contacts">¿Leer los contactos?</string>
+    <string name="allow_mic">¿Usar el micrófono?</string>
+    <string name="allow_camera">¿Usar la cámara?</string>
+    <string name="allow_torch">¿Encender la linterna?</string>
+    <string name="allow_call">¿Llamar a %1$s?</string>
+    <string name="allow_location">¿Leer la ubicación de este teléfono?</string>
+    <string name="allow_clipboard">¿Leer el portapapeles? Puede contener una contraseña.</string>
+    <string name="allow_notifications">¿Leer las notificaciones? Pueden contener un código.</string>
+    <string name="allow_generic">¿Permitir %1$s? Usa datos privados del teléfono.</string>
+    <string name="allow_sshd">¿Iniciar el servidor SSH? Solo clave. La contraseña queda apagada.</string>
+    <string name="allow_keystore_sign">¿Firmar con la clave %1$s?</string>
+    <string name="allow_keystore_delete">¿Borrar la clave %1$s?</string>
+    <string name="share_ask">¿Abrir %1$s (%2$s)? No se ejecuta hasta decir sí.</string>
+    <string name="boot_ran">Arranque: %1$s</string>
+    <string name="sig_title">Firma</string>
+    <string name="sig_fingerprint">SHA-256 de la firma:
+%1$s</string>
+    <string name="sig_check">Comprobar el archivo publicado</string>
+    <string name="sig_checking">Comprobando…</string>
+    <string name="sig_same">La versión publicada %1$s coincide con este archivo (%2$s). No se instaló nada.</string>
+    <string name="sig_other">La versión publicada %1$s no coincide con este archivo.
+SHA-256 publicado:
+%2$s
+Este archivo:
+%3$s
+No se instaló nada.</string>
+    <string name="sig_fail">No se pudo leer el archivo publicado. No se instaló nada.</string>
+    <string name="remote_code_label">Código: %1$s. Escríbelo en el navegador. El enlace solo no basta.</string>
+    <string name="remote_code_short">Código %1$s</string>
+    <string name="remote_enter_code">Escribe el código que aparece en el teléfono.</string>
+    <string name="remote_bad_code">Código incorrecto. Si sigue, vuelve a ejecutar remote en el teléfono.</string>
 </resources>
