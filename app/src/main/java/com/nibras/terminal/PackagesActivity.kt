@@ -154,6 +154,7 @@ class PackagesViewModel(app: Application) : AndroidViewModel(app) {
 }
 
 class PackagesActivity : ComponentActivity() {
+    private var autoStarted = false
     override fun attachBaseContext(base: Context) = super.attachBaseContext(Lang.wrap(base))
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -162,6 +163,13 @@ class PackagesActivity : ComponentActivity() {
         setContent {
             val model: PackagesViewModel = viewModel()
             val state by model.state.collectAsState()
+            // `install arch|fedora|kali|debian|ubuntu` from the terminal opens this screen and starts the download.
+            val auto = intent.getStringExtra("install")
+            androidx.compose.runtime.LaunchedEffect(state.components) {
+                if (auto != null && !autoStarted && auto !in state.ready) {
+                    state.components.firstOrNull { it.id == auto && DeviceAbi.matches(it.abi) }?.let { autoStarted = true; model.install(it) }
+                }
+            }
             PackagesScreen(state, model) { id ->
                 startActivity(
                     Intent(this, MainActivity::class.java)

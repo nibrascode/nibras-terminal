@@ -1,5 +1,5 @@
 #!/bin/sh
-# nibras-need <command>…  installs the package that provides each missing command (apk or apt).
+# nibras-need <command>…  installs the package that provides each missing command (apk, apt, pacman or dnf).
 . /usr/local/share/nibras/msg.sh
 rc=0
 for c in "$@"; do
@@ -33,6 +33,29 @@ for c in "$@"; do
     ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1 || apt-get update >&2
     # shellcheck disable=SC2086
     DEBIAN_FRONTEND=noninteractive apt-get install -y $p >&2 || { nmsg need_fail "$c" >&2; rc=1; }
+  elif command -v pacman >/dev/null 2>&1; then
+    case "$c" in
+      ssh|scp|sftp|ssh-keygen|sshd) p=openssh ;; python3) p=python ;; pip3) p=python-pip ;; node) p=nodejs ;; npm) p=npm ;; g++|gcc) p=gcc ;;
+      java) p=jre-openjdk-headless ;; adb|fastboot) p=android-tools ;; rustc|cargo) p=rust ;; ffprobe|ffmpeg) p=ffmpeg ;;
+      magick|convert|identify|mogrify) p=imagemagick ;; gs) p=ghostscript ;; pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler ;;
+      aria2c) p=aria2 ;; tesseract) p="tesseract tesseract-data-eng" ;; ping) p=iputils ;; dig|nslookup) p=bind ;; 7z) p=7zip ;; nc) p=openbsd-netcat ;;
+      Xvnc|vncpasswd) p=tigervnc ;; websockify) p=python-websockify ;; telnet) p=inetutils ;; Rscript) p=r ;; sqlite3) p=sqlite ;; *) p=$c ;;
+    esac
+    nmsg need_tool "$c" >&2
+    ls /var/lib/pacman/sync/*.db >/dev/null 2>&1 || pacman -Sy --noconfirm >&2
+    # shellcheck disable=SC2086
+    pacman -S --needed --noconfirm $p >&2 || { nmsg need_fail "$c" >&2; rc=1; }
+  elif command -v dnf >/dev/null 2>&1; then
+    case "$c" in
+      ssh|scp|sftp|ssh-keygen) p=openssh-clients ;; sshd) p=openssh-server ;; python3) p=python3 ;; pip3) p=python3-pip ;; node|npm) p="nodejs npm" ;;
+      g++) p=gcc-c++ ;; java) p=java-latest-openjdk-headless ;; adb|fastboot) p=android-tools ;; rustc|cargo) p="rust cargo" ;; ffprobe|ffmpeg) p=ffmpeg-free ;;
+      magick|convert|identify|mogrify) p=ImageMagick ;; gs) p=ghostscript ;; pdfinfo|pdftotext|pdfunite|pdfseparate|pdftoppm|pdfimages) p=poppler-utils ;;
+      aria2c) p=aria2 ;; tesseract) p="tesseract tesseract-langpack-eng" ;; ping) p=iputils ;; dig|nslookup) p=bind-utils ;; 7z) p=p7zip-plugins ;; nc) p=nmap-ncat ;;
+      Xvnc|vncpasswd) p=tigervnc-server ;; websockify) p=python3-websockify ;; Rscript) p=R-core ;; sqlite3) p=sqlite ;; *) p=$c ;;
+    esac
+    nmsg need_tool "$c" >&2
+    # shellcheck disable=SC2086
+    dnf install -y $p >&2 || { nmsg need_fail "$c" >&2; rc=1; }
   else
     nmsg no_pm >&2; exit 1
   fi

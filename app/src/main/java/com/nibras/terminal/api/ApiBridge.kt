@@ -154,6 +154,13 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 val baud = w.firstOrNull { it.toIntOrNull() != null }?.toInt() ?: 115200
                 com.nibras.terminal.UsbBridge.serial(context, w.firstOrNull { it.toIntOrNull() == null }, baud)
             }
+            "env-install" -> {
+                val id = args.trim().let { if (it.startsWith("rootfs-")) it else "rootfs-$it" }
+                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: $args"
+                if (Rootfs.isReady(context, id)) return "OK\n${Rootfs.name(id)} is installed: nibras-shell ${Rootfs.name(id).lowercase()}"
+                ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).putExtra("install", id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                "OK\n${Rootfs.name(id)}: download started in the Environments screen"
+            }
             "keystore" -> com.nibras.terminal.KeystoreBridge.run(words(raw))
             "nfc" -> {
                 val r = org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "nfc", words(raw)))
