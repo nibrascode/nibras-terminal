@@ -131,7 +131,7 @@ Həmçinin Android shell-də işləyir (`~/.nibras/android-rc`).
 | Termux | Nibras | Status |
 |---|---|---|
 | pkg | `pkg` (apk/apt/pacman/dnf üzərində) | ✅ |
-| python, node, clang, go, rust | `install python|node|dev|go|rust` | ✅ |
+| python, node, clang, go, rust | `install python`, `install node`, `install dev` (gcc/clang, make, cmake, go, rustc) | ✅ |
 | java (openjdk-17/21) | `install jdk [17|21]` | ➕ |
 | php, ruby, perl, lua | `install php|ruby|perl|lua` | ➕ |
 | git, ssh, curl, aria2, tmux | ✅ / `install tmux` ➕ | ✅ |
