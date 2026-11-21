@@ -8,7 +8,7 @@ Nibras Terminal は、Android スマートフォン向けの本格的な Linux �
 
 ## 2. インストールと初回起動
 
-1. GitHub のプロジェクトページ（Actions → *Android package* → artifact）、または開発者から共有されたリンクから最新の APK をダウンロードします。
+1. APK を直接ダウンロードします: https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
 2. ファイルを開き、Android に求められたら「不明なアプリのインストール」を許可します。
 3. 初回起動時に、Nibras Terminal は言語選択画面を表示します。各言語はその言語自身の名前で表示され、スマートフォンの言語があらかじめ選択されています。スマートフォンの言語がない場合は英語が使われます。
 4. 内蔵の Alpine Linux 環境が自動的に準備され、ターミナルが開きます。

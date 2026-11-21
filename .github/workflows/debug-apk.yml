@@ -30,6 +30,8 @@ run-name: ${{ inputs.kind || 'apk' }} ${{ inputs.sdk || '35' }}
 jobs:
   package:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       SDK: ${{ github.event.inputs.sdk || '35' }}
       KIND: ${{ github.event.inputs.kind || 'apk' }}
@@ -135,6 +137,18 @@ jobs:
           else
             "$TOOL" verify dist/app-debug.apk
           fi
+      - name: Public APK
+        if: env.KIND == 'apk'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp dist/app-debug.apk dist/nibras-terminal-1.0.0.apk
+          sha256sum dist/nibras-terminal-1.0.0.apk | awk '{print $1"  nibras-terminal-1.0.0.apk"}' > dist/SHA256SUMS
+          if ! gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" --title "Nibras Terminal 1.0.0" --notes "Android APK. Allow Install unknown apps. Debug signature."
+          fi
+          gh release upload v1.0.0 dist/nibras-terminal-1.0.0.apk dist/SHA256SUMS --repo "$GITHUB_REPOSITORY" --clobber
+
       - uses: actions/upload-artifact@v4
         with:
           name: nibras-${{ github.event.inputs.kind || 'apk' }}-${{ github.event.inputs.sdk || '35' }}

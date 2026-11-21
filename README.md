@@ -38,6 +38,10 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
+  <a href="https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.0-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/debug-apk.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/debug-apk.yml/badge.svg?branch=main" alt="Android package"></a>
   <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/launch-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/launch-test.yml/badge.svg?branch=main" alt="Launch test"></a>
   <a href="https://github.com/nibrascode/nibras-terminal/actions/workflows/android-build-test.yml"><img src="https://github.com/nibrascode/nibras-terminal/actions/workflows/android-build-test.yml/badge.svg?branch=main" alt="Android build test"></a>
@@ -61,8 +65,8 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 
 ## 🚀 Quick start
 
-1. Download the latest APK from **Actions → Android package → artifact**.
-2. Install it and allow "Install unknown apps".
+1. Download the APK: [nibras-terminal-1.0.0.apk](https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk) (Android 8 or newer, about 20 MB).
+2. Open the file on the phone and allow "Install unknown apps".
 3. Pick your language on the first launch (English is the default).
 4. Start typing:
 

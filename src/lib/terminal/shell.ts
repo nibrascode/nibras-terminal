@@ -111,6 +111,7 @@ export type ShellOut = {
   pip?: string;
   keygen?: { path: string };
   apk?: { verb: "qur" | "status" | "endir"; sdk: "35" | "34" | "33"; kind: "apk" | "aab" | "sign" };
+  publicApk?: string;
 };
 
 export const DISK_BUDGET = 2 * 1024 * 1024 * 1024;
@@ -182,6 +183,7 @@ export const ACTIONS: Array<{ group: string; label: string; line: string; mark?:
   { group: "Sistem", label: "Sistem", line: "lsb_release -a" },
   { group: "Sistem", label: "Kim", line: "whoami" },
   { group: "Telefon", label: "Yaddaş", line: "nibras-setup-storage" },
+  { group: "Telefon", label: "APK", line: "nibras apk download" },
   { group: "Telefon", label: "Batareya", line: "nibras-battery-status" },
   { group: "Telefon", label: "Paket", line: "pkg list-all" },
   { group: "Telefon", label: "Oyaq", line: "nibras-wake-lock" },
@@ -2718,9 +2720,14 @@ function apkCmd(session: Session, verb: string | undefined, kind: "apk" | "aab" 
             `nibras ${kind} build 33`,
             `nibras ${kind} status`,
             `nibras ${kind} download`,
+            ...(kind === "apk" ? ["Download does not need a token. The file is public."] : []),
             "Release signature: nibras sign",
           ];
     return ok(session, lines.join("\n"));
+  }
+  if (action === "endir" && kind === "apk") {
+    const url = "https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk";
+    return { ...ok(session, `APK\n${url}`), publicApk: url };
   }
   if (action !== "qur" && action !== "status" && action !== "endir") return fail(session, `nibras ${kind} build | status | download`);
   if (action === "qur" && sdk !== "35" && sdk !== "34" && sdk !== "33") return fail(session, "SDK 35, 34, or 33");

@@ -8,7 +8,7 @@ Nibras Terminal Android telefonlar üçün tam Linux terminalıdır. Tətbiq aç
 
 ## 2. Quraşdırma və ilk açılış
 
-1. Ən son APK-nı layihənin GitHub səhifəsindən (Actions → *Android package* → artifact) və ya tərtibatçının göndərdiyi linkdən yükləyin.
+1. APK-nı birbaşa buradan yükləyin: https://github.com/nibrascode/nibras-terminal/releases/download/v1.0.0/nibras-terminal-1.0.0.apk
 2. Faylı açın və Android soruşanda "Naməlum tətbiqləri quraşdırmaq" icazəsini verin.
 3. İlk açılışda Nibras Terminal dil seçimi ekranını göstərir. Bütün dillər öz adları ilə yazılıb, telefonunuzun dili isə artıq seçilmiş olur. Telefonunuzun dili siyahıda yoxdursa, ingilis dili istifadə olunur.
 4. Daxili Alpine Linux mühiti avtomatik hazırlanır və terminal açılır.
