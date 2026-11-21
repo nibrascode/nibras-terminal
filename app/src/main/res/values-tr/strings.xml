@@ -245,4 +245,10 @@
     <string name="files_modified">Değiştirildi</string>
     <string name="files_permissions">İzinler</string>
     <string name="files_size">Boyut</string>
+    <string name="hosts_tunnel_only">Yalnızca port yönlendirme</string>
+    <string name="hosts_test">Bağlantıyı test et</string>
+    <string name="hosts_multi_exec">Birden çok sunucuda çalıştır</string>
+    <string name="hosts_import_config">~/.ssh/config içe aktar</string>
+    <string name="hosts_export_config">ssh config olarak dışa aktar</string>
+    <string name="hosts_none">Kayıtlı sunucu yok</string>
 </resources>
