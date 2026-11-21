@@ -169,3 +169,55 @@ Root tələb edən (yalnız root olan telefonda): SMB 445 portu, FUSE/sshfs bağ
 | Layout XML önizləmə | Yığcam önizləmə: əsas widget-lər, @string/@color/@dimen/@drawable; ConstraintLayout/RelativeLayout sütun kimi | ➕ (yığcam, sürüklə-burax dizayner yoxdur) |
 | LSP | `install lsp` (helix/neovim + dil serverləri) | 🟡 redaktorun içində deyil |
 | Pluginlər, temalar | `plugin`, 12 tema | ✅ |
+
+## Bütün dillər (Nibras-ın əsas fərqi)
+
+### İnsan dilləri
+- **Əsas dil ingiliscədir.** Telefonun dili tətbiqdə varsa, o dil seçilir, yoxdursa ingilis dili açılır.
+- **İlk açılışda dil seçimi ekranı** çıxır: bütün dillər öz adları ilə, telefonun dili əvvəlcədən seçili olur. Sonra `lang` əmri ilə və ya Ayarlar → Dil bölməsindən dəyişmək olar. Android 13+ sistem ayarlarında da tətbiqin dili seçilə bilir (localeConfig).
+- **19 dil APK-nın içindədir** (yüklənmə lazım deyil): en, az, ar, tr, ru, fa, ur, id, ms, fr, de, es, pt, it, zh, ja, ko, hi, bn.
+  - Tətbiq ekranı tam tərcümə olunub: en, az, tr, ru, ar, fa, ur, fr, de, es, id, ms, zh.
+  - Əsas ekranlar (menyu, ayarlar, fayllar, redaktor, mağaza) tərcümə olunub: pt, it, ja, ko, hi, bn. Qalan sətirlər ingiliscə görünür.
+  - Ölçüsü: tərcümələr APK-ya təxminən **290 KB** əlavə edir (resources.arsc sıxılmamış saxlanılır). Bu, APK-nın təxminən 1.5%-idir, ona görə hamısı içəridə qalır.
+- **Sağdan sola (RTL):** ar, fa və ur üçün tətbiq ekranı sağdan sola düzülür (`supportsRtl` + layoutDirection).
+- **Terminal əmrləri:**
+  - `motd`, `nibras-help` və tətbiq mətnləri seçilmiş dildədir.
+  - nibras-* mesajları (`nmsg`) bütün 19 dildədir.
+  - Alət menyuları və paket təsvirləri (`say`) bu dillərdədir: en, az, tr, ru, ar (tam). Qalan dillərdə bu hissə ingiliscədir; `i18n/<dil>.tsv` faylına sətir əlavə etmək kifayətdir.
+- **Dil dəyişmək:** `lang az`, `lang list`, `lang auto`. Təbii yazılışlar da işləyir, böyük-kiçik hərf fərq etmir:
+  - `az dili yukle`, `AZ DILI YUKLE`
+  - `türkçe yükle`
+  - `تحميل العربية`
+  - `install lang-fr`, `install ar`
+  - `english`
+- **Unicode:**
+  - Bütün mühitlərdə `LANG=C.UTF-8` qoyulub.
+  - CJK (Çin, Yapon, Koreya) hərfləri Androidin sistem şriftləri ilə göstərilir, ona görə əlavə şrift yükləmək lazım deyil.
+  - Termux-un terminal görünüşü kimi, bizim terminal da ərəb hərflərini hücrə-hücrə, birləşdirmədən göstərir. Düzgün birləşmiş və sağdan sola düzülmüş mətn üçün `rtl fayl.txt` və ya `… | rtl` əmri var (fribidi ilə formalaşdırma). Redaktor, dialoqlar və fayl meneceri ərəb mətnini tam düzgün göstərir.
+- **Yüklənən hissələr:** yalnız həqiqətən böyük olanlar. Məsələn, oflayn AI modeli (`install llm`, ~400 MB) və OCR dil məlumatları (`install ocr`). Tərcümələr yüklənmir.
+
+### Proqramlaşdırma dilləri
+`run <fayl>` faylın uzantısından dili tanıyır, lazım olan aləti ilk dəfə özü quraşdırır və faylı işə salır. Redaktordakı ▶ Run düyməsi də eyni yolla işləyir.
+
+| Dil | Fayl | Necə quraşdırılır |
+|---|---|---|
+| Python | .py | `install python` |
+| JavaScript / TypeScript | .js .mjs / .ts .tsx | `install node`, `install typescript` |
+| Java / Kotlin | .java / .kt .kts | `install jdk`, `install java` |
+| C / C++ / Fortran | .c / .cpp .cc / .f90 | `install dev` |
+| Go / Rust | .go / .rs | `install dev` |
+| PHP / Ruby / Perl / Lua | .php .rb .pl .lua | `install php|ruby|perl|lua` |
+| Dart | .dart | `install dart` (Debian/Ubuntu: Dart glibc tələb edir) |
+| R | .r | `install r` |
+| Julia | .jl | `install julia` (arm64, Debian/Ubuntu) |
+| Haskell | .hs | `install haskell` |
+| Elixir | .ex .exs | `install elixir` |
+| Zig | .zig | `install zig` (statik, hər mühitdə) |
+| Nim | .nim | `install nim` |
+| Bash / Zsh / Fish / sh | .sh .bash .zsh .fish | daxili, ya da `install zsh|fish` |
+| PowerShell | .ps1 | `install powershell` (Debian/Ubuntu) |
+| Swift / Scala / C# / Tcl / SQL | .swift .scala .cs .tcl .sql | mövcud paketlərlə (`pkg install …`) |
+
+`run <qovluq>` layihə faylını tanıyır: Cargo.toml, go.mod, package.json, Gradle (Android: yığ, quraşdır, aç), pubspec.yaml, mix.exs, build.zig, CMakeLists.txt, Makefile, main.py.
+
+Redaktor bu dillərin hamısını rəngləyir: sh, py, js/ts, java, kt, c/c++, go, rs, php, rb, pl, lua, dart, r, jl, hs, ex, zig, nim, ps1, swift, scala, cs, f90, xml/html.
