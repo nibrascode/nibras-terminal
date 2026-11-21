@@ -33,18 +33,19 @@ if ! adb shell run-as com.nibras.terminal ls files/home/apitest.sh >/dev/null 2>
   adb shell run-as com.nibras.terminal cp /data/local/tmp/apitest.sh files/home/apitest.sh || true
 fi
 adb shell run-as com.nibras.terminal ls -l files/home/apitest.sh files/home/.nibras/android-rc 2>&1 | tee -a "$OUT/alive.txt"
-# Typing can be lost while the slow ARM-translated emulator is busy: retry (focus the terminal first).
-for attempt in 1 2 3; do
-  adb shell input tap 540 900 >/dev/null 2>&1 || true
-  sleep 1
-  adb shell input text "sh%sapitest.sh"
-  adb shell input keyevent 66
-  for i in $(seq 1 25); do
-    sleep 2
-    adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>/dev/null | grep -q API_TEST_DONE && break 2
-  done
-  adb shell run-as com.nibras.terminal ls files/home/api-test.txt >/dev/null 2>&1 && { sleep 30; break; }
-  echo "api test attempt $attempt: no output yet, retrying"
+# Run it from the user rc of the next Android shell session (no typing: input is unreliable on API 30).
+adb exec-in run-as com.nibras.terminal sh -c 'cat > files/home/.nibras/android-rc.local' <<'RC' || true
+rm -f "$HOME/.nibras/android-rc.local"; sh "$HOME/apitest.sh"
+RC
+if ! adb shell run-as com.nibras.terminal ls files/home/.nibras/android-rc.local >/dev/null 2>&1; then
+  printf '%s\n' 'rm -f "$HOME/.nibras/android-rc.local"; sh "$HOME/apitest.sh"' > /tmp/rc.local
+  adb push /tmp/rc.local /data/local/tmp/rc.local >/dev/null; adb shell chmod 644 /data/local/tmp/rc.local
+  adb shell run-as com.nibras.terminal cp /data/local/tmp/rc.local files/home/.nibras/android-rc.local || true
+fi
+adb shell am start -a com.nibras.terminal.NEW_SESSION --es env android -n com.nibras.terminal/.MainActivity >/dev/null
+for i in $(seq 1 45); do
+  sleep 2
+  adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>/dev/null | grep -q API_TEST_DONE && break
 done
 adb shell run-as com.nibras.terminal cat files/home/api-test.txt 2>&1 | tee "$OUT/api-test.txt"
 grep -q '"percentage"' "$OUT/api-test.txt" && grep -q '"max_volume"' "$OUT/api-test.txt" && grep -q 'clip: hello-clip' "$OUT/api-test.txt" \

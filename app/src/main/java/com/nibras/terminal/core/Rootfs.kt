@@ -272,7 +272,8 @@ object Rootfs {
                 else append("$n() { sh \"\$NB/$n\" \"\$@\"; }\n")
             }
         }
-        runCatching { writeReplacing(File(home, ".nibras/android-rc").apply { parentFile?.mkdirs() }, rc) }
+        val user = "[ -r \"\$HOME/.nibras/android-rc.local\" ] && . \"\$HOME/.nibras/android-rc.local\"\n"
+        runCatching { writeReplacing(File(home, ".nibras/android-rc").apply { parentFile?.mkdirs() }, rc + user) }
     }
 
     fun launch(context: Context, id: String, command: List<String>? = null, extraEnv: List<String> = emptyList()): Launch {
