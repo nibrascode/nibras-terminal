@@ -188,11 +188,15 @@ class EditorActivity : Activity() {
     private var lastSnap = 0L
     private var pendingInsert = -1
     private val main = Handler(Looper.getMainLooper())
-    private val highlighter = Runnable { highlight() }
+    private val highlighter = Runnable { highlight(); markDiags() }
     private val prefs by lazy { getSharedPreferences("editor", MODE_PRIVATE) }
     private lateinit var suggestRow: LinearLayout
     private lateinit var suggestScroll: HorizontalScrollView
     private var fileWords: Map<String, Int> = emptyMap()
+    private var lsp: LspClient? = null
+    private var lspState = "" // "", "starting", "ready", "missing"
+    private var diags: List<LspClient.Diag> = emptyList()
+    private val lspSync = Runnable { lsp?.takeIf { it.ready }?.didChange(guest, editor.text.toString()) }
     private var wordsAt = 0L
     private fun pref(k: String, d: Boolean) = prefs.getBoolean(k, d)
     private fun setPref(k: String, v: Boolean) = prefs.edit().putBoolean(k, v).apply()
@@ -266,10 +270,143 @@ class EditorActivity : Activity() {
                 if (at >= 0 && at < s.length) smartInsert(s, at)
                 if (at >= 0) suggest() else hideSuggest()
                 updateStatus(); main.removeCallbacks(highlighter); main.postDelayed(highlighter, 350)
+                if (lsp?.ready == true) { main.removeCallbacks(lspSync); main.postDelayed(lspSync, 500) }
             }
         })
         editor.viewTreeObserver.addOnGlobalLayoutListener { updateStatus() }
+        editor.setOnLongClickListener { if (lsp?.ready == true && editor.selectionStart == editor.selectionEnd) { hoverAtCursor(); true } else false }
+        startLsp()
     }
+
+    // ── LSP (completion, diagnostics, hover, go-to-definition from real language servers) ──
+
+    private fun projectRoot(): String {
+        val markers = listOf("settings.gradle", "settings.gradle.kts", ".git", "package.json", "tsconfig.json", "pyproject.toml", "setup.py", "Cargo.toml", "go.mod", "compile_commands.json", "CMakeLists.txt", "pom.xml")
+        var d = guest.substringBeforeLast('/').ifEmpty { "/" }
+        while (d.length > 1) {
+            if (markers.any { HostPaths.toHost(this, envId, "$d/$it")?.exists() == true }) return d
+            d = d.substringBeforeLast('/').ifEmpty { "/" }
+        }
+        return guest.substringBeforeLast('/').ifEmpty { "/" }
+    }
+
+    private fun startLsp() {
+        if (!pref("lsp", true) || lsp != null) return
+        val server = LspClient.serverFor(ext, guest) ?: return
+        lspState = "starting"; updateStatus()
+        Thread {
+            val ok = Headless.run(this, envId, server.check, timeoutSec = 30).exitCode == 0
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                if (!ok) { lspState = "missing"; updateStatus(); return@runOnUiThread }
+                val c = LspClient(this, envId, server, projectRoot(), onDiagnostics = { path, items -> runOnUiThread { if (path == guest) { diags = items; markDiags(); updateStatus() } } })
+                lsp = c
+                runCatching { c.start { runOnUiThread { lspState = "ready"; c.didOpen(guest, editor.text.toString()); updateStatus() } } }
+                    .onFailure { lspState = "missing"; lsp = null; updateStatus() }
+            }
+        }.start()
+    }
+
+    private fun lineCol(off: Int): Pair<Int, Int> {
+        val t = editor.text; val o = off.coerceIn(0, t.length)
+        var line = 0; var ls = 0
+        for (i in 0 until o) if (t[i] == '\n') { line++; ls = i + 1 }
+        return line to (o - ls)
+    }
+
+    private fun offsetOf(text: CharSequence, line: Int, col: Int): Int {
+        var l = 0; var i = 0
+        while (l < line && i < text.length) { if (text[i] == '\n') l++; i++ }
+        return (i + col).coerceAtMost(text.length)
+    }
+
+    private fun markDiags() {
+        val t = editor.text
+        t.getSpans(0, t.length, android.text.style.UnderlineSpan::class.java).forEach { t.removeSpan(it) }
+        diags.take(300).forEach { d ->
+            val a = offsetOf(t, d.line, d.col); var b = offsetOf(t, d.endLine, d.endCol)
+            if (b <= a) b = (a + 1).coerceAtMost(t.length)
+            if (a < b) {
+                t.setSpan(android.text.style.UnderlineSpan(), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                t.setSpan(BackgroundColorSpan(if (d.severity <= 1) 0x55FF3B30 else 0x40FFCC00), a, b, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+    }
+
+    private fun lspComplete(start: Int, prefix: String, base: LinkedHashMap<String, String?>) {
+        val c = lsp?.takeIf { it.ready } ?: return
+        main.removeCallbacks(lspSync); c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.completion(guest, line, col) { items ->
+            runOnUiThread {
+                if (editor.selectionStart < start || items.isEmpty()) return@runOnUiThread
+                val now = prefixAt().second
+                val list = items.filter { now.isEmpty() || it.label.startsWith(now, true) || it.insert.startsWith(now, true) }.take(25)
+                if (list.isEmpty()) return@runOnUiThread
+                suggestRow.removeAllViews()
+                list.forEach { it ->
+                    suggestRow.addView(TextView(this).apply {
+                        text = "◆ " + it.label.take(40); textSize = 15f; typeface = Typeface.MONOSPACE; setTextColor(0xFF7FDBFF.toInt())
+                        setPadding(Ui.dp(context, 12), Ui.dp(context, 6), Ui.dp(context, 12), Ui.dp(context, 6))
+                        setOnClickListener { _ -> complete(prefixAt().first, it.insert.replace(Regex("\\$\\{\\d+:?([^}]*)}|\\$\\d+"), "$1"), null) }
+                        setOnLongClickListener { _ -> if (it.detail.isNotBlank()) Toast.makeText(context, it.detail, Toast.LENGTH_LONG).show(); true }
+                    })
+                }
+                base.entries.take(8).forEach { (label, body) ->
+                    suggestRow.addView(TextView(this).apply {
+                        text = label; textSize = 15f; typeface = Typeface.MONOSPACE; setTextColor(if (body != null) Ui.GOLD else Ui.INK)
+                        setPadding(Ui.dp(context, 12), Ui.dp(context, 6), Ui.dp(context, 12), Ui.dp(context, 6))
+                        setOnClickListener { complete(prefixAt().first, label.removePrefix("⚡"), body) }
+                    })
+                }
+                suggestScroll.visibility = View.VISIBLE; suggestScroll.scrollTo(0, 0)
+            }
+        }
+    }
+
+    private fun hoverAtCursor() {
+        val c = lsp?.takeIf { it.ready } ?: return lspMissing()
+        c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.hover(guest, line, col) { text -> runOnUiThread {
+            AlertDialog.Builder(this).setTitle("ℹ ${c.server.id}").setMessage(text.ifBlank { "—" }.take(6000))
+                .setPositiveButton(R.string.ok, null).setNeutralButton(getString(R.string.editor_definition)) { _, _ -> goToDefinition() }.show()
+        } }
+    }
+
+    private fun goToDefinition() {
+        val c = lsp?.takeIf { it.ready } ?: return lspMissing()
+        c.didChange(guest, editor.text.toString())
+        val (line, col) = lineCol(editor.selectionStart)
+        c.definition(guest, line, col) { loc -> runOnUiThread {
+            if (loc == null) { Toast.makeText(this, "—", Toast.LENGTH_SHORT).show(); return@runOnUiThread }
+            if (loc.path == guest) { editor.requestFocus(); editor.setSelection(offsetOf(editor.text, loc.line, loc.col)); return@runOnUiThread }
+            val host = HostPaths.toHost(this, envId, loc.path)
+            val text = runCatching { host?.readText() }.getOrNull()
+            if (text != null) prefs.edit().putInt("pos:${loc.path}", offsetOf(text, loc.line, loc.col)).apply()
+            open(this, envId, loc.path)
+        } }
+    }
+
+    private fun problems() {
+        if (diags.isEmpty()) { Toast.makeText(this, if (lspState == "ready") "✓ 0" else getString(R.string.editor_lsp_off), Toast.LENGTH_SHORT).show(); return }
+        val items = diags.sortedBy { it.line }.map { (if (it.severity <= 1) "⛔ " else if (it.severity == 2) "⚠ " else "ℹ ") + "${it.line + 1}:${it.col + 1}  ${it.message.lineSequence().first()}" }
+        AlertDialog.Builder(this).setTitle("🩺 ${diags.size}").setItems(items.toTypedArray()) { _, w ->
+            val d = diags.sortedBy { it.line }[w]; editor.requestFocus(); editor.setSelection(offsetOf(editor.text, d.line, d.col))
+        }.show()
+    }
+
+    private fun lspMissing() {
+        val server = LspClient.serverFor(ext, guest)
+        if (server == null) { Toast.makeText(this, getString(R.string.editor_lsp_none, ext), Toast.LENGTH_LONG).show(); return }
+        AlertDialog.Builder(this).setTitle("🧠 LSP · ${server.id}").setMessage(getString(R.string.editor_lsp_install, server.pack))
+            .setPositiveButton(R.string.ok) { _, _ -> Launcher.run(this, envId, "install ${server.pack}", "install ${server.pack}", keepShell = true); lsp = null; lspState = "" }
+            .setNegativeButton(R.string.cancel, null).show()
+    }
+
+    override fun onResume() { super.onResume(); if (::editor.isInitialized && lspState == "" ) startLsp() }
+
+    override fun onDestroy() { lsp?.stop(); lsp = null; super.onDestroy() }
 
     private fun load(): Boolean {
         val f = file
@@ -326,6 +463,10 @@ class EditorActivity : Activity() {
     private fun suggest() {
         if (!pref("autocomplete", true)) return hideSuggest()
         val (start, prefix) = prefixAt()
+        if ((prefix.isEmpty() || prefix[0].isDigit()) && lsp?.ready == true) {
+            val at = editor.selectionStart
+            if (at > 0 && lsp?.triggers?.contains(editor.text[at - 1].toString()) == true) { lspComplete(at, "", LinkedHashMap()); return }
+        }
         if (prefix.isEmpty() || prefix[0].isDigit()) return hideSuggest()
         val now = System.currentTimeMillis()
         if (now - wordsAt > 2000) {
@@ -339,6 +480,8 @@ class EditorActivity : Activity() {
         kws.filter { it.startsWith(prefix, true) && it != prefix }.forEach { out.putIfAbsent(it, null) }
         fileWords.entries.filter { it.key.startsWith(prefix, true) && it.key != prefix && !(it.key.length == prefix.length + 0) }
             .sortedByDescending { it.value }.take(20).forEach { out.putIfAbsent(it.key, null) }
+        val trig = editor.selectionStart.let { it > 0 && lsp?.triggers?.contains(editor.text[it - 1].toString()) == true }
+        if (lsp?.ready == true && (prefix.isNotEmpty() || trig)) lspComplete(start, prefix, out)
         if (prefix.length < 2 && out.keys.none { it.startsWith("⚡") }) return hideSuggest()
         if (out.isEmpty()) return hideSuggest()
         suggestRow.removeAllViews()
@@ -406,7 +549,14 @@ class EditorActivity : Activity() {
         val line = before.count { it == '\n' } + 1
         val col = pos - (before.lastIndexOf('\n') + 1) + 1
         val lines = editor.text.count { it == '\n' } + 1
-        status.text = (if (dirty) "● " else "") + "${getString(R.string.editor_line)} $line:$col / $lines · ${ext.ifEmpty { "txt" }} · ${if (indentUnit == "\t") "TAB" else "${indentUnit.length}sp"} · UTF-8"
+        status.text = (if (dirty) "● " else "") + "${getString(R.string.editor_line)} $line:$col / $lines · ${ext.ifEmpty { "txt" }} · ${if (indentUnit == "\t") "TAB" else "${indentUnit.length}sp"} · UTF-8" + lspBadge()
+    }
+
+    private fun lspBadge(): String = when (lspState) {
+        "ready" -> " · 🧠 " + (lsp?.server?.id ?: "") + diags.count { it.severity <= 1 }.let { e -> val w = diags.size - e; (if (e > 0) " ⛔$e" else "") + (if (w > 0) " ⚠$w" else "") }
+        "starting" -> " · 🧠…"
+        "missing" -> " · 🧠✗"
+        else -> ""
     }
 
     private fun highlight() {
@@ -496,7 +646,7 @@ class EditorActivity : Activity() {
             val tmp = File(f.parentFile, ".${f.name}.nibras-tmp")
             tmp.writeText(text)
             if (!tmp.renameTo(f)) { f.writeText(text); tmp.delete() }
-            saved = text; updateStatus()
+            saved = text; updateStatus(); lsp?.takeIf { it.ready }?.let { it.didChange(guest, text); it.didSave(guest) }
             Toast.makeText(this, R.string.editor_saved, Toast.LENGTH_SHORT).show(); true
         }.getOrElse { Toast.makeText(this, it.message, Toast.LENGTH_LONG).show(); false }
     }
@@ -618,6 +768,10 @@ class EditorActivity : Activity() {
         acts += (if (pref("autoclose", true)) "☑ " else "☐ ") + getString(R.string.editor_auto_close) to { setPref("autoclose", !pref("autoclose", true)) }
         acts += (if (pref("autocomplete", true)) "☑ " else "☐ ") + getString(R.string.editor_autocomplete) to { setPref("autocomplete", !pref("autocomplete", true)); hideSuggest() }
         acts += "🩺 " + getString(R.string.editor_lint) to { if (save()) lint() }
+        acts += "🧠 " + getString(R.string.editor_problems) + " (LSP)" to { if (lsp?.ready == true) problems() else lspMissing() }
+        acts += "ℹ " + getString(R.string.editor_hover) to { hoverAtCursor() }
+        acts += "➜ " + getString(R.string.editor_definition) to { goToDefinition() }
+        acts += (if (pref("lsp", true)) "☑ " else "☐ ") + "LSP" to { setPref("lsp", !pref("lsp", true)); if (pref("lsp", true)) { lspState = ""; startLsp() } else { lsp?.stop(); lsp = null; lspState = ""; diags = emptyList(); markDiags(); updateStatus() } }
         acts += (if (pref("highlight", true)) "☑ " else "☐ ") + getString(R.string.editor_highlight) to { setPref("highlight", !pref("highlight", true)); highlight() }
         acts += (if (pref("autosave", false)) "☑ " else "☐ ") + getString(R.string.editor_autosave) to { setPref("autosave", !pref("autosave", false)) }
         acts += (if (pref("trim", false)) "☑ " else "☐ ") + getString(R.string.editor_trim) to { setPref("trim", !pref("trim", false)) }

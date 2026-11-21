@@ -270,4 +270,10 @@
     <string name="editor_lint">Проверить код (lint)</string>
     <string name="tools_media">Медиа</string>
     <string name="editor_layout_preview">Предпросмотр макета</string>
+    <string name="editor_definition">Перейти к определению</string>
+    <string name="editor_problems">Проблемы</string>
+    <string name="editor_hover">Справка под курсором (долгое нажатие)</string>
+    <string name="editor_lsp_off">Языковой сервер не запущен</string>
+    <string name="editor_lsp_none">Для .%1$s пока нет языкового сервера</string>
+    <string name="editor_lsp_install">Для умного автодополнения, ошибок, справки и перехода к определению нужен языковой сервер. Установить: install %1$s</string>
 </resources>

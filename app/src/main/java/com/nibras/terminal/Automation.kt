@@ -36,6 +36,20 @@ object Automation {
 object Headless {
     data class Result(val exitCode: Int, val stdout: String, val stderr: String, val error: String? = null)
 
+    /** Starts [command] in the environment with live pipes (language servers, long-running helpers). */
+    fun start(context: Context, env: String?, command: String, workdir: String? = null): Process {
+        val id = Rootfs.pick(context, env)
+        val extra = if (workdir.isNullOrBlank()) emptyList() else listOf("NIBRAS_START_DIR=$workdir")
+        val launch = Rootfs.launch(context, id, listOf("/bin/sh", "-c", command).let { if (id == Rootfs.ANDROID) listOf(command) else it }, extra)
+        val argv = launch.args.toMutableList()
+        argv[0] = launch.exe
+        if (id == Rootfs.ANDROID) { argv.clear(); argv += listOf("/system/bin/sh", "-c", command) }
+        val pb = ProcessBuilder(argv).directory(File(launch.cwd))
+        pb.environment().clear()
+        launch.env.forEach { kv -> val i = kv.indexOf('='); if (i > 0) pb.environment()[kv.substring(0, i)] = kv.substring(i + 1) }
+        return pb.start()
+    }
+
     fun run(context: Context, env: String?, command: String, workdir: String? = null, stdin: String? = null, timeoutSec: Long = 600): Result {
         return try {
             val id = Rootfs.pick(context, env)

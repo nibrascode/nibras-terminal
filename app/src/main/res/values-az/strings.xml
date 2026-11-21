@@ -270,4 +270,10 @@
     <string name="editor_lint">Kodu yoxla (lint)</string>
     <string name="tools_media">Media</string>
     <string name="editor_layout_preview">Görünüş önizləməsi</string>
+    <string name="editor_definition">Tərifə keç</string>
+    <string name="editor_problems">Problemlər</string>
+    <string name="editor_hover">Kursordakı məlumat (uzun bas)</string>
+    <string name="editor_lsp_off">Dil serveri işləmir</string>
+    <string name="editor_lsp_none">.%1$s üçün hələ dil serveri yoxdur</string>
+    <string name="editor_lsp_install">Ağıllı tamamlama, xətalar, məlumat və tərifə keçid üçün dil serveri lazımdır. İndi quraşdırılsın: install %1$s</string>
 </resources>

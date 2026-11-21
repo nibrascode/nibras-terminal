@@ -271,4 +271,10 @@
     <string name="editor_lint">Check code (lint)</string>
     <string name="tools_media">Media</string>
     <string name="editor_layout_preview">Layout preview</string>
+    <string name="editor_definition">Go to definition</string>
+    <string name="editor_problems">Problems</string>
+    <string name="editor_hover">Info at cursor (long-press)</string>
+    <string name="editor_lsp_off">Language server is not running</string>
+    <string name="editor_lsp_none">No language server for .%1$s yet</string>
+    <string name="editor_lsp_install">Smart completion, errors, info and go-to-definition need a language server. Install it now with: install %1$s</string>
 </resources>

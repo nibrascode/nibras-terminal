@@ -269,4 +269,10 @@
     <string name="editor_lint">فحص الشيفرة (lint)</string>
     <string name="tools_media">الوسائط</string>
     <string name="editor_layout_preview">معاينة التخطيط</string>
+    <string name="editor_definition">الانتقال إلى التعريف</string>
+    <string name="editor_problems">المشكلات</string>
+    <string name="editor_hover">معلومات عند المؤشر (ضغط مطوّل)</string>
+    <string name="editor_lsp_off">خادم اللغة لا يعمل</string>
+    <string name="editor_lsp_none">لا يوجد خادم لغة لـ ‎.%1$s بعد</string>
+    <string name="editor_lsp_install">الإكمال الذكي والأخطاء والمعلومات والانتقال إلى التعريف تحتاج خادم لغة. ثبّته الآن: install %1$s</string>
 </resources>

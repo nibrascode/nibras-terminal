@@ -210,6 +210,41 @@ lsp_install() {
       "LSP готов: открывайте  hx <файл>  (helix) или nvim; в редакторе Nibras есть 🩺 Проверить код."
 }
 
+lsp_one() { # language server for the Nibras editor's built-in LSP client (completion, errors, hover, go-to-definition)
+  case "$1" in
+    python|py) has pylsp && return 0; need python3 pip3
+      nibras-need py3-lsp-server >/dev/null 2>&1 || nibras-need python3-pylsp >/dev/null 2>&1 || true
+      has pylsp || pip3 install -q python-lsp-server pyflakes --break-system-packages 2>/dev/null || pip3 install -q python-lsp-server pyflakes ;;
+    js|ts|javascript|typescript) has typescript-language-server && return 0; need node npm; npm install -g typescript typescript-language-server ;;
+    c|cpp|c++|clangd) has clangd && return 0; nibras-need clangd >/dev/null 2>&1 || nibras-need clang-extra-tools >/dev/null 2>&1 || nibras-need clang-tools >/dev/null 2>&1 || nibras-need clang ;;
+    java|jdtls) has nibras-jdtls && return 0; nibras-apk jdk 21 >/dev/null || die "JDK 21"
+      say "Downloading Eclipse JDT Language Server (~50 MB)…" "Eclipse JDT dil serveri yüklənir (~50 MB)…" "Eclipse JDT dil sunucusu indiriliyor (~50 MB)…" "Загрузка Eclipse JDT LS (~50 МБ)…"
+      rm -rf /opt/jdtls; mkdir -p /opt/jdtls && curl -fL --retry 3 https://download.eclipse.org/jdtls/snapshots/jdt-language-server-latest.tar.gz | tar -xz -C /opt/jdtls || die "jdtls download failed"
+      cat > /usr/local/bin/nibras-jdtls <<'J'
+#!/bin/sh
+J=$(ls /opt/jdk-21*/bin/java /usr/lib/jvm/*21*/bin/java 2>/dev/null | head -1); [ -n "$J" ] || J=java
+L=$(ls /opt/jdtls/plugins/org.eclipse.equinox.launcher_*.jar | head -1)
+exec "$J" -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product \
+  -Xms64m -Xmx768m --add-modules=ALL-SYSTEM --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED \
+  -jar "$L" -configuration /opt/jdtls/config_linux -data "${HOME:-/root}/.cache/jdtls/$(pwd | tr / _)" "$@"
+J
+      chmod +x /usr/local/bin/nibras-jdtls ;;
+    kotlin|kt) has kotlin-language-server && return 0; nibras-apk jdk 17 >/dev/null; need unzip
+      curl -fL --retry 3 -o /tmp/kls.zip https://github.com/fwcd/kotlin-language-server/releases/download/1.3.12/server.zip || die "download failed"
+      rm -rf /opt/kotlin-ls; mkdir -p /opt/kotlin-ls && unzip -q /tmp/kls.zip -d /opt/kotlin-ls && rm -f /tmp/kls.zip
+      ln -sf /opt/kotlin-ls/server/bin/kotlin-language-server /usr/local/bin/kotlin-language-server ;;
+    xml|lemminx) has nibras-lemminx && return 0; nibras-apk jdk 17 >/dev/null; mkdir -p /opt/lemminx
+      curl -fL --retry 3 -o /opt/lemminx/lemminx.jar https://repo.eclipse.org/content/repositories/lemminx-releases/org/eclipse/lemminx/org.eclipse.lemminx/0.28.0/org.eclipse.lemminx-0.28.0-uber.jar || die "download failed"
+      printf '#!/bin/sh\nJ=$(ls /opt/jdk-*/bin/java 2>/dev/null | head -1); exec "${J:-java}" -Xmx256m -jar /opt/lemminx/lemminx.jar "$@"\n' > /usr/local/bin/nibras-lemminx; chmod +x /usr/local/bin/nibras-lemminx ;;
+    bash|sh) has bash-language-server && return 0; need node npm; npm install -g bash-language-server ;;
+    go) need go; go install golang.org/x/tools/gopls@latest ;;
+    rust|rs) has rustup && rustup component add rust-analyzer || nibras-need rust-analyzer ;;
+    web|html|css|json) need node npm; npm install -g vscode-langservers-extracted ;;
+    all) for l in python js c java kotlin xml bash web; do lsp_one $l || true; done; return ;;
+    *) die "lsp-$1? → lsp-python lsp-js lsp-c lsp-java lsp-kotlin lsp-xml lsp-bash lsp-go lsp-rust lsp-web lsp-all" ;;
+  esac && say "✓ lsp-$1 ready: reopen the file in the editor (🧠 in the status bar)" "✓ lsp-$1 hazırdır: faylı redaktorda yenidən açın (status sətrində 🧠)" "✓ lsp-$1 hazır: dosyayı editörde yeniden açın (durum satırında 🧠)" "✓ lsp-$1 готов: откройте файл в редакторе заново (🧠 в строке статуса)"
+}
+
 install_lazygit() { # full-screen Git client (stage, commit, push, branches, diff, merge) — the compact ACS Git UI
   has lazygit && return 0
   v=0.44.1; a=$(uname -m); case "$a" in aarch64) a=arm64 ;; armv7l|armv8l|arm*) a=armv6 ;; x86_64) a=x86_64 ;; esac
@@ -231,7 +266,7 @@ cmd_install() {
     return
   fi
   case "${1:-}:${2:-}" in jdk:1[0-9]|jdk:2[0-9]) nibras-apk jdk "$2"; return ;; esac
-  case "${1:-}" in lang-*|lang) cmd_lang "${2:-${1#lang-}}"; return ;; esac
+  case "${1:-}" in lang-*|lang) cmd_lang "${2:-${1#lang-}}"; return ;; lsp-*) for p in "$@"; do lsp_one "${p#lsp-}"; done; return ;; esac
   if [ $# -le 2 ] && lang_code "$1" >/dev/null && ! pack_desc "$1" >/dev/null 2>&1; then cmd_lang "$@"; return; fi
   for p in "$@"; do
     case "$p" in sdk|acs|android) p=android-sdk ;; neovim|vim|nano|emacs|micro) pkg install "$p"; continue ;; esac
