@@ -45,3 +45,8 @@ install() {
 # Friendly help when a command is missing (bash / zsh).
 command_not_found_handle() { nibras-kit fix "$1"; return 127; }
 command_not_found_handler() { nibras-kit fix "$1"; return 127; }
+# bash: after a failed command, a one-line hint that `fix` can explain it (not for Ctrl+C / not found).
+if [ -n "${BASH_VERSION:-}" ]; then
+  __nibras_rc() { local r=$?; case $r in 0|127|130|141|148) ;; *) printf '\033[2m[exit %s · fix = %s]\033[0m\n' "$r" "${NIBRAS_FIX_HINT:-suggestion}" ;; esac; return $r; }
+  case "${PROMPT_COMMAND:-}" in *__nibras_rc*) ;; *) PROMPT_COMMAND="__nibras_rc${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;; esac
+fi
