@@ -45,7 +45,7 @@ jobs:
             nibras-apk baksmali app.apk smali-out && nibras-apk smali smali-out classes2.dex && test -s classes2.dex
             nibras-apk rename app.apk com.nibras.democlone "Demo Clone" && /opt/android-sdk/build-tools/35.0.0/aapt2 dump badging app-com.nibras.democlone.apk | grep -q "package: name='com.nibras.democlone'"
             mkdir split && cp app.apk split/base.apk && (cd split && zip -q ../app.apks base.apk) && nibras-apk merge app.apks && test -f app-merged.apk
-            nibras-apk diff app.apk app-src-mod.apk | grep -q Modded
+            nibras-apk diff app.apk app-src-mod.apk --full | grep -q Modded
             echo APK_TOOLS_OK
           fi
           SH
