@@ -125,7 +125,7 @@ object ApkInspect {
     private fun meta(info: PackageInfo): Meta {
         val perms = info.requestedPermissions?.toSet().orEmpty()
         val certs = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else @Suppress("DEPRECATION") info.signatures
-        val cert = certs?.firstOrNull()?.encoded?.let { sha256(it) }
+        val cert = certs?.firstOrNull()?.toByteArray()?.let { sha256(it) }
         val ver = info.versionName ?: "?"
         return Meta(info.packageName ?: "?", ver, perms, cert)
     }
@@ -147,7 +147,7 @@ object Updater {
         }
         val json = JSONObject(body)
         val ver = json.optString("tag_name").removePrefix("v")
-        val current = BuildConfig.VERSION_NAME
+        val current = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty()
         if (!newer(ver, current)) return "You have $current. Nothing newer."
         val assets = json.getJSONArray("assets")
         var apkUrl = ""
@@ -201,7 +201,7 @@ object Updater {
             context.packageManager.getPackageArchiveInfo(apk.path, flags)
         } ?: return null
         val certs = if (Build.VERSION.SDK_INT >= 28) info.signingInfo?.apkContentsSigners else @Suppress("DEPRECATION") info.signatures
-        return certs?.firstOrNull()?.encoded?.let { ApkInspect.sha256(it) }
+        return certs?.firstOrNull()?.toByteArray()?.let { ApkInspect.sha256(it) }
     }
 
     private fun newer(remote: String, local: String): Boolean {
@@ -401,7 +401,8 @@ object Mirror {
 object WhatsNew {
     fun maybe(activity: Activity) {
         if (!Lang.chosen(activity)) return
-        val ver = BuildConfig.VERSION_NAME
+        val ver = runCatching { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName }.getOrNull().orEmpty()
+        if (ver.isEmpty()) return
         val prefs = Prefs(activity)
         if (prefs.sp.getString("seenVersion", "") == ver) return
         AlertDialog.Builder(activity)
@@ -413,7 +414,10 @@ object WhatsNew {
             .show()
     }
 
-    private fun Activity.seen() = Prefs(this).sp.edit().putString("seenVersion", BuildConfig.VERSION_NAME).apply()
+    private fun Activity.seen() {
+        val ver = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull().orEmpty()
+        Prefs(this).sp.edit().putString("seenVersion", ver).apply()
+    }
 
     private fun text(lang: String) = when (lang) {
         "az" -> "1.0.4: imzası yoxlanan yeniləmə, iki APK-nın icazə və imza müqayisəsi, vidjet və cron üçün icazə siyahısı, qonaq rejimi, SSH və release açarı telefonun seyfində, ekran yazısı, layihə düymələri, ölməyən iş, eyni Wi-Fi-da ikinci telefon, QR əmri (əvvəl soruşur), SD kartda paket anbarı, sirr olmayan qurulum faylı, Termux evinin köçürülməsi, yalnız tanınan cümlə, man səhifələri, bu qeyd, lokal portlar və Git parolu terminala düşmür."
