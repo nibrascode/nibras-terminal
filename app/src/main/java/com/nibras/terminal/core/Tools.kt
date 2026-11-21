@@ -254,28 +254,39 @@ object GuestPaths {
         return "/" + parts.joinToString("/")
     }
 
-    /** Editor "Run" command for a file, by extension or shebang. */
+    /** Editor "Run" command for a file, by extension, shebang or project file (Makefile, CMake, Cargo, package.json, go.mod, gradle). */
     fun runCommand(guestPath: String, firstLine: String = ""): String {
         val q = shQuote(guestPath)
-        if (firstLine.startsWith("#!")) return "chmod +x $q && $q"
-        return when (guestPath.substringAfterLast('.', "").lowercase()) {
+        val dir = shQuote(guestPath.substringBeforeLast('/').ifEmpty { "/" })
+        val name = guestPath.substringAfterLast('/').substringBeforeLast('.')
+        val bin = shQuote("/tmp/nibras-run/$name")
+        val body = if (firstLine.startsWith("#!")) "chmod +x $q && $q" else when (guestPath.substringAfterLast('.', "").lowercase()) {
             "py" -> "nibras-need python3 && python3 $q"
-            "js", "mjs" -> "nibras-need node && node $q"
+            "js", "mjs", "cjs" -> "nibras-need node && node $q"
+            "ts", "tsx" -> "nibras-need node && npx --yes tsx $q"
             "sh" -> "sh $q"
-            "bash" -> "bash $q"
+            "bash" -> "nibras-need bash && bash $q"
             "rb" -> "nibras-need ruby && ruby $q"
             "php" -> "nibras-need php && php $q"
             "pl" -> "nibras-need perl && perl $q"
             "lua" -> "nibras-need lua && lua $q"
-            "go" -> "nibras-need go && go run $q"
-            "c" -> "nibras-need gcc && gcc -O2 -o /tmp/a.out $q && /tmp/a.out"
-            "cpp", "cc", "cxx" -> "nibras-need g++ && g++ -O2 -o /tmp/a.out $q && /tmp/a.out"
-            "rs" -> "nibras-need rustc && rustc -o /tmp/a.out $q && /tmp/a.out"
+            "r" -> "nibras-need Rscript && Rscript $q"
+            "go" -> "nibras-need go && if [ -f go.mod ]; then go run .; else go run $q; fi"
+            "c" -> "nibras-need gcc && mkdir -p /tmp/nibras-run && if [ -f Makefile ]; then make && echo; else gcc -O2 -Wall -o $bin $q -lm && $bin; fi"
+            "cpp", "cc", "cxx" -> "nibras-need g++ && mkdir -p /tmp/nibras-run && if [ -f Makefile ]; then make; elif [ -f CMakeLists.txt ]; then nibras-need cmake && cmake -B build && cmake --build build; else g++ -O2 -Wall -std=c++17 -o $bin $q && $bin; fi"
+            "rs" -> "if [ -f Cargo.toml ]; then nibras-need cargo && cargo run; else nibras-need rustc && mkdir -p /tmp/nibras-run && rustc -O -o $bin $q && $bin; fi"
             "java" -> "nibras-need java && java $q"
-            "kt" -> "nibras-need kotlinc && kotlinc $q -include-runtime -d /tmp/a.jar && java -jar /tmp/a.jar"
+            "kt" -> "nibras-need kotlinc && mkdir -p /tmp/nibras-run && kotlinc $q -include-runtime -d $bin.jar && java -jar $bin.jar"
+            "kts" -> "nibras-need kotlinc && kotlinc -script $q"
             "html", "htm" -> "nibras-open $q"
-            else -> "sh $q"
+            "md" -> "cat $q"
+            "json" -> "nibras-need jq && jq . $q"
+            "sql" -> "nibras-need sqlite3 && sqlite3 < $q"
+            "mk" -> "make -f $q"
+            else -> if (guestPath.endsWith("Makefile")) "nibras-need make && make" else if (guestPath.endsWith("package.json")) "nibras-need npm && npm install && npm start" else "sh $q"
         }
+        // IDE-style footer: exit code and run time (AndroidIDE / Pydroid show this too).
+        return "cd $dir && t0=\$(date +%s); { $body; }; rc=\$?; echo; echo \"── exit \$rc · \$((\$(date +%s)-t0))s ──\""
     }
 }
 
