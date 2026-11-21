@@ -128,6 +128,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
             }
             "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
             "res-edit" -> ui { com.nibras.terminal.ResEditorActivity.open(context, envId(env), args.ifBlank { pwd }.let { if (it.startsWith("/")) it else "$pwd/$it" }) }
+            "studio" -> ui { com.nibras.terminal.StudioActivity.open(context, envId(env), args.ifBlank { pwd }.let { if (it.startsWith("/")) it else "$pwd/$it" }) }
             "files" -> ui { com.nibras.terminal.FilesActivity.open(context, envId(env), args.ifBlank { null }) }
             "desktop-view" -> ui { com.nibras.terminal.DesktopActivity.open(context, env.ifBlank { null }) }
             "hosts" -> ui { context.startActivity(Intent(context, com.nibras.terminal.HostsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

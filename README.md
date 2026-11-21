@@ -30,7 +30,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.6-1f6feb?style=flat-square" alt="version 1.0.6">
+  <img src="https://img.shields.io/badge/version-1.0.7-1f6feb?style=flat-square" alt="version 1.0.7">
   <img src="https://img.shields.io/badge/Android-8%2B%20(API%2026)-3ddc84?style=flat-square&logo=android&logoColor=white" alt="Android 8+">
   <img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a-orange?style=flat-square" alt="arm64 and arm32">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-no%20copy-red?style=flat-square" alt="No copy. All rights reserved."></a>
@@ -38,7 +38,7 @@ Alpine Linux out of the box · Debian, Ubuntu, Arch, Fedora, Kali on demand · c
 </p>
 
 <p align="center">
-  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.6-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
+  <a href="https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk"><img src="https://img.shields.io/badge/Download-APK%201.0.7-3ddc84?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK"></a>
 </p>
 
 <p align="center">
@@ -65,7 +65,7 @@ Nibras Terminal opens straight into a real terminal. It runs **Alpine Linux** wi
 
 ## 🚀 Quick start
 
-1. Download the APK: [nibras-terminal.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.6).
+1. Download the APK: [nibras-terminal.apk](https://github.com/nibrascode/nibras-terminal/releases/latest/download/nibras-terminal.apk) (Android 8 or newer, version 1.0.7).
 2. Open the file on the phone and allow "Install unknown apps".
 
 
@@ -98,7 +98,7 @@ customize            # look & feel menu
 | 💻 | **Programming** | `run <file>` for 30+ languages, project detection (Cargo, Go, npm, Gradle, CMake, Make) |
 | 🧠 | **Editor + LSP** | syntax highlight, completion, diagnostics, hover, go-to-definition · `install lsp-python`, `lsp-java`, `lsp-kotlin`, `lsp-xml`, `lsp-ts`, `lsp-c` … |
 | 📱 | **APK studio** | `nibras-apk new/wizard/build/run/sign`, decompile/rebuild, smali, split/APKS install, visual **resource editor** (`nibras-apk res`), `test`, `lint`, `analyze`, `assets`, `perms`, `db`, `crash` |
-| 🆕 | **1.0.6** | Android Studio jobs on the phone: `nibras-apk test`, `lint`, `analyze`, `assets`, `perms` (also `manifest edit`), `db`, `crash`. `manifest <apk>` still prints the XML. |
+| 🆕 | **1.0.7** | Project screen: `nibras-apk studio`. New activity, class and layout. `dep` adds a library. Run uses this phone, not an emulator. Layout preview is on the project screen. |
 | 🗂️ | **File manager** | `files`, archives, sharing, phone storage via `nibras-setup-storage` |
 | 🔐 | **SSH** | hosts, keys, port forwards, jump hosts, Mosh, Telnet, SFTP, `nibras-sshd` |
 | 🎬 | **Media & documents** | `video merge/cut/compress`, `audio`, `image`, `download <url>`, `pdf`, `ocr`, `office` |

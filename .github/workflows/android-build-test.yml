@@ -37,6 +37,16 @@ jobs:
           test -n "$apk"
           /opt/android-sdk/build-tools/35.0.0/aapt2 dump badging "$apk" | head -3
           java -jar /opt/android-sdk/build-tools/35.0.0/lib/apksigner.jar verify "$apk" && echo "ANDROID_BUILD_OK $(du -h "$apk" | cut -f1)"
+          nibras-apk activity Extra /root/demo
+          nibras-apk class Box /root/demo
+          nibras-apk screen button home /root/demo
+          nibras-apk dep androidx.recyclerview:recyclerview:1.4.0 /root/demo
+          test -f /root/demo/app/src/main/res/layout/activity_extra.xml
+          test -f /root/demo/app/src/main/res/layout/activity_home.xml
+          grep -q recyclerview /root/demo/app/build.gradle
+          if [ "$1" = kotlin ]; then test -f /root/demo/app/src/main/java/com/nibras/demo/ExtraActivity.kt
+          else test -f /root/demo/app/src/main/java/com/nibras/demo/ExtraActivity.java; fi
+          echo STUDIO_OK
           if [ "$1" = views ]; then # APK tools (APK Editor / MT Manager / APKTool M parity) on the built app
             cp "$apk" /root/app.apk; cd /root
             nibras-apk decompile app.apk app-src && sed -i 's/Built with Nibras Terminal/Modded/' app-src/res/layout/activity_main.xml

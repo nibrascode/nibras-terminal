@@ -113,6 +113,8 @@
         <activity android:name=".FilesActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal" />
         <activity android:name=".ResEditorActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
             android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
+        <activity android:name=".StudioActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
+            android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
         <activity android:name=".EditorActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"
             android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden|screenLayout" />
         <activity android:name=".DesktopActivity" android:exported="false" android:theme="@style/Theme.NibrasTerminal"

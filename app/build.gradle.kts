@@ -6,8 +6,8 @@ plugins {
 
 val androidSdk = (findProperty("sdk") as String?)?.toIntOrNull() ?: 35
 // Fixed release version. Never bump automatically: Mahir decides when the version changes.
-val nibrasVersionName = "1.0.6"
-val androidVersion = 10006 // 1.0.6 → 10006 (major*10000 + minor*100 + patch)
+val nibrasVersionName = "1.0.7"
+val androidVersion = 10007 // 1.0.7 → 10007 (major*10000 + minor*100 + patch)
 
 android {
     namespace = "com.nibras.terminal"

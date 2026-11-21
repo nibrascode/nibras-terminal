@@ -24,6 +24,12 @@ The public APK is published only when `versionName` changes. A later push with t
 
 `nibras-update` refuses an APK whose certificate is not the release key. `nibras-allow` limits widgets, cron, Tasker and boot. Private phone commands cannot be listed. `nibras-guest on` blocks those commands plus the vault and stored keys. `nibras-phrase` runs a sentence only when every part is a known command. `nibras-qr-run` asks before it runs, and only for a known sentence or an allowed command. `nibras-setup` does not contain SSH keys or passwords. Git asks `nibras-git-ask`; the password is not written in the terminal. A folder can carry `.nibras/keys` for its own buttons. `nibras-man <name>` is offline in 19 languages.
 
+## Phone, 1.0.7
+
+`nibras-apk studio` `nibras-apk activity` `nibras-apk class` `nibras-apk screen` `nibras-apk dep` `nibras-apk sync` `nibras-apk device` `nibras-apk errors`
+
+`studio` opens the project screen: run, build, test, lint, logcat, layout preview, resources, and the source list. `activity Name` adds an activity, a layout and a manifest entry. `class Name` adds a Java or Kotlin file. `screen button|list|form|empty name` writes a layout. `dep group:artifact:version` adds `implementation`. The run device is this phone. There is no emulator inside the phone. The website's first screen is unchanged.
+
 ## Phone, 1.0.6
 
 `nibras-apk test` `nibras-apk lint` `nibras-apk analyze` `nibras-apk assets` `nibras-apk perms` `nibras-apk db` `nibras-apk crash`

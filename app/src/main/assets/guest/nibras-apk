@@ -43,6 +43,14 @@
 #   nibras-apk manifest edit          same as perms. "manifest <apk>" still prints the XML
 #   nibras-apk db <pkg|file.db> [db] [sql]   your debug app's SQLite, or a .db file you already have
 #   nibras-apk crash [package]        last lines from the crash buffer (wireless debugging: nibras-adb pair)
+#   nibras-apk studio [dir]           open the project screen: run, files, layout, new activity
+#   nibras-apk activity <Name> [dir]  new activity, layout and manifest entry
+#   nibras-apk class <Name> [dir]     new Java or Kotlin class in the app package
+#   nibras-apk screen <kind> <file>   layout: empty, button, list, form
+#   nibras-apk dep <group:name:ver>   add an implementation dependency
+#   nibras-apk sync [dir]             Gradle sync (tasks)
+#   nibras-apk device                 this phone is the run device
+#   nibras-apk errors                 file and line from the last Gradle failure
 set -e
 TOOLS=/opt/nibras-apk
 SDK=/opt/android-sdk
@@ -132,14 +140,23 @@ sdk() {
 need() { command -v "$1" >/dev/null 2>&1 || [ -f "$SDK/build-tools/$BT/lib/$1.jar" ] || setup; }
 apktool() { [ -f "$TOOLS/apktool.jar" ] && [ -x "$TOOLS/bin/apktool" ] && grep -q -- --aapt "$TOOLS/bin/apktool" || setup; "$TOOLS/bin/apktool" "$@"; }
 apksigner_() { java -jar "$SDK/build-tools/$BT/lib/apksigner.jar" "$@"; }
+gradle_exec() { # $G and local.properties already set; $1 is the task
+  task="$1"
+  mkdir -p "$HOME/.nibras"
+  echo "→ $task"
+  $G "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2" > "$HOME/.nibras/studio.log" 2>&1 || {
+    cat "$HOME/.nibras/studio.log"
+    return 1
+  }
+  cat "$HOME/.nibras/studio.log"
+}
 gradle_task() { # dir task
   dir="${1:-.}"; task="${2:?task}"
   [ -f "$SDK/build-tools/$BT/aapt2" ] || setup --sdk
   cd "$dir"
   [ -f local.properties ] || echo "sdk.dir=$SDK" > local.properties
   if [ -x ./gradlew ]; then G=./gradlew; else gradle_dist; G=/opt/gradle/bin/gradle; fi
-  echo "→ $task"
-  $G "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
+  gradle_exec "$task"
 }
 perm_norm() {
   p="$1"
@@ -574,6 +591,279 @@ crash_cmd() {
     logcat -d -b crash -t 40 -v time 2>&1 | tail -n 40 || true
   fi
 }
+project_root() {
+  d="${1:-.}"
+  [ -d "$d" ] || { echo "not a directory: $d" >&2; return 1; }
+  d=$(cd "$d" && pwd)
+  i=0
+  while [ "$i" -lt 8 ]; do
+    if [ -f "$d/settings.gradle" ] || [ -f "$d/settings.gradle.kts" ] || [ -f "$d/apktool.yml" ]; then
+      printf '%s\n' "$d"; return 0
+    fi
+    [ "$d" = "/" ] && break
+    d=$(dirname "$d")
+    i=$((i + 1))
+  done
+  echo "not an Android project: $1" >&2
+  return 1
+}
+class_name() {
+  n=$(printf '%s' "$1" | tr -cd 'A-Za-z0-9_')
+  [ -n "$n" ] || return 1
+  f=$(printf '%s' "$n" | cut -c1)
+  case "$f" in [A-Za-z]) ;; *) return 1 ;; esac
+  printf '%s%s\n' "$(printf '%s' "$f" | tr '[:lower:]' '[:upper:]')" "$(printf '%s' "$n" | cut -c2-)"
+}
+layout_id() {
+  base=$(printf '%s' "$1" | sed 's/Activity$//')
+  s=$(printf '%s' "$base" | sed 's/\([A-Z]\)/_\1/g' | tr '[:upper:]' '[:lower:]' | sed 's/^_//')
+  printf 'activity_%s\n' "$s"
+}
+uses_kotlin() {
+  grep -q kotlin "$1/app/build.gradle" "$1/app/build.gradle.kts" "$1/build.gradle" "$1/build.gradle.kts" 2>/dev/null
+}
+app_manifest() {
+  if [ -f "$1/app/src/main/AndroidManifest.xml" ]; then printf '%s\n' "$1/app/src/main/AndroidManifest.xml"; return 0; fi
+  if [ -f "$1/src/main/AndroidManifest.xml" ]; then printf '%s\n' "$1/src/main/AndroidManifest.xml"; return 0; fi
+  if [ -f "$1/AndroidManifest.xml" ]; then printf '%s\n' "$1/AndroidManifest.xml"; return 0; fi
+  echo "no AndroidManifest.xml" >&2
+  return 1
+}
+src_root() {
+  if [ -d "$1/app/src/main/java" ]; then printf '%s\n' "$1/app/src/main/java"; return 0; fi
+  if [ -d "$1/src/main/java" ]; then printf '%s\n' "$1/src/main/java"; return 0; fi
+  echo "no src/main/java" >&2
+  return 1
+}
+res_main() {
+  if [ -d "$1/app/src/main/res" ] || [ -d "$1/app/src/main" ]; then mkdir -p "$1/app/src/main/res"; printf '%s\n' "$1/app/src/main/res"; return 0; fi
+  if [ -d "$1/src/main/res" ] || [ -d "$1/src/main" ]; then mkdir -p "$1/src/main/res"; printf '%s\n' "$1/src/main/res"; return 0; fi
+  if [ -d "$1/res" ] || [ -f "$1/AndroidManifest.xml" ]; then mkdir -p "$1/res"; printf '%s\n' "$1/res"; return 0; fi
+  echo "no res directory" >&2
+  return 1
+}
+write_layout() {
+  kind="$1"; out="$2"; title="$3"
+  mkdir -p "$(dirname "$out")"
+  case "$kind" in
+    empty)
+      cat > "$out" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+EOF
+      ;;
+    list)
+      cat > "$out" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<ListView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/list"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+EOF
+      ;;
+    form)
+      cat > "$out" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+    <EditText
+        android:id="@+id/field"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="$title" />
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Save" />
+</LinearLayout>
+EOF
+      ;;
+    *)
+      cat > "$out" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="$title"
+        android:textSize="22sp" />
+    <Button
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Tap me" />
+</LinearLayout>
+EOF
+      ;;
+  esac
+  echo "✓ $out"
+}
+activity_cmd() {
+  raw="${1:?nibras-apk activity Name [dir]}"
+  root=$(project_root "${2:-.}") || exit 1
+  cls=$(class_name "$raw") || { echo "bad name: $raw"; exit 1; }
+  case "$cls" in *Activity) ;; *) cls="${cls}Activity" ;; esac
+  lay=$(layout_id "$cls")
+  pkg=$(app_id "$root")
+  [ -n "$pkg" ] || pkg=$(grep -o 'package="[^"]*"' "$(app_manifest "$root")" 2>/dev/null | head -n 1 | cut -d'"' -f2)
+  [ -n "$pkg" ] || { echo "no applicationId"; exit 1; }
+  base=$(src_root "$root") || exit 1
+  dest="$base/$(printf '%s' "$pkg" | tr . /)"
+  mkdir -p "$dest"
+  res=$(res_main "$root") || exit 1
+  xml="$res/layout/$lay.xml"
+  [ -f "$xml" ] || write_layout button "$xml" "$cls"
+  if uses_kotlin "$root"; then
+    file="$dest/$cls.kt"
+    [ -f "$file" ] && { echo "already exists: $file"; exit 1; }
+    cat > "$file" <<EOF
+package $pkg
+
+import android.app.Activity
+import android.os.Bundle
+
+class $cls : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.$lay)
+    }
+}
+EOF
+  else
+    file="$dest/$cls.java"
+    [ -f "$file" ] && { echo "already exists: $file"; exit 1; }
+    cat > "$file" <<EOF
+package $pkg;
+
+import android.app.Activity;
+import android.os.Bundle;
+
+public class $cls extends Activity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.$lay);
+    }
+}
+EOF
+  fi
+  echo "✓ $file"
+  mf=$(app_manifest "$root") || exit 1
+  if grep -q "android:name=\"\\.$cls\"" "$mf"; then
+    echo "manifest already has .$cls"
+  else
+    awk -v n="$cls" '
+      /<\/application>/ && !d { print "        <activity android:name=\"." n "\" android:exported=\"false\" />"; d=1 }
+      { print }
+      END { if (!d) exit 1 }
+    ' "$mf" > "$mf.nibras" && mv "$mf.nibras" "$mf" || { echo "could not find </application> in $mf"; exit 1; }
+    echo "✓ manifest .$cls"
+  fi
+}
+class_cmd() {
+  raw="${1:?nibras-apk class Name [dir]}"
+  root=$(project_root "${2:-.}") || exit 1
+  cls=$(class_name "$raw") || { echo "bad name: $raw"; exit 1; }
+  pkg=$(app_id "$root")
+  [ -n "$pkg" ] || { echo "no applicationId"; exit 1; }
+  base=$(src_root "$root") || exit 1
+  dest="$base/$(printf '%s' "$pkg" | tr . /)"
+  mkdir -p "$dest"
+  if uses_kotlin "$root"; then
+    file="$dest/$cls.kt"
+    [ -f "$file" ] && { echo "already exists: $file"; exit 1; }
+    cat > "$file" <<EOF
+package $pkg
+
+class $cls {
+}
+EOF
+  else
+    file="$dest/$cls.java"
+    [ -f "$file" ] && { echo "already exists: $file"; exit 1; }
+    cat > "$file" <<EOF
+package $pkg;
+
+public class $cls {
+}
+EOF
+  fi
+  echo "✓ $file"
+}
+screen_cmd() {
+  kind="${1:?nibras-apk screen empty|button|list|form <layout name> [dir]}"
+  raw="${2:?layout name}"
+  root=$(project_root "${3:-.}") || exit 1
+  name=$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_')
+  [ -n "$name" ] || { echo "layout name: letters, digits, _"; exit 1; }
+  case "$name" in activity_*) ;; *) name="activity_$name" ;; esac
+  case "$kind" in empty|button|list|form) ;; *) echo "kind: empty, button, list, form"; exit 1 ;; esac
+  res=$(res_main "$root") || exit 1
+  write_layout "$kind" "$res/layout/$name.xml" "$name"
+}
+dep_cmd() {
+  coord="${1:?nibras-apk dep group:artifact:version [dir]}"
+  root=$(project_root "${2:-.}") || exit 1
+  case "$coord" in
+    [A-Za-z0-9._-]*:[A-Za-z0-9._-]*:[A-Za-z0-9._+-]*) ;;
+    *) echo "use group:artifact:version  (example androidx.recyclerview:recyclerview:1.4.0)"; exit 1 ;;
+  esac
+  if [ -f "$root/app/build.gradle.kts" ]; then f="$root/app/build.gradle.kts"; line="    implementation(\"$coord\")"
+  elif [ -f "$root/app/build.gradle" ]; then f="$root/app/build.gradle"; line="    implementation '$coord'"
+  else echo "no app/build.gradle"; exit 1; fi
+  grep -q "$coord" "$f" && { echo "already in $f"; return 0; }
+  awk -v line="$line" '
+    /dependencies[[:space:]]*\{/ && !d { print; print line; d=1; next }
+    { print }
+    END { if (!d) exit 1 }
+  ' "$f" > "$f.nibras" && mv "$f.nibras" "$f" || { echo "no dependencies { } in $f"; exit 1; }
+  echo "✓ $line"
+  echo "Sync: nibras-apk sync $root"
+}
+studio_cmd() {
+  root=$(project_root "${1:-.}") || exit 1
+  if command -v nibras-api >/dev/null 2>&1; then
+    nibras-api studio "$root"
+    echo "Studio $root"
+  else
+    echo "On the phone: nibras-apk studio $root"
+    exit 1
+  fi
+}
+device_cmd() {
+  model=$(getprop ro.product.model 2>/dev/null || true)
+  rel=$(getprop ro.build.version.release 2>/dev/null || true)
+  sdk=$(getprop ro.build.version.sdk 2>/dev/null || true)
+  if [ -z "$model" ]; then
+    echo "Run target: this phone."
+    echo "An emulator does not run inside the phone. Run installs here."
+    return 0
+  fi
+  echo "Run target: $model"
+  echo "Android $rel (API $sdk)"
+  echo "An emulator does not run inside the phone. Run installs here."
+}
+errors_cmd() {
+  f="$HOME/.nibras/studio.log"
+  [ -f "$f" ] || { echo "No build yet. nibras-apk build"; exit 1; }
+  echo "Last Gradle problems:"
+  grep -E 'error:|^e: |What went wrong|FAILED|\.java:[0-9]+|\.kt:[0-9]+' "$f" | head -n 40 || true
+  echo "full log: $f"
+}
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 case "$cmd" in
   setup) setup "$@" ;;
@@ -870,7 +1160,7 @@ G
     dir="${1:-.}"; task="${2:-assembleDebug}"; [ -f "$SDK/build-tools/$BT/aapt2" ] || setup --sdk
     cd "$dir"; [ -f local.properties ] || echo "sdk.dir=$SDK" > local.properties
     if [ -x ./gradlew ]; then G=./gradlew; else gradle_dist; G=/opt/gradle/bin/gradle; fi
-    $G "$task" -Pandroid.aapt2FromMavenOverride="$SDK/build-tools/$BT/aapt2"
+    gradle_exec "$task"
     find . -path '*/build/outputs/*' \( -name '*.apk' -o -name '*.aab' -o -name '*.aar' \) -newer local.properties 2>/dev/null | sed 's/^/✓ /' ;;
   clean|tasks|deps|dependencies) dir="${1:-.}"; cd "$dir"; [ -x ./gradlew ] && G=./gradlew || { gradle_dist; G=/opt/gradle/bin/gradle; }
     case "$cmd" in clean) $G clean ;; tasks) $G tasks ;; *) $G :app:dependencies --configuration debugRuntimeClasspath ;; esac ;;
@@ -1015,5 +1305,13 @@ G
   perms|permissions) perms_cmd "$@" ;;
   db|database) db_cmd "$@" ;;
   crash) crash_cmd "$@" ;;
+  studio) studio_cmd "$@" ;;
+  activity|new-activity) activity_cmd "$@" ;;
+  class|new-class) class_cmd "$@" ;;
+  screen|layout-new) screen_cmd "$@" ;;
+  dep|dependency) dep_cmd "$@" ;;
+  sync) gradle_task "$(project_root "${1:-.}")" tasks ;;
+  device) device_cmd ;;
+  errors|problems) errors_cmd ;;
   help|-h|--help|*) awk 'NR>1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$0" ;;
 esac
