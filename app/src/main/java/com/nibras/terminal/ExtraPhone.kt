@@ -65,4 +65,23 @@ object ExtraPhone {
         }
         return a.toString(2)
     }
+
+    /** args: "-f 38000 9000,4500,560,560,…" (carrier Hz, on/off pattern in µs). */
+    fun infrared(c: Context, args: String): String {
+        val ir = c.getSystemService(android.hardware.ConsumerIrManager::class.java) ?: return "no IR blaster"
+        if (!ir.hasIrEmitter()) return "no IR blaster"
+        val parts = args.split(' ').filter { it.isNotBlank() }
+        val freq = parts.indexOf("-f").takeIf { it >= 0 }?.let { parts.getOrNull(it + 1)?.toIntOrNull() } ?: 38000
+        val pattern = parts.lastOrNull()?.split(',')?.mapNotNull { it.trim().toIntOrNull() }?.toIntArray() ?: return "usage: nibras-infrared-transmit -f 38000 9000,4500,560,…"
+        ir.transmit(freq, pattern)
+        return "sent ${pattern.size} pulses at $freq Hz"
+    }
+
+    @android.annotation.SuppressLint("MissingPermission")
+    fun cellInfo(c: Context): String {
+        val tm = c.getSystemService(TelephonyManager::class.java)
+        val a = JSONArray()
+        tm.allCellInfo?.forEach { ci -> a.put(JSONObject().put("type", ci.javaClass.simpleName.removePrefix("CellInfo")).put("registered", ci.isRegistered).put("info", ci.toString().take(400))) }
+        return a.toString(2)
+    }
 }

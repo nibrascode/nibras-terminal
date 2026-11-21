@@ -109,6 +109,23 @@ class ApiBridge(private val context: Context, private val host: Host) {
                 val target = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), out) ?: return "ERR\nbad path: $out"
                 com.nibras.terminal.PromptActivity.ask(context, "storage-get", emptyList(), target).let { "OK\n$it" }
             }
+            "camera-photo" -> {
+                val out = words(raw).lastOrNull { !it.startsWith("-") && it.toIntOrNull() == null } ?: return "ERR\nusage: nibras-camera-photo <file.jpg>"
+                val target = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), out) ?: return "ERR\nbad path: $out"
+                "OK\n" + com.nibras.terminal.PromptActivity.ask(context, "camera-photo", emptyList(), target)
+            }
+            "speech-to-text" -> org.json.JSONObject(com.nibras.terminal.PromptActivity.ask(context, "speech-to-text", emptyList())).optString("text").let { "OK\n$it" }
+            "telephony-call" -> ui { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + args.trim())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            "media-scan" -> {
+                val files = words(raw).mapNotNull { com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), it)?.absolutePath }
+                android.media.MediaScannerConnection.scanFile(context, files.toTypedArray(), null, null); "OK\n${files.size} file(s)"
+            }
+            "infrared-transmit" -> "OK\n" + com.nibras.terminal.ExtraPhone.infrared(context, args)
+            "telephony-cellinfo" -> {
+                val perm = android.Manifest.permission.ACCESS_FINE_LOCATION
+                if (context.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED) { main.post { host.requestPermission(perm) }; "ERR\n" + context.getString(R.string.permission_needed, "ACCESS_FINE_LOCATION") }
+                else "OK\n" + com.nibras.terminal.ExtraPhone.cellInfo(context)
+            }
             "job-scheduler" -> "OK\n" + com.nibras.terminal.ScriptJobService.handle(context, words(raw), envId(env))
             "audio-info" -> "OK\n" + com.nibras.terminal.ExtraPhone.audioInfo(context)
             "telephony-deviceinfo" -> "OK\n" + com.nibras.terminal.ExtraPhone.telephony(context)

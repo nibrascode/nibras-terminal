@@ -19,11 +19,11 @@ args="$*"
 case "$name" in
   clipboard-set|toast|notification|share|tts-speak)
     if [ -z "$args" ] && [ ! -t 0 ]; then args=$(cat); fi ;;
-  dialog|job-scheduler|storage-get)
+  dialog|job-scheduler|storage-get|camera-photo|media-scan)
     # keep each argument intact (separated by \037)
     args=$(printf '%s\037' "$@")
-    if [ "$name" = storage-get ] && [ -n "${1:-}" ]; then
-      case "$1" in /*) ;; *) args=$(printf '%s/%s\037' "$PWD" "$1");; esac
+    if [ "$name" != dialog ] && [ "$name" != job-scheduler ]; then
+      args=; for a in "$@"; do case "$a" in -*|[0-9]) args="$args$a$(printf '\037')" ;; /*) args="$args$a$(printf '\037')" ;; *) args="$args$PWD/$a$(printf '\037')" ;; esac; done
     fi ;;
   wallpaper)
     lock=; [ "${1:-}" = -l ] && { lock="-l "; shift; }

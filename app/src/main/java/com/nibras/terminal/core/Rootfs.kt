@@ -333,7 +333,8 @@ object Rootfs {
         "microphone-record", "location", "sensor", "fingerprint", "download", "setup-storage",
         "open-url", "open", "info", "media-player", "contact-list", "call-log", "sms-list", "sms-send",
         "reload-settings", "new-session", "edit", "files", "hosts", "dialog", "storage-get", "job-scheduler",
-        "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper",
+        "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
+        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo",
     )
 
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */

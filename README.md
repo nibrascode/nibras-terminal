@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="docs/icon.png" alt="Nibras Terminal icon" width="160">
+</p>
+
+<p align="center">
   <img src="documentation/nibras-banner.png" alt="Nibras Terminal" width="100%">
 </p>
 
@@ -94,3 +98,24 @@ Debug APK və debug AAB Android-in debug açarı ilə imzalanır. Qurucu imzanı
 ## Nəyi yazmaq olmaz
 
 Token, keystore və imza şifrəsi çıxışa, commit-ə və sənədə yazılmır. Açar hər qurmada yenidən yaradılmır. Alpine ayrıca yükləmə deyil. Debian, Ubuntu, Python və Node APK-nın içində deyil. Vebdəki `nibras apk` telefon shell-inin əmri deyil. Telefonun `nibras-battery-status` əmri veb terminalın əmri deyil.
+
+## Android tətbiqi: nə var
+
+Tətbiq kiçikdir (~20 MB). Alətlər içinə qoyulmur: `install <paket>` yazanda yüklənir.
+
+| Bölmə | Əmr / yer |
+| --- | --- |
+| Paketlər | `install` (siyahı), `install video`, `install apk`, `install python` … · soldakı menyuda **Mağaza** |
+| Menyu | `nibras` — bütün alətlər AZ/TR/EN/RU |
+| Media | `video merge a.mp4 b.mp4`, `video cut`, `video compress`, `audio`, `image resize`, `download <url>` |
+| Sənəd | `pdf merge/split/compress/lock`, `ocr şəkil.jpg`, `office qeyd.md qeyd.docx`, `notes` |
+| Şəbəkə | `web .`, `share webdav /sdcard`, `webterm` (kompüter brauzerində terminal), `net speed`, `qr` |
+| Proqramlaşdırma | redaktor (Run düyməsi), `py`, `node`, `install dev`, `nibras apk new/build/decompile/sign` |
+| SSH | SSH hostları (açarlar, port yönləndirmə, jump host, mosh, telnet, SFTP), `nibras-sshd` |
+| Sistem | fayl meneceri, ekranı bölmək, üzən pəncərə, masaüstü (XFCE/noVNC), root shell, `nibras-adb`, `nibras-rish` |
+| Köməkçi | `ask "…"`, `explain <əmr>`, `fix`, `recipes`, `learn`, əmr təklifləri, səslə əmr |
+| Təhlükəsizlik | barmaq izi ilə kilid, `vault` (şifrəli seyf), `trash`, `snapshot` |
+| Avtomatlaşdırma | Tasker plugin, RUN_COMMAND intent, `cron`, `nibras-job-scheduler`, `~/.nibras/boot` |
+| Digər | `llm` (oflayn AI), `quran`, `hadith`, `prayer`, `games`, `record`, `clip`, `plugin` |
+
+Hər tətbiqdən götürülənlərin yoxlama siyahısı: [`docs/TEACHERS.md`](docs/TEACHERS.md)

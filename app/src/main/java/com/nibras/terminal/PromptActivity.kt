@@ -25,6 +25,8 @@ class PromptActivity : Activity() {
         private val ids = AtomicInteger(1)
         private val waiting = ConcurrentHashMap<Int, CompletableFuture<String>>()
         private const val REQ_DOC = 31
+        private const val REQ_CAM = 32
+        private const val REQ_STT = 33
 
         /** Blocks the API worker thread until the user answers (max 10 min). */
         fun ask(context: Context, kind: String, args: List<String>, target: File? = null): String {
@@ -38,6 +40,7 @@ class PromptActivity : Activity() {
     }
 
     private var id = 0
+    private var camTmp: File? = null
     private var done = false
 
     override fun attachBaseContext(base: Context) = super.attachBaseContext(Lang.wrap(base))
@@ -54,9 +57,26 @@ class PromptActivity : Activity() {
         id = intent.getIntExtra("id", 0)
         val args = intent.getStringArrayExtra("args")?.toList().orEmpty()
         fun opt(name: String) = args.indexOf(name).takeIf { it >= 0 }?.let { args.getOrNull(it + 1) }
-        if (intent.getStringExtra("kind") == "storage-get") {
-            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_DOC)
-            return
+        when (intent.getStringExtra("kind")) {
+            "storage-get" -> { startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), REQ_DOC); return }
+            "camera-photo" -> {
+                val target = File(intent.getStringExtra("target") ?: run { answer(1, "no target"); return })
+                target.parentFile?.mkdirs()
+                // Camera apps cannot write into the app's private rootfs; capture to cache, copy after.
+                val tmp = File(cacheDir, "camera-${System.nanoTime()}.jpg")
+                val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", tmp.also { it.parentFile?.mkdirs(); it.createNewFile() })
+                camTmp = tmp
+                val i = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE).putExtra(android.provider.MediaStore.EXTRA_OUTPUT, uri)
+                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                runCatching { startActivityForResult(i, REQ_CAM) }.onFailure { answer(1, it.message ?: "no camera app") }
+                return
+            }
+            "speech-to-text" -> {
+                val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                runCatching { startActivityForResult(i, REQ_STT) }.onFailure { answer(1, it.message ?: "no speech app") }
+                return
+            }
         }
         val widget = args.firstOrNull { !it.startsWith("-") && args.indexOf(it).let { i -> i == 0 || !args[i - 1].startsWith("-") } } ?: "text"
         val title = opt("-t") ?: "Nibras"
@@ -98,6 +118,16 @@ class PromptActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_STT) {
+            val text = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            answer(if (text != null) -1 else -2, text.orEmpty()); return
+        }
+        if (requestCode == REQ_CAM) {
+            val tmp = camTmp; val target = intent.getStringExtra("target")?.let { File(it) }
+            if (resultCode != RESULT_OK || tmp == null || target == null || tmp.length() == 0L) { tmp?.delete(); answer(-2, ""); return }
+            val ok = runCatching { tmp.copyTo(target, overwrite = true); tmp.delete() }.isSuccess
+            answer(if (ok) -1 else 1, if (ok) target.name else "copy failed"); return
+        }
         val uri = data?.data
         val target = intent.getStringExtra("target")?.let { File(it) }
         if (resultCode != RESULT_OK || uri == null || target == null) { answer(-2, ""); return }
