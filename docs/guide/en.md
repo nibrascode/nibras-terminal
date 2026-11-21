@@ -1,0 +1,205 @@
+# Nibras Terminal — User Guide (English)
+
+[← Back to the README](../../README.md) · [All languages](../../README.md#-guides-in-your-language)
+
+## 1. What is Nibras Terminal?
+
+Nibras Terminal is a full Linux terminal for Android phones. It opens straight into a real terminal, runs Alpine Linux out of the box, and can add Debian, Ubuntu, Arch, Fedora and Kali whenever you need them. It also includes a code editor with language-server support, a file manager, an SSH client, tools for building and modifying APK files, media tools and a large set of commands that only Nibras has. The app itself stays small, because heavy tools are downloaded only when you ask for them.
+
+## 2. Installation and first launch
+
+1. Download the latest APK from the project page on GitHub (Actions → *Android package* → artifact) or from the link the developer shared with you.
+2. Open the file and allow "Install unknown apps" when Android asks for it.
+3. On the first launch, Nibras Terminal shows a language picker. Every language is listed by its own name, and your phone's language is already selected. English is used when your phone's language is not available.
+4. The built-in Alpine Linux environment is prepared automatically, and the terminal opens.
+
+You can change the language at any time with the `lang` command or in Settings.
+
+## 3. Basics
+
+- Swipe from the left edge of the screen, or tap `☰` on the extra-keys row, to open the drawer with sessions, environments, tools and settings.
+- Long-press a session to rename or close it. Long-press "New session" to choose the environment (Alpine, Debian, Ubuntu or the Android shell).
+- The extra-keys row gives you `ESC`, `TAB`, `CTRL`, `ALT`, the arrow keys and more. `CTRL` and `ALT` stay pressed until the next key.
+- The volume-down key works as `CTRL` and the volume-up key works as the extra-keys modifier, just like in Termux.
+- Type `nibras` to open the menu of all Nibras tools, and type `help` for a short list of commands.
+
+```sh
+nibras
+help
+```
+
+## 4. Installing tools with `install`
+
+Tools are not stored inside the APK. Type `install` to see every pack with a short description, and type `install <name>` to add one. Packages that are not Nibras packs are installed with `pkg install <name>`.
+
+```sh
+install
+install python
+install video
+install dev
+pkg install htop
+```
+
+## 5. Linux environments (distributions)
+
+Alpine Linux is included in the app. Other distributions are downloaded on request, and each one runs as a separate environment.
+
+```sh
+install debian
+install ubuntu
+install arch
+install fedora
+install kali
+proot-distro list
+```
+
+## 6. Programming languages and `run`
+
+The `run` command recognizes a file by its extension, installs the required tool the first time, and runs the file. It works for Python, JavaScript, TypeScript, Java, Kotlin, C, C++, Go, Rust, PHP, Ruby, Perl, Lua, Dart, R, Julia, Haskell, Elixir, Zig, Nim, Bash, PowerShell and more. When you give it a folder, it detects the project type (Cargo, Go modules, npm, Gradle, CMake, Makefile and others).
+
+```sh
+run hello.py
+run main.c
+run app.ts
+run .
+install typescript
+install zig
+```
+
+## 7. Code editor and LSP
+
+Open a file with `edit <file>` or from the file manager. The editor highlights syntax for more than 25 languages, completes keywords and snippets, formats code, previews Markdown, HTML and Android layouts, and runs the file with the ▶ button.
+
+For smart completion, error underlining, hover information and go-to-definition, install a language server once. The status bar shows 🧠 when the server is running.
+
+```sh
+edit main.py
+install lsp-python
+install lsp-java
+install lsp-kotlin
+install lsp-all
+```
+
+Long-press a word in the editor to see its documentation. The ⋯ menu contains "Problems", "Info at cursor" and "Go to definition".
+
+## 8. File manager
+
+Open the file manager from the drawer or with the `files` command. You can copy, move, rename, delete, compress, extract, share and open files, and you can reach the phone storage after you run `nibras-setup-storage`.
+
+```sh
+files
+nibras-setup-storage
+```
+
+## 9. SSH
+
+The SSH screen in the drawer stores your hosts, keys, port forwards and jump hosts. Mosh, Telnet and SFTP are supported. You can also run an SSH server on the phone.
+
+```sh
+ssh user@example.com
+nibras-sshd
+```
+
+Hosts are exported and imported as an `ssh config` file, so you can move them between devices without a cloud account.
+
+## 10. APK tools and the resource editor
+
+`nibras-apk` builds, takes apart, edits and signs Android apps on the phone.
+
+```sh
+nibras-apk wizard
+nibras-apk new MyApp com.example.myapp --template kotlin
+nibras-apk run MyApp
+nibras-apk decompile app.apk
+nibras-apk res app.apk
+nibras-apk merge app.apks
+nibras-apk install-split app.xapk
+nibras-apk apps
+nibras-apk extract com.example.app
+```
+
+The visual resource editor (`nibras-apk res`) lets you edit strings for every language in a table, change colors, replace icons and pictures from the gallery, and change the app name, package name and version. One tap then rebuilds, signs and installs the app. Features that break other people's license checks or protection are intentionally not included.
+
+## 11. Video, audio, downloads and documents
+
+```sh
+video merge a.mp4 b.mp4
+video cut in.mp4 00:01:00 00:02:30
+video compress in.mp4
+audio convert in.wav out.mp3
+image resize photo.jpg 50%
+pdf merge a.pdf b.pdf
+download https://example.com/video
+media
+```
+
+`download` saves videos, music and files from a link. Please download only content that you have the right to save. The `media` command opens a visual screen for the same tasks.
+
+## 12. Customization and colored text
+
+```sh
+color bold red "Hello"
+color rainbow "Nibras Terminal"
+echo "Done" | color green
+banner Nibras rainbow
+theme dracula
+theme custom #1e1e2e #cdd6f4
+font jetbrains-mono
+font size 16
+cursor bar blink on
+wallpaper ~/storage/dcim/photo.jpg
+prompt powerline
+keys dev
+customize
+```
+
+`theme list`, `prompt list`, `font list` and `color list` show every option. `customize` opens one menu with all settings, and `reset-look` returns everything to the defaults. Settings are saved in `~/.nibras/` and are compatible with Termux's `termux.properties`.
+
+## 13. Language commands
+
+The terminal understands natural phrases in several languages, and capital letters do not matter.
+
+```sh
+lang
+lang az
+az dili yukle
+türkçe yükle
+تحميل العربية
+install lang-fr
+lang auto
+```
+
+Arabic, Persian and Urdu screens are laid out from right to left. To show shaped Arabic text inside the terminal, use the `rtl` command, for example `cat note.txt | rtl`.
+
+## 14. Features only Nibras has
+
+- `ask`, `explain` and `fix` help you with commands and errors.
+- `recipes` and `learn` contain ready-made solutions and Linux lessons.
+- `vault` keeps private files encrypted, and `trash` makes deleting safe.
+- `quran`, `hadith` and `prayer` (with reminders) are built in.
+- `llm` runs an offline AI chat on the phone.
+- `webterm` opens this terminal in a computer's browser over Wi-Fi.
+- Split screen, a floating window and a Linux desktop (XFCE) work inside the app.
+
+## 15. Permissions
+
+Nibras Terminal asks for a permission only when a command needs it. Camera, microphone, location, contacts and SMS commands ask the first time you use them. "Install unknown apps" is needed to install APK files you build. "Alarms & reminders" is needed for prayer reminders. Notification access, "Modify system settings" and wireless debugging pairing (`nibras-adb pair`) are optional and are used only by the commands that mention them. Without root, Windows file sharing uses port 4445 instead of 445, and FUSE-based tools such as `sshfs` are not available.
+
+## 16. Troubleshooting
+
+- If a command is missing, type it anyway: Nibras suggests the right pack or package.
+- If an installation stops, run the same `install` command again; downloads resume and are checked.
+- `nibras-reload-settings` applies changes made to the settings files.
+- If the app ever closes unexpectedly, the error report is saved in `crash.txt`, and the next launch offers to show and share it. Please attach this file when you report a problem on GitHub.
+
+## 17. Frequently asked questions
+
+**Is Nibras Terminal free?** Yes. It is open source.
+
+**Does it need root?** No. Everything runs without root; only a few system-level tasks are limited, as described above.
+
+**Why is the app so small?** Only Alpine Linux and the translations are included. Everything else is downloaded with `install` when you need it.
+
+**Does it work on 32-bit phones?** Yes. One APK supports both arm64 and arm32 devices.
+
+**Can I use my Termux settings?** Yes. Nibras reads `~/.termux/termux.properties`, `colors.properties`, `font.ttf` and the `termux-*` command names.

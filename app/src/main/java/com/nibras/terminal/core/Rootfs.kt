@@ -178,6 +178,10 @@ object Rootfs {
                 Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-kit"))
             }
         }
+        // Short names for app screens (last on PATH): edit, files, hosts, media builder.
+        for (cmd in listOf("edit", "files", "hosts")) runCatching {
+            val short = File(shortDir, cmd).toPath(); Files.deleteIfExists(short); Files.createSymbolicLink(short, Paths.get("/usr/local/bin/nibras-$cmd"))
+        }
         exe(f("usr/local/bin/nibras-look"), guest(context, "nibras-look"))
         for (cmd in LOOK_COMMANDS) runCatching {
             val long = f("usr/local/bin/nibras-$cmd").toPath(); Files.deleteIfExists(long); Files.createSymbolicLink(long, Paths.get("nibras-look"))
