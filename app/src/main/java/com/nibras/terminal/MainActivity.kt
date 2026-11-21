@@ -48,7 +48,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,7 +87,7 @@ private fun NibrasApp(state: UiState, model: TerminalViewModel) {
             .background(Navy)
             .statusBarsPadding(),
     ) {
-        Column(Modifier.weight(1f).padding(horizontal = 20.dp)) {
+        Column(Modifier.weight(1f).then(if (state.tab == Tab.Session) Modifier else Modifier.padding(horizontal = 20.dp))) {
             when (state.tab) {
                 Tab.Home -> HomeTab(state) { model.select(Tab.Downloads) }
                 Tab.Downloads -> DownloadsTab(state, model)
@@ -220,9 +221,10 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
     var history by remember { mutableStateOf(listOf<String>()) }
     var cursor by remember { mutableStateOf(-1) }
     var ctrl by remember { mutableStateOf(false) }
+    var alt by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
     val focus = remember { FocusRequester() }
-    val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     LaunchedEffect(state.sessionLog) { scroll.scrollTo(scroll.maxValue) }
     fun submit() {
@@ -238,88 +240,109 @@ private fun SessionTab(state: UiState, model: TerminalViewModel) {
         field = TextFieldValue("")
         model.run(text)
     }
-    Column(Modifier.fillMaxSize().background(Color.Black).imePadding()) {
-        SelectionContainer(Modifier.weight(1f)) {
-            Text(
-                state.sessionLog,
-                color = Color(0xFFD7D7D7),
-                fontFamily = FontFamily.Monospace,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-                modifier = Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 10.dp, vertical = 8.dp),
-            )
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 2.dp)) {
-            listOf("ESC", "CTRL", "ALT", "TAB", "←", "→", "↑", "PASTE").forEach { key ->
-                TextButton(
-                    onClick = {
-                        val value = field
-                        when (key) {
-                            "↑" -> {
-                                if (history.isEmpty()) return@TextButton
-                                val next = if (cursor < 0) history.lastIndex else (cursor - 1).coerceAtLeast(0)
-                                cursor = next
-                                field = TextFieldValue(history[next], TextRange(history[next].length))
-                            }
-                            "←" -> {
-                                val at = (value.selection.start - 1).coerceAtLeast(0)
-                                field = value.copy(selection = TextRange(at))
-                            }
-                            "→" -> {
-                                val at = (value.selection.start + 1).coerceAtMost(value.text.length)
-                                field = value.copy(selection = TextRange(at))
-                            }
-                            "ESC" -> field = TextFieldValue("")
-                            "CTRL" -> ctrl = !ctrl
-                            "ALT" -> field = insertAt(value, "\u001b")
-                            "TAB" -> field = insertAt(value, "\t")
-                            "PASTE" -> clipboard.getText()?.text?.let { field = insertAt(value, it) }
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(key, color = if (key == "CTRL" && ctrl) Gold else Color(0xFFCFCFCF), fontFamily = FontFamily.Monospace, fontSize = 11.sp)
-                }
+    fun press(key: String) {
+        val value = field
+        when (key) {
+            "UP" -> {
+                if (history.isEmpty()) return
+                val next = if (cursor < 0) history.lastIndex else (cursor - 1).coerceAtLeast(0)
+                cursor = next
+                field = TextFieldValue(history[next], TextRange(history[next].length))
             }
+            "DOWN" -> {
+                if (cursor < 0) return
+                val next = cursor + 1
+                cursor = if (next > history.lastIndex) -1 else next
+                val text = if (cursor < 0) "" else history[cursor]
+                field = TextFieldValue(text, TextRange(text.length))
+            }
+            "LEFT" -> field = value.copy(selection = TextRange((value.selection.start - 1).coerceAtLeast(0)))
+            "RIGHT" -> field = value.copy(selection = TextRange((value.selection.start + 1).coerceAtMost(value.text.length)))
+            "HOME" -> field = value.copy(selection = TextRange(0))
+            "END" -> field = value.copy(selection = TextRange(value.text.length))
+            "ESC" -> field = TextFieldValue("")
+            "CTRL" -> ctrl = !ctrl
+            "ALT" -> alt = !alt
+            "TAB" -> field = insertAt(value, "\t")
+            "/", "-", "=" -> field = insertAt(value, key)
+            "PGUP" -> scope.launch { scroll.scrollTo(0) }
+            "PGDN" -> scope.launch { scroll.scrollTo(scroll.maxValue) }
         }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    }
+    Column(Modifier.fillMaxSize().background(Color.Black).imePadding()) {
+        Column(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scroll)
+                .padding(horizontal = 10.dp, vertical = 8.dp),
         ) {
-            Text("~ $", color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 14.sp)
-            Spacer(Modifier.width(8.dp))
-            BasicTextField(
-                value = field,
-                onValueChange = { next ->
-                    field = if (ctrl && next.text.length == field.text.length + 1) {
-                        val added = next.text.last()
-                        ctrl = false
-                        if (added in 'a'..'z' || added in 'A'..'Z') {
-                            val code = (added.lowercaseChar().code - 'a'.code + 1).toChar()
-                            TextFieldValue(field.text + code, TextRange(field.text.length + 1))
+            SelectionContainer {
+                Text(
+                    state.sessionLog,
+                    color = Color(0xFFD7D7D7),
+                    fontFamily = FontFamily.Monospace,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    softWrap = false,
+                )
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("root@nibras:~# ", color = Color(0xFFF2F2F2), fontFamily = FontFamily.Monospace, fontSize = 13.sp)
+                BasicTextField(
+                    value = field,
+                    onValueChange = { next ->
+                        field = if (ctrl && next.text.length == field.text.length + 1) {
+                            val added = next.text.last()
+                            ctrl = false
+                            if (added in 'a'..'z' || added in 'A'..'Z') {
+                                val code = (added.lowercaseChar().code - 'a'.code + 1).toChar()
+                                TextFieldValue(field.text + code, TextRange(field.text.length + 1))
+                            } else {
+                                next
+                            }
+                        } else if (alt && next.text.length == field.text.length + 1) {
+                            alt = false
+                            insertAt(field, "\u001b${next.text.last()}")
                         } else {
                             next
                         }
-                    } else {
-                        next
+                        cursor = -1
+                    },
+                    enabled = state.busyId == null,
+                    singleLine = true,
+                    textStyle = TextStyle(color = Color(0xFFF2F2F2), fontFamily = FontFamily.Monospace, fontSize = 13.sp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                    modifier = Modifier.weight(1f).focusRequester(focus),
+                )
+                if (field.text.isEmpty()) {
+                    Box(Modifier.width(7.dp).height(14.dp).background(Color(0xFFD7D7D7)))
+                }
+            }
+        }
+        listOf(
+            listOf("ESC", "/", "-", "HOME", "UP", "END", "PGUP"),
+            listOf("TAB", "CTRL", "ALT", "LEFT", "DOWN", "RIGHT", "PGDN"),
+        ).forEach { row ->
+            Row(Modifier.fillMaxWidth()) {
+                row.forEach { key ->
+                    val on = (key == "CTRL" && ctrl) || (key == "ALT" && alt)
+                    TextButton(onClick = { press(key) }, modifier = Modifier.weight(1f).height(34.dp)) {
+                        Text(
+                            when (key) {
+                                "UP" -> "↑"
+                                "DOWN" -> "↓"
+                                "LEFT" -> "←"
+                                "RIGHT" -> "→"
+                                else -> key
+                            },
+                            color = if (on) Color.White else Color(0xFFCFCFCF),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                        )
                     }
-                    cursor = -1
-                },
-                enabled = state.busyId == null,
-                singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontFamily = FontFamily.Monospace, fontSize = 14.sp),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { submit() }),
-                modifier = Modifier.weight(1f).focusRequester(focus),
-                decorationBox = { inner ->
-                    Box {
-                        if (field.text.isEmpty()) Text(if (state.busyId == "session") "işləyir" else "əmr", color = Color(0xFF666666), fontFamily = FontFamily.Monospace, fontSize = 14.sp)
-                        inner()
-                    }
-                },
-            )
-            TextButton(onClick = { if (state.busyId == null) submit() else model.stop() }) {
-                Text(if (state.busyId == "session") "Dur" else "↵", color = Color(0xFFD6B36A), fontFamily = FontFamily.Monospace)
+                }
             }
         }
     }

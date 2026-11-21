@@ -20,6 +20,31 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+private const val MOTD = """| \ | (_) |__  _ __ __ _ ___ 
+|  \| | | '_ \| '__/ _` / __|
+| |\  | | |_) | | | (_| \__ \
+|_| \_|_|_.__/|_|  \__,_|___/
+
+Welcome to Nibras Terminal!
+
+Community:  https://github.com/nibrascode/nibras-terminal
+
+Setup Nibras:
+- Help: help
+
+Working with packages:
+- Phone files: nibras-setup-storage
+- Python: pip install <paket>
+- Run: python3 fayl.py
+- Search: pkg search <query>
+- Install: pkg install <package>
+- Preview: preview fayl.md
+- Hosts: host add ad user@host
+- Backup: nibras-backup
+- Check: nibras-doctor
+
+Report issues at https://github.com/nibrascode/nibras-terminal/issues"""
+
 data class UiState(
     val components: List<Component> = emptyList(),
     val installed: Map<String, InstallRecord> = emptyMap(),
@@ -29,7 +54,7 @@ data class UiState(
     val notice: String? = null,
     val editorId: String? = null,
     val editorText: String = "",
-    val sessionLog: String = "Welcome to Nibras Terminal.",
+    val sessionLog: String = MOTD,
     val permissionAsk: String? = null,
     val permissionNonce: Int = 0,
     val pendingCommand: String? = null,
@@ -190,7 +215,7 @@ class TerminalViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearLog() {
-        _state.update { it.copy(sessionLog = "") }
+        _state.update { it.copy(sessionLog = MOTD) }
     }
 
     fun onPermission(granted: Boolean) {
