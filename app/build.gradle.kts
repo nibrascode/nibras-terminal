@@ -5,6 +5,8 @@ plugins {
 }
 
 val androidSdk = (findProperty("sdk") as String?)?.toIntOrNull() ?: 35
+val androidVersion = (findProperty("versionCode") as String?)?.toIntOrNull()
+    ?: ((System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0) + 100)
 
 android {
     namespace = "com.nibras.terminal"
@@ -14,8 +16,8 @@ android {
         applicationId = "com.nibras.terminal"
         minSdk = 26
         targetSdk = androidSdk
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = androidVersion
+        versionName = (findProperty("versionName") as String?) ?: "0.1.$androidVersion"
         ndk {
             abiFilters += "arm64-v8a"
         }
@@ -26,6 +28,7 @@ android {
             val store = System.getenv("NIBRAS_STORE_FILE").orEmpty()
             if (store.isNotEmpty()) {
                 storeFile = file(store)
+                storeType = "PKCS12"
                 storePassword = System.getenv("NIBRAS_STORE_PASSWORD")
                 keyAlias = System.getenv("NIBRAS_KEY_ALIAS")
                 keyPassword = System.getenv("NIBRAS_KEY_PASSWORD")

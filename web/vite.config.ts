@@ -19,6 +19,8 @@ export default defineConfig({
       { find: /^react-dom$/, replacement: pkg("react-dom") },
       { find: /^react$/, replacement: pkg("react") },
       { find: /^lucide-react$/, replacement: pkg("lucide-react") },
+      { find: "libsodium-wrappers", replacement: pkg("libsodium-wrappers") },
+      { find: "node-forge", replacement: pkg("node-forge") },
     ],
   },
 });

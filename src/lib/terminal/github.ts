@@ -157,6 +157,7 @@ export async function runApk(
   const tools = sdk === "33" ? "build-tools 33.0.2" : sdk === "34" ? "build-tools 34.0.0" : "build-tools 35.0.0";
   const command = kind === "sign" ? "nibras sign" : `nibras ${kind}`;
   if (verb === "qur") {
+    if (kind === "sign") await ensureReleaseKey(token, headers);
     const sent = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/dispatches`, {
       method: "POST",
       headers: { ...headers, "Content-Type": "application/json" },
@@ -165,7 +166,7 @@ export async function runApk(
     if (sent.status === 401) throw new Error("Token qəbul edilmədi.");
     if (sent.status !== 204) throw new Error(await githubError(sent));
     const doing = kind === "sign" ? "Signing the release APK and AAB." : kind === "aab" ? "Building the AAB." : "Building the APK.";
-    return { text: `${doing}\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\n${command} status` };
+    return { text: `${doing}\nJava 17 · Android SDK ${sdk} · ${tools} · Gradle\nversionCode increases on every build.\n${command} status` };
   }
   const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/workflows/debug-apk.yml/runs?per_page=10`, { headers });
   if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
@@ -185,14 +186,18 @@ export async function runApk(
   const zip = await fetch(file.archive_download_url, { headers });
   if (zip.status === 401) throw new Error("Token qəbul edilmədi.");
   if (!zip.ok) throw new Error(await githubError(zip));
+  const bytes = await zip.arrayBuffer();
+  const packedFiles = await unzip(bytes);
+  const version = new TextDecoder().decode(packedFiles.get("version.txt") ?? new Uint8Array()).trim();
+  const versionLine = version ? `\nversionCode ${version}` : "";
   const text =
     kind === "sign"
-      ? "Signed release APK and AAB downloaded. The password is not shown. Keep nibras-signing.txt private if it is in the zip."
+      ? `Signed release APK and AAB downloaded. The same release key was used. The password is not shown.${versionLine}`
       : kind === "aab"
-        ? "AAB downloaded. The zip contains app-debug.aab, signed with the Android debug key."
-        : "APK downloaded. The zip contains app-debug.apk, signed with the Android debug key.";
+        ? `AAB downloaded. The zip contains app-debug.aab, signed with the Android debug key.${versionLine}`
+        : `APK downloaded. The zip contains app-debug.apk, signed with the Android debug key.${versionLine}`;
   const name = kind === "sign" ? "nibras-signed.zip" : kind === "aab" ? "nibras-aab.zip" : "nibras-terminal-debug.zip";
-  return { text, file: { name, bytes: await zip.arrayBuffer() } };
+  return { text, file: { name, bytes } };
 }
 
 function matchKind(name: string, kind: "apk" | "aab" | "sign") {
@@ -203,4 +208,129 @@ function matchKind(name: string, kind: "apk" | "aab" | "sign") {
 async function githubError(response: Response) {
   const body = (await response.json().catch(() => ({}))) as { message?: string };
   return body.message || `qurulmadı: ${response.status}`;
+}
+
+const SECRET_NAMES = ["NIBRAS_KEYSTORE_B64", "NIBRAS_STORE_PASSWORD", "NIBRAS_KEY_PASSWORD", "NIBRAS_KEY_ALIAS"] as const;
+
+async function ensureReleaseKey(token: string, headers: Record<string, string>) {
+  const listed = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets`, { headers });
+  if (listed.status === 401) throw new Error("Token qəbul edilmədi.");
+  if (!listed.ok) throw new Error("Release key was not saved.");
+  const body = (await listed.json()) as { secrets?: Array<{ name: string }> };
+  const names = new Set((body.secrets ?? []).map((item) => item.name));
+  if (SECRET_NAMES.every((name) => names.has(name))) return;
+  const made = await createReleaseKey();
+  await putSecret(token, headers, "NIBRAS_KEY_ALIAS", made.alias);
+  await putSecret(token, headers, "NIBRAS_STORE_PASSWORD", made.password);
+  await putSecret(token, headers, "NIBRAS_KEY_PASSWORD", made.password);
+  await putSecret(token, headers, "NIBRAS_KEYSTORE_B64", made.p12);
+}
+
+async function putSecret(token: string, headers: Record<string, string>, name: string, value: string) {
+  const keyRes = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets/public-key`, { headers });
+  if (keyRes.status === 401) throw new Error("Token qəbul edilmədi.");
+  if (!keyRes.ok) throw new Error("Release key was not saved.");
+  const key = (await keyRes.json()) as { key_id: string; key: string };
+  const sodium = (await import("libsodium-wrappers")).default;
+  await sodium.ready;
+  const sealed = sodium.crypto_box_seal(value, sodium.from_base64(key.key, sodium.base64_variants.ORIGINAL));
+  const saved = await fetch(`https://api.github.com/repos/${APK_REPO}/actions/secrets/${name}`, {
+    method: "PUT",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: JSON.stringify({ encrypted_value: sodium.to_base64(sealed, sodium.base64_variants.ORIGINAL), key_id: key.key_id }),
+  });
+  if (saved.status === 401) throw new Error("Token qəbul edilmədi.");
+  if (!saved.ok) throw new Error("Release key was not saved.");
+}
+
+export async function createReleaseKey() {
+  const forge = (await import("node-forge")).default;
+  forge.options.usePureJavaScript = true;
+  const keys = forge.pki.rsa.generateKeyPair(2048);
+  const cert = forge.pki.createCertificate();
+  cert.publicKey = keys.publicKey;
+  cert.serialNumber = "01";
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 27);
+  const attrs = [
+    { name: "commonName", value: "Nibras Terminal" },
+    { name: "countryName", value: "AZ" },
+  ];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+  cert.sign(keys.privateKey, forge.md.sha256.create());
+  const password = randomPassword();
+  const p12 = forge.pkcs12.toPkcs12Asn1(keys.privateKey, [cert], password, { algorithm: "aes256", friendlyName: "nibras" });
+  return { alias: "nibras", password, p12: btoa(forge.asn1.toDer(p12).getBytes()) };
+}
+
+function randomPassword() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+export async function unzip(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let eocd = -1;
+  const start = Math.max(0, bytes.length - 22 - 65535);
+  for (let index = bytes.length - 22; index >= start; index -= 1) {
+    if (view.getUint32(index, true) === 0x06054b50) {
+      eocd = index;
+      break;
+    }
+  }
+  const out = new Map<string, Uint8Array>();
+  if (eocd < 0) return out;
+  const count = view.getUint16(eocd + 10, true);
+  let offset = view.getUint32(eocd + 16, true);
+  for (let entry = 0; entry < count; entry += 1) {
+    if (offset + 46 > bytes.length || view.getUint32(offset, true) !== 0x02014b50) break;
+    const method = view.getUint16(offset + 10, true);
+    const compressed = view.getUint32(offset + 20, true);
+    const nameLen = view.getUint16(offset + 28, true);
+    const extraLen = view.getUint16(offset + 30, true);
+    const commentLen = view.getUint16(offset + 32, true);
+    const local = view.getUint32(offset + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(offset + 46, offset + 46 + nameLen));
+    const localName = view.getUint16(local + 26, true);
+    const localExtra = view.getUint16(local + 28, true);
+    const dataStart = local + 30 + localName + localExtra;
+    const data = bytes.subarray(dataStart, dataStart + compressed);
+    const base = name.split("/").pop() || name;
+    if (base && !name.endsWith("/")) {
+      if (method === 0) out.set(base, data.slice());
+      else if (method === 8) out.set(base, await inflateRaw(data));
+    }
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+async function inflateRaw(data: Uint8Array) {
+  const stream = new DecompressionStream("deflate-raw");
+  const compressed = new Uint8Array(data.byteLength);
+  compressed.set(data);
+  const writer = stream.writable.getWriter();
+  await writer.write(compressed);
+  await writer.close();
+  const reader = stream.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const step = await reader.read();
+    if (step.done) break;
+    chunks.push(step.value);
+    total += step.value.byteLength;
+  }
+  const out = new Uint8Array(total);
+  let at = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, at);
+    at += chunk.byteLength;
+  }
+  return out;
 }

@@ -2702,8 +2702,8 @@ function apkCmd(session: Session, verb: string | undefined, kind: "apk" | "aab" 
             "nibras sign status",
             "nibras sign download",
             "This signs a release APK and an AAB.",
-            "The password is not shown.",
-            "Keep nibras-signing.txt private if the zip contains it.",
+            "The same release key is kept. The password is not shown.",
+            "versionCode increases on every build.",
           ]
         : [
             `The ${title} build needs:`,

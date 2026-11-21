@@ -7,7 +7,9 @@
     "build": "vite build"
   },
   "dependencies": {
+    "libsodium-wrappers": "^0.8.4",
     "lucide-react": "^0.510.0",
+    "node-forge": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

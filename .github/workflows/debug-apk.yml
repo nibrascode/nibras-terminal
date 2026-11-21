@@ -68,27 +68,15 @@ jobs:
         if: env.KIND == 'sign'
         run: |
           python3 << 'PY'
-          import base64, os, pathlib, secrets, subprocess
-          alias = os.environ.get("NIBRAS_KEY_ALIAS") or "nibras"
+          import base64, os, pathlib
+          raw = os.environ.get("NIBRAS_KEYSTORE_B64") or ""
           store = os.environ.get("NIBRAS_STORE_PASSWORD") or ""
           key = os.environ.get("NIBRAS_KEY_PASSWORD") or ""
-          raw = os.environ.get("NIBRAS_KEYSTORE_B64") or ""
+          alias = os.environ.get("NIBRAS_KEY_ALIAS") or "nibras"
+          if not raw or not store or not key:
+              raise SystemExit("Release key is missing")
           path = pathlib.Path("nibras-release.jks")
-          if raw and store and key:
-              path.write_bytes(base64.b64decode(raw))
-          else:
-              store = secrets.token_urlsafe(18)
-              key = store
-              subprocess.check_call([
-                  "keytool", "-genkeypair", "-keystore", str(path), "-storetype", "PKCS12",
-                  "-alias", "nibras", "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
-                  "-storepass", store, "-keypass", key,
-                  "-dname", "CN=Nibras Terminal, OU=Nibras, O=Nibras, C=AZ",
-              ])
-              note = pathlib.Path("nibras-signing.txt")
-              note.write_text("alias=nibras\nstorePassword=%s\nkeyPassword=%s\n" % (store, key))
-              note.chmod(0o600)
-              alias = "nibras"
+          path.write_bytes(base64.b64decode(raw))
           env = pathlib.Path("nibras-signing.env")
           env.write_text(
               "NIBRAS_STORE_FILE=%s\nNIBRAS_STORE_PASSWORD=%s\nNIBRAS_KEY_ALIAS=%s\nNIBRAS_KEY_PASSWORD=%s\n"
@@ -98,22 +86,23 @@ jobs:
           PY
       - name: Build
         run: |
+          CODE=$((100 + ${GITHUB_RUN_NUMBER:-0}))
+          GRADLE=(./gradlew --no-daemon -Psdk="$SDK" -PversionCode="$CODE" -PversionName="0.1.$CODE")
           if [ "$KIND" = "sign" ]; then
             set -a
             . ./nibras-signing.env
             set +a
-            ./gradlew assembleRelease bundleRelease --no-daemon -Psdk="$SDK"
+            "${GRADLE[@]}" assembleRelease bundleRelease
           elif [ "$KIND" = "aab" ]; then
-            ./gradlew bundleDebug --no-daemon -Psdk="$SDK"
+            "${GRADLE[@]}" bundleDebug
           else
-            ./gradlew assembleDebug --no-daemon -Psdk="$SDK"
+            "${GRADLE[@]}" assembleDebug
           fi
           mkdir -p dist
+          printf '%s\n' "$CODE" > dist/version.txt
           if [ "$KIND" = "sign" ]; then
             cp app/build/outputs/apk/release/app-release.apk dist/
             cp app/build/outputs/bundle/release/app-release.aab dist/
-            cp nibras-release.jks dist/
-            [ -f nibras-signing.txt ] && cp nibras-signing.txt dist/
           elif [ "$KIND" = "aab" ]; then
             cp app/build/outputs/bundle/debug/app-debug.aab dist/
           else
