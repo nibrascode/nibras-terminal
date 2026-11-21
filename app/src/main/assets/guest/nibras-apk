@@ -1,6 +1,6 @@
 #!/bin/sh
 # nibras-apk: build, take apart, change, sign and read Android apps on the phone (arm64 + arm32).
-# Learns from AndroidIDE / Android Code Studio, Apktool, jadx, APK Editor, MT/NP Manager.
+# Built on open-source tools: Gradle, apktool, jadx, smali, APKEditor, Android build-tools.
 #   nibras-apk setup [--sdk]          JDK, apktool, jadx, aapt/aapt2/zipalign (+ Android SDK for Gradle builds)
 #   nibras-apk new <dir> [package]    minimal Gradle project that builds on the phone
 #   nibras-apk build [dir] [task]     Gradle build (default assembleDebug), aapt2 from the phone
@@ -16,7 +16,7 @@
 #   nibras-apk dex <classes.jar|dir> [out]   d8 → classes.dex
 #   nibras-apk new <dir> [package] [--template basic|views|kotlin|compose|library]   project templates
 #   nibras-apk install [app.apk|dir]  open Android's installer for the built APK
-#   nibras-apk run [dir]              build → install → launch (like ACS ▶ Run)
+#   nibras-apk run [dir]              build → install → launch (the editor's ▶ Run)
 #   nibras-apk logcat [package]       app logs (full logcat through nibras-adb when paired)
 #   nibras-apk clean|tasks|deps [dir] gradle clean / task list / dependency tree
 #   nibras-apk jdk [17|21] · gradle · templates
@@ -24,15 +24,15 @@
 #   nibras-apk res <app.apk|dir>      visual resource editor: strings per language, colors, icons, name/package/version
 #   nibras-apk rebuild <dir> [ks]     apktool b → zipalign → sign (debug key or yours) → install
 #   nibras-apk translate <dir> <lang> add values-<lang>/strings.xml and edit it in the table
-#   nibras-apk baksmali <dex|apk> [out] · smali <dir> [out.dex]   dex ↔ smali (MT/NP Manager dex editing)
+#   nibras-apk baksmali <dex|apk> [out] · smali <dir> [out.dex]   dex ↔ smali (dex editing)
 #   nibras-apk merge <apks|xapk|apkm|dir> [out.apk]   split APKs → one APK (antisplit, APKEditor)
-#   nibras-apk install-split <files…|.apks|.xapk|.apkm>  install split APKs in one session (SAI / APKTool M)
+#   nibras-apk install-split <files…|.apks|.xapk|.apkm>  install split APKs in one session
 #   nibras-apk arsc d|b|refactor|info …   resources.arsc ↔ XML/JSON, readable names (APKEditor)
 #   nibras-apk optimize <apk|project>  aapt2 optimize (short paths, collapsed names) · R8 + shrinkResources
 #   nibras-apk protect <apk>          resource obfuscation (APKEditor p)
-#   nibras-apk rename <apk> <new.pkg> [label]   clone with a new package name (App Cloner style)
+#   nibras-apk rename <apk> <new.pkg> [label]   clone with a new package name
 #   nibras-apk sigcheck <apk> · diff <a.apk> <b.apk>   signature summary · what changed between two APKs
-#   nibras-apk apps [list|-s|-a] · appinfo <pkg> · exported <pkg> · extract <pkg> [dir]   App Manager / APK Extractor
+#   nibras-apk apps [list|-s|-a] · appinfo <pkg> · exported <pkg> · extract <pkg> [dir]   installed apps: list, details, back up
 #   nibras-apk mitm <apk>             remove certificate pinning for testing your own apps (apk-mitm)
 #   nibras-apk signdebug <apk> · debugkey   sign with a throw-away debug key
 set -e
@@ -460,7 +460,7 @@ G
   verify) [ -f "$SDK/build-tools/$BT/lib/apksigner.jar" ] || setup; apksigner_ verify -v --print-certs "${1:?apk}" ;;
   dex|d8) [ -f "$SDK/build-tools/$BT/lib/d8.jar" ] || setup; in="${1:?jar}"; out="${2:-.}"; mkdir -p "$out"
     java -cp "$SDK/build-tools/$BT/lib/d8.jar" com.android.tools.r8.D8 --min-api 21 --output "$out" "$in" && echo "✓ $out/classes.dex" ;;
-  wizard) # Sketchware-style guided project: answer a few questions, get a building app
+  wizard) # guided project: answer a few questions, get a building app
     printf 'App name [MyApp]: '; read -r an; an=${an:-MyApp}
     dn=$(echo "$an" | tr -cd 'A-Za-z0-9'); [ -n "$dn" ] || dn=MyApp
     printf 'Package [com.example.%s]: ' "$(echo "$dn" | tr A-Z a-z)"; read -r pk; pk=${pk:-com.example.$(echo "$dn" | tr A-Z a-z)}
@@ -491,7 +491,7 @@ G
     jdk >/dev/null; in="${1:?smali dir}"; out="${2:-classes.dex}"; java -jar "$TOOLS/smali.jar" a "$in" -o "$out" && echo "✓ $out" ;;
   apkeditor) [ -f "$TOOLS/APKEditor.jar" ] || fetch https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar "" "$TOOLS/APKEditor.jar"
     jdk >/dev/null; java -jar "$TOOLS/APKEditor.jar" "$@" ;;
-  merge|antisplit) # split APKs / .apks / .xapk / .apkm (unencrypted) / folder → one installable APK (APKTool M, MT Manager)
+  merge|antisplit) # split APKs / .apks / .xapk / .apkm (unencrypted) / folder → one installable APK
     in="${1:?app.apks|app.xapk|app.apkm|dir}"; out="${2:-${in%.*}-merged.apk}"
     "$0" apkeditor m -i "$in" -o "$out" -f && "$0" signdebug "$out" && echo "✓ $out" ;;
   install-split|isplit|install-apks) nibras-api install-apks "$@" ;;
@@ -505,7 +505,7 @@ G
     else need aapt2; out="${2:-${t%.apk}-opt.apk}"
       aapt2 optimize --shorten-resource-paths --collapse-resource-names -o "$out" "$t" && "$0" signdebug "$out" && ls -l "$t" "$out" | awk '{print $5, $NF}'
     fi ;;
-  rename|clone) # App Cloner style: new package name (installs next to the original) + optional new label
+  rename|clone) # new package name (installs next to the original) + optional new label
     need apktool; in="${1:?app.apk}"; np="${2:?new.package.name}"; label="${3:-}"
     w="${in%.apk}-clone"; apktool d -f -s "$in" -o "$w" >/dev/null
     old=$(grep -o 'package="[^"]*"' "$w/AndroidManifest.xml" | head -1 | cut -d'"' -f2)
@@ -523,9 +523,9 @@ G
   mitm|unpin) # certificate-pinning removal for testing YOUR OWN app or one you are authorised to test (apk-mitm)
     echo "Only for apps you own or are authorised to test."; command -v npx >/dev/null 2>&1 || nibras-need nodejs npm || nibras-need node
     jdk >/dev/null; npx --yes apk-mitm "$@" ;;
-  apps) [ $# -gt 0 ] || set -- list; nibras-api apps "$@" ;;                  # installed apps (App Manager)
+  apps) [ $# -gt 0 ] || set -- list; nibras-api apps "$@" ;;                  # installed apps
   appinfo) nibras-api apps info "${1:?package}" ;;       # manifest data, permissions, components, signer
-  extract|backup) nibras-api apps extract "${1:?package}" "${2:-.}" ;;  # APK Extractor (base + splits → .apks)
+  extract|backup) nibras-api apps extract "${1:?package}" "${2:-.}" ;;  # back up an app (base + splits → .apks)
   exported) nibras-api apps exported "${1:?package}" ;;  # exported components (security review)
   sigcheck|signature) "$0" verify "${1:?apk}" | grep -E "Verified using|Signer #1 certificate (DN|SHA-256)|WARNING|DOES NOT VERIFY" ;;
   diff) need apktool; a="${1:?old.apk}"; b="${2:?new.apk}"; apktool d -f -s "$a" -o /tmp/nd-a >/dev/null; apktool d -f -s "$b" -o /tmp/nd-b >/dev/null

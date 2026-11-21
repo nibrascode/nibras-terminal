@@ -1,5 +1,5 @@
 #!/bin/sh
-# Bridge from the Linux environment to the phone (Termux:API compatible: same flags, same JSON).
+# Bridge from the Linux environment to the phone (standard flags, JSON output).
 # Usage: nibras-api <command> [args]   or   nibras-<command> [args]   (termux-<command> works too)
 [ -r /usr/local/share/nibras/msg.sh ] && . /usr/local/share/nibras/msg.sh
 command -v nmsg >/dev/null 2>&1 || nmsg() { echo "Nibras Terminal: the app bridge did not answer (is the app running?)"; }

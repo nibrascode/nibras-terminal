@@ -1,5 +1,5 @@
 #!/bin/sh
-# Termux core tools, Nibras style (each also answers to its termux-* name):
+# Core terminal tools, Nibras style (each also answers to its legacy alias name):
 #   change-repo  fix-shebang  backup  restore  reset  info  setup-package-manager  am  x11
 # and Android command wrappers that run the phone's own binaries: getprop logcat cmd pm settings dumpsys
 [ -r /usr/local/share/nibras/msg.sh ] && . /usr/local/share/nibras/msg.sh
@@ -118,7 +118,7 @@ case "$me" in
     esac ;;
 
   fix-shebang)
-    [ $# -gt 0 ] || die "usage: nibras-fix-shebang <file>…  (rewrites Termux/Android interpreter paths to /usr/bin/env)"
+    [ $# -gt 0 ] || die "usage: nibras-fix-shebang <file>…  (rewrites Android-app interpreter paths to /usr/bin/env)"
     for f in "$@"; do
       [ -f "$f" ] || { echo "skip: $f" >&2; continue; }
       sed -i -E '1s@^#!\s*/data/data/com\.termux/files/usr/bin/(env )?@#!/usr/bin/env @; 1s@^#!\s*/system/bin/sh@#!/bin/sh@; 1s@^#!\s*/(usr/)?(local/)?bin/env\s+@#!/usr/bin/env @' "$f"

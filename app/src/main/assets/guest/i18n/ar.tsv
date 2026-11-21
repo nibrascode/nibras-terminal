@@ -11,9 +11,9 @@ PDF: merge, split, compress, to text/images	PDF: دمج، تقسيم، ضغط، 
 Downloads: videos/music (yt-dlp), fast files (aria2)	التنزيلات: فيديو/موسيقى (yt-dlp)، ملفات بسرعة (aria2)
 Web: instant web server (python/node), PHP	الويب: خادم ويب فوري (python/node)، PHP
 Git with easy clone / save / push	Git مع استنساخ / حفظ / رفع بسهولة
-Python 3 + pip + venv (Pydroid)	Python 3 + pip + venv (مثل Pydroid)
+Python 3 + pip + venv	Python 3 + pip + venv
 Node.js + npm	Node.js + npm
-C/C++/Go/Rust compilers, make, cmake (Cxxdroid, AIDE)	مترجمات C/C++/Go/Rust و make و cmake (مثل Cxxdroid و AIDE)
+C/C++/Go/Rust compilers, make, cmake	مترجمات C/C++/Go/Rust و make و cmake
 APK studio: build, decompile, sign (apktool, jadx, SDK)	استوديو APK: بناء، فك، توقيع (apktool، jadx، SDK)
 Backups: tar/rsync/rclone to phone or cloud	النسخ الاحتياطي: tar/rsync/rclone إلى الهاتف أو السحابة
 Network: scan, ping, speed test, DNS, ports	الشبكة: فحص، ping، اختبار السرعة، DNS، المنافذ

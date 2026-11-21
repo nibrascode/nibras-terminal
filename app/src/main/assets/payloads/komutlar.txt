@@ -86,12 +86,12 @@ AAB: ./gradlew bundleRelease
 QEYD: Release signing məlumatlarını Git-ə göndərməyin. Keystore və
 parolları təhlükəsiz yerdə saxlayın.
 
-============================================================ 4. TERMUX
-ÜZƏRİNDƏ LAZIM OLA BİLƏN ALƏTLƏR
+============================================================ 4. PKG İLƏ
+LAZIM OLA BİLƏN ALƏTLƏR
 ============================================================
 
-Bu komutlar yalnız Termux mühitində istifadə üçündür. Android Studio
-build-i üçün hər paket Termux-da uyğun olmaya bilər.
+Bu komutlar telefondakı `pkg` paket meneceri üçündür. Android Studio
+build-i üçün hər paket telefonda uyğun olmaya bilər.
 
 pkg update pkg upgrade pkg install git pkg install curl pkg install wget
 pkg install unzip pkg install zip pkg install python pkg install

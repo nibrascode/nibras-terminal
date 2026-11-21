@@ -81,17 +81,17 @@ Boru, yönləndirmə, `&&`, `||`, `;`, `$()`, dırnaq və `set -e` / `set -x` ve
 
 ## Telefon APK-sı
 
-Açılış birbaşa tam ekran qara terminaldır (Termux `terminal-view` v0.118.1). Alt nav tabları **yoxdur**, onları geri qaytarma.
+Açılış birbaşa tam ekran qara terminaldır (açıq mənbəli `terminal-view` v0.118.1 kitabxanası). Alt nav tabları **yoxdur**, onları geri qaytarma.
 
 - Sessiyalar, "Yeni sessiya", mühitlər, ayarlar və "Daha çox" menyusu sol çəkmədədir (`☰` extra-key və ya kənardan çəkmək).
 - Alpine 3.24.4 hər iki ABI üçün APK-dadır (`assets/payloads/*.tar.gz.bin`; `.gz` uzantısı olmamalıdır, çünki aapt onu açır). İlk açılışda açılır.
 - ABI seçimini `DeviceAbi.current` edir (`Process.is64Bit()`). Paket bu ABI-də yoxdursa "mövcud deyil" deyilir.
-- PRoot Termux yığımıdır: `jniLibs/<abi>/libproot.so`, loader və talloc ilə. `linux-engine/README.md` faylına baxın.
+- PRoot Android üçün hazır yığımdır: `jniLibs/<abi>/libproot.so`, loader və talloc ilə. `linux-engine/README.md` faylına baxın.
 - Debian, Ubuntu, Python və Node yüklənir. armhf versiyaları `payloads-0.2` release-indədir.
 - Extra-keys: `ESC / - HOME ↑ END PGUP` / `TAB CTRL ALT ← ↓ → PGDN`; `~/.nibras/extra-keys`.
 - Dillər: az, tr, en, ru (`res/values-*`).
 
-Telefon əmrləri Linux gözləmir. `termux-` yazılsa, eyni əmr `nibras-` kimi işləyir.
+Telefon əmrləri Linux gözləmir. Onlar `nibras-` adı ilə işləyir.
 
 ```
 nibras-info

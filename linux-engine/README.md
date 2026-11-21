@@ -1,6 +1,6 @@
 # Linux mühərriki
 
-PRoot Termux-un `proot 5.1.107` yığımıdır (GPL-2.0). `libtalloc` LGPL-3.0, `libandroid-shmem` isə BSD lisenziyasındadır. Binary-lər Termux-un `aarch64` və `arm` deb paketlərindən götürülüb, `patchelf` ilə dəyişdirilib: NEEDED `libtalloc.so`, soname `libtalloc.so`, rpath yoxdur. Onlar `app/src/main/jniLibs/<abi>/` qovluğunda `lib*.so` adı ilə durur, çünki Android 10 və sonrası yalnız `nativeLibraryDir` qovluğundan `exec` etməyə icazə verir (`useLegacyPackaging = true`).
+PRoot `proot 5.1.107` Android yığımıdır (GPL-2.0; mənbə kodu: https://github.com/termux/proot). `libtalloc` LGPL-3.0, `libandroid-shmem` isə BSD lisenziyasındadır. Binary-lər açıq mənbəli Android paket deposunun `aarch64` və `arm` deb paketlərindən götürülüb, `patchelf` ilə dəyişdirilib: NEEDED `libtalloc.so`, soname `libtalloc.so`, rpath yoxdur. Onlar `app/src/main/jniLibs/<abi>/` qovluğunda `lib*.so` adı ilə durur, çünki Android 10 və sonrası yalnız `nativeLibraryDir` qovluğundan `exec` etməyə icazə verir (`useLegacyPackaging = true`).
 
 | Fayl | arm64-v8a | armeabi-v7a |
 | --- | --- | --- |
@@ -14,4 +14,4 @@ Sessiya `Rootfs.launch()` ilə başlayır:
 
 Testlər:
 - `app/src/test`: rootfs açan kodun JVM testi. Simvolik keçidləri və köklə məhdudlaşmanı yoxlayır.
-- `.github/workflows/proot-test.yml`: `ubuntu-24.04-arm` runner-də, `termux/termux-docker` (bionic) içində hər iki ABI üçün PRoot və Alpine işlədir.
+- `.github/workflows/proot-test.yml`: `ubuntu-24.04-arm` runner-də, Android bionic Docker imici içində hər iki ABI üçün PRoot və Alpine işlədir.

@@ -43,9 +43,9 @@ pack_desc() {
     download) say "Downloads: videos/music (yt-dlp), fast files (aria2)" "Yükləmə: video/musiqi (yt-dlp), sürətli fayl (aria2)" "İndirme: video/müzik (yt-dlp), hızlı dosya (aria2)" "Загрузки: видео/музыка (yt-dlp), aria2" ;;
     web) say "Web: instant web server (python/node), PHP" "Veb: ani veb server (python/node), PHP" "Web: anında web sunucu (python/node), PHP" "Веб: мгновенный веб-сервер" ;;
     git) say "Git with easy clone / save / push" "Git: asan clone / save / push" "Git: kolay clone / save / push" "Git: простые clone / save / push" ;;
-    python) say "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" "Python 3 + pip + venv (Pydroid)" ;;
+    python) say "Python 3 + pip + venv" "Python 3 + pip + venv" "Python 3 + pip + venv" "Python 3 + pip + venv" ;;
     node) say "Node.js + npm" "Node.js + npm" "Node.js + npm" "Node.js + npm" ;;
-    dev) say "C/C++/Go/Rust compilers, make, cmake (Cxxdroid, AIDE)" "C/C++/Go/Rust kompilyatorları, make, cmake" "C/C++/Go/Rust derleyicileri, make, cmake" "Компиляторы C/C++/Go/Rust, make, cmake" ;;
+    dev) say "C/C++/Go/Rust compilers, make, cmake" "C/C++/Go/Rust kompilyatorları, make, cmake" "C/C++/Go/Rust derleyicileri, make, cmake" "Компиляторы C/C++/Go/Rust, make, cmake" ;;
     apk) say "APK studio: build, decompile, sign (apktool, jadx, SDK)" "APK studiya: yığ, aç, imzala (apktool, jadx, SDK)" "APK stüdyo: derle, aç, imzala (apktool, jadx, SDK)" "APK-студия: сборка, декомпиляция, подпись" ;;
     backup) say "Backups: tar/rsync/rclone to phone or cloud" "Ehtiyat: tar/rsync/rclone telefona və ya buluda" "Yedek: tar/rsync/rclone telefona veya buluta" "Резервные копии: tar/rsync/rclone" ;;
     net) say "Network: scan, ping, speed test, DNS, ports" "Şəbəkə: skan, ping, sürət testi, DNS, portlar" "Ağ: tarama, ping, hız testi, DNS, portlar" "Сеть: скан, ping, скорость, DNS" ;;
