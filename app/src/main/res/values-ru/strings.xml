@@ -251,4 +251,22 @@
     <string name="hosts_import_config">Импорт ~/.ssh/config</string>
     <string name="hosts_export_config">Экспорт в ssh config</string>
     <string name="hosts_none">Нет сохранённых хостов</string>
+    <string name="media_title">Конструктор видео / аудио / загрузок</string>
+    <string name="media_operation">Операция</string>
+    <string name="media_input">Входные файлы</string>
+    <string name="media_pick">Выбрать</string>
+    <string name="media_options">Параметры</string>
+    <string name="media_output">Имя файла (сохраняется в Download/Nibras)</string>
+    <string name="media_quality">Качество / формат</string>
+    <string name="media_subs">Субтитры</string>
+    <string name="media_thumb">Встроить обложку</string>
+    <string name="media_limit">Ограничить скорость (2 МБ/с)</string>
+    <string name="media_rights">Скачивайте только разрешённый контент.</string>
+    <string name="media_need_input">Выберите файл(ы), чтобы увидеть команду</string>
+    <string name="nfc_read_hint">Поднесите NFC-метку или карту к задней панели…</string>
+    <string name="nfc_write_hint">Поднесите записываемую NFC-метку…</string>
+    <string name="prayer_time_now">Время молитвы</string>
+    <string name="editor_autocomplete">Автодополнение</string>
+    <string name="editor_lint">Проверить код (lint)</string>
+    <string name="tools_media">Медиа</string>
 </resources>

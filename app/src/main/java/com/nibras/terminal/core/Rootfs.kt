@@ -115,7 +115,8 @@ object Rootfs {
         exe(f("usr/local/bin/nibras-sshd"), guest(context, "nibras-sshd"))
         exe(f("usr/local/bin/nibras-shell"), guest(context, "nibras-shell"))
         writeReplacing(f("usr/local/share/nibras/msg.sh"), guest(context, "nibras-msg.sh"))
-        for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish")) exe(f("usr/local/bin/$tool"), guest(context, tool))
+        for (tool in listOf("nibras", "nibras-need", "nibras-adb", "nibras-apk", "nibras-rish", "nibras-usb")) exe(f("usr/local/bin/$tool"), guest(context, tool))
+        runCatching { Files.deleteIfExists(f("usr/local/bin/termux-usb").toPath()); Files.createSymbolicLink(f("usr/local/bin/termux-usb").toPath(), Paths.get("nibras-usb")) }
         exe(f("usr/local/bin/nibras-help"), "#!/bin/sh\ncat /etc/nibras/banner /etc/nibras/help 2>/dev/null\n")
         for (cmd in API_COMMANDS) {
             // termux-* names stay as hidden compatibility links; only nibras-* is shown anywhere.
@@ -334,7 +335,7 @@ object Rootfs {
         "open-url", "open", "info", "media-player", "contact-list", "call-log", "sms-list", "sms-send",
         "reload-settings", "new-session", "edit", "files", "hosts", "dialog", "storage-get", "job-scheduler",
         "audio-info", "telephony-deviceinfo", "wifi-scaninfo", "wallpaper", "camera-photo", "speech-to-text",
-        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo",
+        "telephony-call", "media-scan", "infrared-transmit", "telephony-cellinfo", "keystore", "nfc", "prayer-alarm", "media-builder",
     )
 
     /** Toolkit commands (assets/guest/nibras-kit). "download" replaces the old Android-only nibras-download. */

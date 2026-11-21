@@ -251,4 +251,22 @@
     <string name="hosts_import_config">~/.ssh/config içe aktar</string>
     <string name="hosts_export_config">ssh config olarak dışa aktar</string>
     <string name="hosts_none">Kayıtlı sunucu yok</string>
+    <string name="media_title">Video / ses / indirme oluşturucu</string>
+    <string name="media_operation">İşlem</string>
+    <string name="media_input">Giriş dosyaları</string>
+    <string name="media_pick">Seç</string>
+    <string name="media_options">Seçenekler</string>
+    <string name="media_output">Çıkış adı (Download/Nibras\'a kaydedilir)</string>
+    <string name="media_quality">Kalite / format</string>
+    <string name="media_subs">Altyazı</string>
+    <string name="media_thumb">Küçük resmi ekle</string>
+    <string name="media_limit">Hızı sınırla (2 MB/s)</string>
+    <string name="media_rights">Yalnızca hakkın olan içeriği indir.</string>
+    <string name="media_need_input">Komutu görmek için dosya seç</string>
+    <string name="nfc_read_hint">NFC etiketini veya kartı telefonun arkasına yaklaştır…</string>
+    <string name="nfc_write_hint">Yazmak için NFC etiketini telefona yaklaştır…</string>
+    <string name="prayer_time_now">Namaz vakti</string>
+    <string name="editor_autocomplete">Otomatik tamamlama</string>
+    <string name="editor_lint">Kodu denetle (lint)</string>
+    <string name="tools_media">Medya</string>
 </resources>
