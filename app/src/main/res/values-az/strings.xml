@@ -84,7 +84,7 @@
     <string name="widget_empty">Skriptləri ~/.shortcuts qovluğuna qoy</string>
     <string name="share_saved">~/downloads/%s faylına saxlandı</string>
     <string name="permission_needed">İcazə lazımdır: %s. Ekranda icazə ver və əmri yenidən işlət.</string>
-    <string name="storage_hint">“Bütün fayllara giriş” icazəsini ver, sonra yeni sessiya aç. Ümumi yaddaş: /sdcard və ~/storage.</string>
+    <string name="storage_hint">Açılan səhifədə Nibras üçün “Bütün fayllara giriş”i aç, geri qayıt və yeni sessiya aç. /sdcard bu sessiyada yoxdur.</string>
     <string name="shortcut_new">Yeni sessiya</string>
     <string name="wakelock_on">Oyaq saxlama açıqdır</string>
     <string name="wakelock_off">Oyaq saxlama bağlıdır</string>

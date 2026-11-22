@@ -22,6 +22,26 @@ conf=${NIBRAS_API_CONF:-/etc/nibras/api}
 [ -r "$conf" ] || conf=$HOME/.nibras/api
 if [ ! -r "$conf" ]; then nmsg api_down >&2; exit 1; fi
 . "$conf"
+# Termux asks in the terminal first. Android still opens its own page after y, because
+# "All files access" cannot be granted from inside the shell.
+if [ "$name" = setup-storage ] && [ -t 0 ]; then
+  case "${1:-}" in -y|--yes) shift ;; esac
+  if [ ! -d /sdcard/Download ] || [ ! -r /sdcard/Download ]; then
+    L=$(tr -d '[:space:]' < /etc/nibras/lang 2>/dev/null || true)
+    case "$L" in
+      az) q='Telefon yaddaşına girişə icazə? [y/N] ' ;;
+      tr) q='Telefon deposuna erişim izni? [y/N] ' ;;
+      ru) q='Разрешить доступ к памяти телефона? [y/N] ' ;;
+      *) q='Allow access to phone storage? [y/N] ' ;;
+    esac
+    printf '%s' "$q" >&2
+    read -r ans || exit 1
+    case "$ans" in
+      y|Y|yes|YES|e|E|bəli|beli|evet|EVET|да|Да) ;;
+      *) echo "cancelled"; exit 0 ;;
+    esac
+  fi
+fi
 US=$(printf '\037')
 args=
 for a in "$@"; do args="$args$a$US"; done

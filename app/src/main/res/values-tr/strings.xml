@@ -84,7 +84,7 @@
     <string name="widget_empty">Betikleri ~/.shortcuts klasörüne koy</string>
     <string name="share_saved">~/downloads/%s olarak kaydedildi</string>
     <string name="permission_needed">İzin gerekli: %s. Ekranda izin verin ve komutu tekrar çalıştırın.</string>
-    <string name="storage_hint">“Tüm dosyalara erişim” izni verin, sonra yeni oturum açın. Ortak depolama: /sdcard ve ~/storage.</string>
+    <string name="storage_hint">Açılan sayfada Nibras için “Tüm dosyalara erişim” anahtarını açın, geri dönün ve yeni oturum açın. /sdcard bu oturumda yok.</string>
     <string name="shortcut_new">Yeni oturum</string>
     <string name="wakelock_on">Uyanık tutma açık</string>
     <string name="wakelock_off">Uyanık tutma kapalı</string>

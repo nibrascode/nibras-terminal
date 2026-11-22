@@ -364,9 +364,9 @@ object Rootfs {
         for (sys in listOf("/system", "/apex", "/vendor", "/linkerconfig/ld.config.txt")) {
             if (File(sys).exists()) args += listOf("-b", sys)
         }
-        if (hasSharedStorage(context)) {
-            val shared = Environment.getExternalStorageDirectory().absolutePath
-            args += listOf("-b", "$shared:/sdcard", "-b", "/storage")
+        val shared = Environment.getExternalStorageDirectory()
+        if (shared.isDirectory) {
+            args += listOf("-b", "${shared.absolutePath}:/sdcard", "-b", "/storage")
         }
         context.getExternalFilesDir(null)?.let { ext ->
             ext.mkdirs()

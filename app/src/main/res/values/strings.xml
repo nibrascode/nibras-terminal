@@ -90,7 +90,7 @@
     <string name="widget_empty">Put scripts in ~/.shortcuts</string>
     <string name="share_saved">Saved to ~/downloads/%s</string>
     <string name="permission_needed">Permission needed: %s. Allow it on screen and run the command again.</string>
-    <string name="storage_hint">Allow “All files access”, then open a new session. Shared storage: /sdcard and ~/storage.</string>
+    <string name="storage_hint">On the phone page that opened, turn on “All files access” for Nibras, then come back and open a new session. /sdcard is not in this session.</string>
     <string name="shortcut_new">New session</string>
     <string name="wakelock_on">Wake lock on</string>
     <string name="wakelock_off">Wake lock off</string>

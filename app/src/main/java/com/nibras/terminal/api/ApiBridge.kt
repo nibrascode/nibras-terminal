@@ -12,6 +12,7 @@ import android.webkit.MimeTypeMap
 import com.nibras.terminal.PhoneBridge
 import com.nibras.terminal.SharedFiles
 import com.nibras.terminal.R
+import com.nibras.terminal.core.Lang
 import com.nibras.terminal.core.Rootfs
 import com.nibras.terminal.data.resolveInside
 import java.io.File
@@ -123,7 +124,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
             "wake-lock" -> { host.setWakeLock(true); "OK\nwake lock acquired" }
             "wake-unlock" -> { host.setWakeLock(false); "OK\nwake lock released" }
             "setup-storage" -> {
-                if (Rootfs.hasSharedStorage(context)) "OK\n/sdcard → ~/storage/shared"
+                if (Rootfs.hasSharedStorage(context)) "OK\n/sdcard → ~/storage/shared\n" + storageReady(context)
                 else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
             }
             "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
@@ -344,5 +345,12 @@ class ApiBridge(private val context: Context, private val host: Host) {
         gate.await(20, TimeUnit.SECONDS)
         error?.let { throw it }
         return value
+    }
+
+    private fun storageReady(context: Context) = when (Lang.current(context)) {
+        "az" -> "İcazə var. Bu sessiya /sdcard görmürsə, yeni sessiya aç."
+        "tr" -> "İzin var. Bu oturum /sdcard görmüyorsa yeni oturum aç."
+        "ru" -> "Доступ есть. Если эта сессия не видит /sdcard, откройте новую."
+        else -> "Access is on. If this session still cannot open /sdcard, open a new session."
     }
 }
