@@ -128,6 +128,7 @@ object Rootfs {
         writeReplacing(f("etc/profile.d/nibras.sh"), guest(context, "profile.sh"))
         exe(f("usr/local/bin/nibras-login"), guest(context, "nibras-login"))
         exe(f("usr/local/bin/pkg"), guest(context, "pkg"))
+        exe(f("usr/local/bin/nibras-banner"), guest(context, "nibras-banner"))
         // Bundled packs stay off PATH until `pkg install <name>` copies them to /usr/local/bin.
         exe(f("usr/local/share/nibras/packs/nibras-show"), guest(context, "nibras-show"))
         // apt/apt-get wrappers so Termux-style commands work on Alpine (only when apk is present).
@@ -285,9 +286,12 @@ object Rootfs {
         val root = dir(context, id)
         val etc = File(root, "etc/nibras").apply { mkdirs() }
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
-        val banner = Banner.text(name(id), DeviceAbi.label, version)
+        val envName = name(id)
+        val banner = Banner.text(envName, DeviceAbi.label, version)
         writeReplacing(File(etc, "banner"), banner)
-        writeReplacing(File(etc, "motd"), banner + context.getString(R.string.motd) + "\n")
+        writeReplacing(File(etc, "banner-meta"), "$envName · ${DeviceAbi.label} · $version\n")
+        // Help lines only; nibras-login prints the width-aware banner first.
+        writeReplacing(File(etc, "motd"), Banner.motdHelp(context, envName, DeviceAbi.label) + "\n")
         writeReplacing(File(etc, "lang"), guestLang(context) + "\n")
         writeReplacing(File(etc, "help"), context.getString(R.string.shell_help) + "\n")
         // Android environment for /system binaries run from Linux (getprop, logcat, cmd, pm …).
@@ -312,13 +316,17 @@ object Rootfs {
         val bin = File(home, "bin").apply { mkdirs() }
         runCatching { exe(File(bin, "nibras-rish"), guest(context, "nibras-rish")) }
         runCatching { exe(File(bin, "pkg"), guest(context, "pkg")) }
+        runCatching { exe(File(bin, "nibras-banner"), guest(context, "nibras-banner")) }
         // Bundled packs stay off PATH until `pkg install <name>` copies them to ~/bin.
         runCatching {
             val packs = File(home, ".nibras/packs").apply { mkdirs() }
             exe(File(packs, "nibras-show"), guest(context, "nibras-show"))
         }
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
-        runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
+        val abi = DeviceAbi.label
+        runCatching { writeReplacing(File(home, ".nibras-banner"), Banner.text("Android", abi, version)) }
+        runCatching { writeReplacing(File(home, ".nibras/banner-meta").apply { parentFile?.mkdirs() }, "Android · $abi · $version\n") }
+        runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.motdHelp(context, "Android", abi) + "\n") }
         writeAndroidRc(context)
     }
 
@@ -375,7 +383,7 @@ object Rootfs {
             runCatching { prepareAndroidHome(context) }
             val start = extraEnv.firstOrNull { it.startsWith("NIBRAS_START_DIR=") }?.substringAfter('=')?.takeIf { File(it).isDirectory }
             val args = if (command != null) arrayOf("sh", "-c", ". \"\$ENV\" 2>/dev/null; " + command.joinToString(" ") { quote(it) })
-                else arrayOf("sh", "-c", "cat \"\$HOME/.nibras-motd\" 2>/dev/null; exec /system/bin/sh -i")
+                else arrayOf("sh", "-c", "sh \"\$HOME/bin/nibras-banner\" 2>/dev/null || cat \"\$HOME/.nibras-banner\" 2>/dev/null; cat \"\$HOME/.nibras-motd\" 2>/dev/null; exec /system/bin/sh -i")
             return Launch(
                 "/system/bin/sh", args,
                 (listOf("HOME=${home.absolutePath}", "TMPDIR=${tmp.absolutePath}", term, lang, "COLORTERM=truecolor",

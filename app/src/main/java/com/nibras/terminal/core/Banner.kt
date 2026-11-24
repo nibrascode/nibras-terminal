@@ -1,24 +1,80 @@
 package com.nibras.terminal.core
 
-/** The colored "Nibras Terminal" logo shown at the top of every new session (restored from 0.1). */
-object Banner {
-    private const val GOLD = "\u001b[1;38;2;214;179;106m"
-    private const val CREAM = "\u001b[1;38;2;245;236;220m"
-    private const val DIM = "\u001b[38;2;140;140;140m"
-    private const val RESET = "\u001b[0m"
+import android.content.Context
+import com.nibras.terminal.R
 
-    val LOGO = listOf(
-        " _   _ _ _                    ",
-        "| \\ | (_) |__  _ __ __ _ ___ ",
-        "|  \\| | | '_ \\| '__/ _` / __|",
-        "| |\\  | | |_) | | | (_| \\__ \\",
-        "|_| \\_|_|_.__/|_|  \\__,_|___/",
+/**
+ * The "NIBRAS TERMINAL" logo shown at the start of every new session.
+ * Option 2: a smooth horizontal blue → green gradient. No rainbow hues.
+ */
+object Banner {
+    private const val RESET = "\u001b[0m"
+    private const val DIM = "\u001b[38;2;140;150;170m"
+    private const val BLUE_R = 40
+    private const val BLUE_G = 120
+    private const val BLUE_B = 255
+    private const val GREEN_R = 30
+    private const val GREEN_G = 210
+    private const val GREEN_B = 90
+
+    val NIBRAS = listOf(
+        " _   _ ___ ____  ____      _    ____  ",
+        "| \\ | |_ _| __ )|  _ \\    / \\  / ___| ",
+        "|  \\| || ||  _ \\| |_) |  / _ \\ \\___ \\ ",
+        "| |\\  || || |_) |  _ <  / ___ \\ ___) |",
+        "|_| \\_|___|____/|_| \\_\\/_/   \\_\\____/ ",
     )
 
+    val TERMINAL = listOf(
+        " _____ _____ ____  __  __ ___ _   _    _    _     ",
+        "|_   _| ____|  _ \\|  \\/  |_ _| \\ | |  / \\  | |    ",
+        "  | | |  _| | |_) | |\\/| || ||  \\| | / _ \\ | |    ",
+        "  | | | |___|  _ <| |  | || || |\\  |/ ___ \\| |___ ",
+        "  |_| |_____|_| \\_\\_|  |_|___|_| \\_/_/   \\_\\_____|",
+    )
+
+    /** Paint one line with a blue (left) → green (right) gradient. */
+    fun paintLine(s: String): String {
+        if (s.isEmpty()) return ""
+        val n = s.length
+        return buildString {
+            s.forEachIndexed { i, ch ->
+                if (ch == ' ') {
+                    append(' ')
+                } else {
+                    val t = if (n > 1) i.toFloat() / (n - 1) else 0f
+                    val r = (BLUE_R + (GREEN_R - BLUE_R) * t).toInt()
+                    val g = (BLUE_G + (GREEN_G - BLUE_G) * t).toInt()
+                    val b = (BLUE_B + (GREEN_B - BLUE_B) * t).toInt()
+                    append("\u001b[1;38;2;").append(r).append(';').append(g).append(';').append(b).append('m')
+                    append(ch)
+                }
+            }
+            append(RESET)
+        }
+    }
+
+    /**
+     * Static fallback used if the width-aware `nibras-banner` script cannot run.
+     * Medium layout (NIBRAS figlet + "T E R M I N A L") fits a typical phone.
+     */
     fun text(envName: String, abi: String, version: String): String = buildString {
-        LOGO.forEach { append(GOLD).append(it).append(RESET).append('\n') }
-        append(CREAM).append("  ▣ T E R M I N A L ").append(RESET)
-        append(DIM).append("· $envName · $abi · $version").append(RESET).append("\n")
-        append(GOLD).append("  ─────────────────────────────").append(RESET).append("\n")
+        append('\n')
+        NIBRAS.forEach { append(paintLine(it)).append('\n') }
+        append('\n')
+        append("  ").append(paintLine("T E R M I N A L")).append('\n')
+        append("  ").append(DIM).append("· ").append(envName).append(" · ").append(abi)
+            .append(" · ").append(version).append(RESET).append('\n')
+        append('\n')
+    }
+
+    /** Motd help lines under the logo, without the redundant title line. */
+    fun motdHelp(context: Context, envName: String, abi: String): String {
+        val raw = runCatching { context.getString(R.string.motd, envName, abi) }
+            .getOrElse { context.getString(R.string.motd) }
+        val lines = raw.lines().toMutableList()
+        val i = lines.indexOfFirst { it.isNotBlank() }
+        if (i >= 0) lines.removeAt(i)
+        return lines.joinToString("\n").trimStart()
     }
 }

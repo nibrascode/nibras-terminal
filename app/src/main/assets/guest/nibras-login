@@ -6,7 +6,15 @@ if [ $# -gt 0 ]; then
   [ -r /etc/profile ] && . /etc/profile >/dev/null 2>&1
   if [ -x "$1" ]; then exec "$@"; else exec /bin/sh "$@"; fi
 fi
-if [ -r /etc/nibras/motd ] && [ ! -e "$HOME/.hushlogin" ]; then cat /etc/nibras/motd; [ -r "$HOME/.nibras/motd" ] && cat "$HOME/.nibras/motd"; fi
+if [ ! -e "$HOME/.hushlogin" ]; then
+  if command -v nibras-banner >/dev/null 2>&1; then
+    nibras-banner
+  elif [ -r /etc/nibras/banner ]; then
+    cat /etc/nibras/banner
+  fi
+  [ -r /etc/nibras/motd ] && cat /etc/nibras/motd
+  [ -r "$HOME/.nibras/motd" ] && cat "$HOME/.nibras/motd"
+fi
 pref=
 [ -r "$HOME/.nibras/shell" ] && pref=$(head -n 1 "$HOME/.nibras/shell")
 for s in $pref /bin/bash /bin/ash /bin/sh; do

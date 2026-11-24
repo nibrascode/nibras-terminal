@@ -13,7 +13,7 @@ Sensitive phone commands ask for a yes every time: SMS, call log, contacts, micr
 
 `pkg install nibras-show -y && nibras-show`
 
-This is the Nibras Terminal demo command. `pkg install nibras-show` installs a bundled pack with no network and a short colorful progress display, then `nibras-show` plays a 10-15 second color animation (rainbow banner, matrix rain, boot lines, and a system info card). Any key or Ctrl-C returns to the prompt early. `nibras show` is the same command after the pack is installed. No extra packages are required.
+This is the Nibras Terminal demo command. `pkg install nibras-show` installs a bundled pack with no network and a short colorful progress display, then `nibras-show` plays a 10-15 second color animation (blue-to-green banner, matrix rain, boot lines, and a system info card). Any key or Ctrl-C returns to the prompt early. `nibras show` is the same command after the pack is installed. No extra packages are required.
 
 ## Web only
 

@@ -22,7 +22,6 @@ C_RESET="${ESC}[0m"
 C_DIM="${ESC}[2m"
 C_BOLD="${ESC}[1m"
 C_GREEN="${ESC}[38;2;80;255;120m"
-C_GOLD="${ESC}[38;2;255;200;60m"
 C_CYAN="${ESC}[38;2;80;220;255m"
 C_WHITE="${ESC}[38;2;240;240;240m"
 C_MUTED="${ESC}[38;2;140;150;170m"
@@ -71,20 +70,22 @@ paint_line() {
       BEGIN {
         s = ENVIRON["LINE"]
         n = length(s)
-        split("255;80;60 255;180;40 255;230;70 40;210;100 40;210;210 80;140;255 210;80;255", pal, " ")
-        pn = 7
+        br=40; bg=120; bb=255
+        gr=30; gg=210; gb=90
         for (i = 1; i <= n; i++) {
           ch = substr(s, i, 1)
           if (ch == " ") { printf " "; continue }
-          p = int((i - 1) * pn / (n > 1 ? n : 1)) + 1
-          if (p > pn) p = pn
-          printf "%c[1;38;2;%sm%s", 27, pal[p], ch
+          t = (n > 1) ? (i - 1) / (n - 1) : 0
+          r = int(br + (gr - br) * t + 0.5)
+          g = int(bg + (gg - bg) * t + 0.5)
+          b = int(bb + (gb - bb) * t + 0.5)
+          printf "%c[1;38;2;%d;%d;%dm%s", 27, r, g, b, ch
         }
         printf "%c[0m\n", 27
       }
     '
   else
-    printf '%s%s%s\n' "$C_GOLD" "$LINE" "$C_RESET"
+    printf '%s%s%s\n' "$C_GREEN" "$LINE" "$C_RESET"
   fi
 }
 
@@ -289,7 +290,7 @@ bar() {
     fi
     _i=$((_i + 1))
   done
-  printf '%s]%s %s%3s%%%s  %s\n' "$C_DIM" "$C_RESET" "$C_GOLD" "$_p" "$C_RESET" "$_lab"
+  printf '%s]%s %s%3s%%%s  %s\n' "$C_DIM" "$C_RESET" "$C_GREEN" "$_p" "$C_RESET" "$_lab"
 }
 
 draw_card() {
@@ -314,7 +315,7 @@ draw_card() {
   }
   printf '\n'
   _rule
-  printf '  %s|%s  %sSYSTEM%s%33s%s|%s\n' "$C_CYAN" "$C_RESET" "$C_GOLD" "$C_RESET" "" "$C_CYAN" "$C_RESET"
+  printf '  %s|%s  %sSYSTEM%s%33s%s|%s\n' "$C_CYAN" "$C_RESET" "$C_GREEN" "$C_RESET" "" "$C_CYAN" "$C_RESET"
   _row Device "$_dev"
   _row System "$_and"
   _row Arch "$_arch"
@@ -336,7 +337,7 @@ sparkle() {
     fi
     draw_banner
     printf '%s' "$C_RESET"
-    printf '  %s  *    +      *         *    +       *%s\n' "$C_GOLD" "$C_RESET"
+    printf '  %s  *    +      *         *    +       *%s\n' "$C_GREEN" "$C_RESET"
     printf '\n  %s  Thank you for running Nibras Terminal.%s\n' "$C_MUTED" "$C_RESET"
     _n=$((_n + 1))
     delay "$D_FADE" || return 1

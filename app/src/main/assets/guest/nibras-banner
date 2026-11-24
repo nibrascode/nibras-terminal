@@ -1,0 +1,115 @@
+#!/bin/sh
+# nibras-banner — "NIBRAS TERMINAL" logo for a new session. Fast, no animation.
+# Option 2: smooth horizontal blue → green gradient. No rainbow hues.
+# Picks a size from the terminal width so it fits a phone in portrait.
+
+ESC=$(printf '\033')
+C_RESET="${ESC}[0m"
+C_DIM="${ESC}[38;2;140;150;170m"
+C_GREEN="${ESC}[1;38;2;30;210;90m"
+
+cols=${COLUMNS:-}
+if [ -z "$cols" ] || [ "$cols" -lt 1 ] 2>/dev/null; then
+  cols=$(stty size 2>/dev/null | awk '{print $2}')
+fi
+if [ -z "$cols" ] || [ "$cols" -lt 1 ] 2>/dev/null; then
+  cols=$(tput cols 2>/dev/null)
+fi
+case "$cols" in
+  ''|*[!0-9]*) cols=40 ;;
+esac
+
+paint_line() {
+  LINE=$1
+  export LINE
+  if command -v awk >/dev/null 2>&1; then
+    awk '
+      BEGIN {
+        s = ENVIRON["LINE"]
+        n = length(s)
+        br=40; bg=120; bb=255
+        gr=30; gg=210; gb=90
+        for (i = 1; i <= n; i++) {
+          ch = substr(s, i, 1)
+          if (ch == " ") { printf " "; continue }
+          t = (n > 1) ? (i - 1) / (n - 1) : 0
+          r = int(br + (gr - br) * t + 0.5)
+          g = int(bg + (gg - bg) * t + 0.5)
+          b = int(bb + (gb - bb) * t + 0.5)
+          printf "%c[1;38;2;%d;%d;%dm%s", 27, r, g, b, ch
+        }
+        printf "%c[0m\n", 27
+      }
+    '
+  else
+    printf '%s%s%s\n' "$C_GREEN" "$LINE" "$C_RESET"
+  fi
+}
+
+# Wide (54+): the nibras-show figlet pair.
+W1=' _   _ ___ ____  ____      _    ____  '
+W2='| \ | |_ _| __ )|  _ \    / \  / ___| '
+W3='|  \| || ||  _ \| |_) |  / _ \ \___ \ '
+W4='| |\  || || |_) |  _ <  / ___ \ ___) |'
+W5='|_| \_|___|____/|_| \_\/_/   \_\____/ '
+T1=' _____ _____ ____  __  __ ___ _   _    _    _     '
+T2='|_   _| ____|  _ \|  \/  |_ _| \ | |  / \  | |    '
+T3='  | | |  _| | |_) | |\/| || ||  \| | / _ \ | |    '
+T4='  | | | |___|  _ <| |  | || || |\  |/ ___ \| |___ '
+T5='  |_| |_____|_| \_\_|  |_|___|_| \_/_/   \_\_____|'
+
+# Medium (40-53): NIBRAS figlet (39 cols) + a compact TERMINAL line.
+# Narrow (<40): 5-line compact NIBRAS (~29) or a single painted line.
+
+N1=' _  _ ___ ___ ___   _   ___'
+N2='| \| |_ _| _ ) _ \ /_\ / __|'
+N3='| .` | | | _ \   // _ \\__ \'
+N4='|_|\_|_|_|___/_|_\/_/ \_|___/'
+
+meta=
+for f in /etc/nibras/banner-meta "$HOME/.nibras/banner-meta"; do
+  if [ -r "$f" ]; then
+    meta=$(head -n 1 "$f")
+    break
+  fi
+done
+[ -n "${1:-}" ] && meta=$1
+
+printf '\n'
+if [ "$cols" -ge 54 ]; then
+  paint_line "$W1"
+  paint_line "$W2"
+  paint_line "$W3"
+  paint_line "$W4"
+  paint_line "$W5"
+  printf '\n'
+  paint_line "$T1"
+  paint_line "$T2"
+  paint_line "$T3"
+  paint_line "$T4"
+  paint_line "$T5"
+elif [ "$cols" -ge 40 ]; then
+  paint_line "$W1"
+  paint_line "$W2"
+  paint_line "$W3"
+  paint_line "$W4"
+  paint_line "$W5"
+  printf '\n  '
+  paint_line 'T E R M I N A L'
+else
+  # Fits ~30 columns. If the phone is still narrower, a single painted line.
+  if [ "$cols" -ge 30 ]; then
+    paint_line "$N1"
+    paint_line "$N2"
+    paint_line "$N3"
+    paint_line "$N4"
+    printf '\n  '
+    paint_line 'T E R M I N A L'
+  else
+    paint_line 'NIBRAS TERMINAL'
+  fi
+fi
+if [ -n "$meta" ]; then
+  printf '  %s· %s%s\n' "$C_DIM" "$meta" "$C_RESET"
+fi
+printf '\n'

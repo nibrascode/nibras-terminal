@@ -238,7 +238,7 @@ cmd_motd() {
   case "${1:-show}" in
     on) rm -f "$H/.hushlogin"; ok "motd on" ;;
     off) touch "$H/.hushlogin"; ok "motd off" ;;
-    show) cat /etc/nibras/motd 2>/dev/null; [ -f "$D/motd" ] && cat "$D/motd" ;;
+    show) nibras-banner 2>/dev/null || cat /etc/nibras/banner 2>/dev/null; cat /etc/nibras/motd 2>/dev/null; [ -f "$D/motd" ] && cat "$D/motd" ;;
     custom) shift; [ $# -gt 0 ] || { echo "motd custom \"Welcome!\" · motd custom --banner Hello · motd custom --reset"; return 1; }
       case "$1" in --reset) rm -f "$D/motd"; ok "custom motd removed"; return ;; --banner) shift; cmd_banner "$@" > "$D/motd" ;; *) printf '%s\n' "$*" > "$D/motd" ;; esac; ok "motd custom" ;;
     *) echo "motd on|off|show|custom \"text\"" ;;
