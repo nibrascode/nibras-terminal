@@ -85,7 +85,14 @@ jobs:
           PY
           SDK="${{ github.event.inputs.sdk || '35' }}"
           KIND="${{ github.event.inputs.kind || 'sign' }}"
-          if gh release view "v$VER" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          # A GitHub release tag may already exist for an older build of the same
+          # versionName (e.g. store 1.0.0 vs an earlier GitHub v1.0.0). On a
+          # non-main dispatch, always sign and upload artifacts; never treat
+          # that as "already published" (which would build a debug APK only).
+          if [ "${{ github.ref }}" != "refs/heads/main" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "mode=publish" >> "$GITHUB_OUTPUT"
+            echo "Not on main. Will sign APK/AAB and upload artifacts; no GitHub release."
+          elif gh release view "v$VER" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.kind }}" = "sign" ]; then
               echo "v$VER is already public. Bump versionName. The file was not replaced."
               exit 1
@@ -279,6 +286,10 @@ jobs:
           test -n "$VER"
           cp dist/app-release.apk dist/nibras-terminal.apk
           (cd dist && sha256sum nibras-terminal.apk > SHA256SUMS)
+          if [ "${GITHUB_REF:-}" != "refs/heads/main" ]; then
+            echo "Not on main (ref=${GITHUB_REF:-unset}). Signed APK and AAB are uploaded as artifacts; no GitHub release is created."
+            exit 0
+          fi
           NOTES=$(printf '%s\n' \
             "Nibras Terminal $VER" \
             "" \
