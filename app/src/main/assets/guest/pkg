@@ -75,12 +75,12 @@ apk_map_pkgs() {
   for _a in "$@"; do
     case "$_a" in
       toilet|toilet-fonts)
-        echo "pkg: Alpine has no 'toilet' package. Installing figlet and a toilet command so 'toilet -f big TEXT' works."
+        echo "pkg: Alpine has no 'toilet' package. Installing figlet and a toilet command so 'toilet -f big TEXT' works." >&2
         _out="$_out figlet"
         _need_toilet=1
         ;;
       libcaca|libcaca-utils)
-        echo "pkg: cacafire is in the Alpine package 'libcaca-apps' (not '$_a'). Installing libcaca-apps."
+        echo "pkg: cacafire is in the Alpine package 'libcaca-apps' (not '$_a'). Installing libcaca-apps." >&2
         _out="$_out libcaca-apps"
         _need_terminfo=1
         ;;
@@ -111,33 +111,261 @@ apk_install() {
   set -- $_mapped
   apk_need_index || return 1
   echo "pkg: installing $* …"
-  if ! apk add "$@"; then
-    echo "pkg: install failed."
-    for _p in "$@"; do
-      case "$_p" in
-        ncurses-terminfo-base|figlet) continue ;;
-      esac
-      if ! apk info -e "$_p" >/dev/null 2>&1; then
-        echo "pkg: '$_p' is not available in this environment's repositories."
-        _sug=$(apk search -q "$_p" 2>/dev/null | head -n 8)
-        if [ -n "$_sug" ]; then
-          echo "pkg: similar packages:"
-          printf '%s\n' "$_sug" | sed 's/^/  /'
-        else
-          echo "pkg: try:  pkg search $_p"
-        fi
+  if apk add "$@"; then
+    return 0
+  fi
+  # Some names are commands, not packages (Termux-style). Try the providing package.
+  _retry=
+  _failed=0
+  for _p in "$@"; do
+    case "$_p" in
+      ncurses-terminfo-base) continue ;;
+    esac
+    if apk info -e "$_p" >/dev/null 2>&1; then
+      continue
+    fi
+    _prov=$(apk search -x -q "cmd:$_p" 2>/dev/null | sed 's/-[0-9][0-9A-Za-z._]*-r[0-9][0-9]*$//' | head -n 1)
+    if [ -n "$_prov" ] && [ "$_prov" != "$_p" ]; then
+      echo "pkg: '$_p' is not a package; it is provided by '$_prov'. Installing $_prov."
+      _retry="$_retry $_prov"
+    else
+      echo "pkg: '$_p' is not available in this environment's repositories."
+      _sug=$(apk search -q "$_p" 2>/dev/null | head -n 8)
+      if [ -n "$_sug" ]; then
+        echo "pkg: similar packages:"
+        printf '%s\n' "$_sug" | sed 's/^/  /'
+      else
+        echo "pkg: try:  pkg search $_p"
       fi
-    done
+      _failed=1
+    fi
+  done
+  if [ -n "$_retry" ]; then
+    # shellcheck disable=SC2086
+    if apk add $_retry; then
+      [ "$_failed" = 0 ] && return 0
+    else
+      _failed=1
+    fi
+  fi
+  echo "pkg: install failed."
+  return 1
+}
+
+
+# Bundled Nibras packs (shipped in the app). Installed offline — no index, no network.
+pack_src() {
+  for _d in /usr/local/share/nibras/packs "$HOME/.nibras/packs"; do
+    [ -f "$_d/$1" ] && { printf '%s\n' "$_d/$1"; return 0; }
+  done
+  return 1
+}
+
+pack_dest_dir() {
+  if [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; then
+    printf '%s\n' /usr/local/bin
+    return 0
+  fi
+  mkdir -p "$HOME/bin" || return 1
+  printf '%s\n' "$HOME/bin"
+}
+
+sleept() {
+  sleep "$1" 2>/dev/null && return 0
+  case "$1" in
+    0|0.*) return 0 ;;
+    *) sleep 1 ;;
+  esac
+}
+
+# Colorful apk-style progress (~1.5s), then copy the pack onto PATH.
+install_nibras_pack() {
+  _name=$1
+  _src=$(pack_src "$_name") || {
+    echo "pkg: bundled pack '$_name' is missing from this install." >&2
     return 1
+  }
+  _ddir=$(pack_dest_dir) || {
+    echo "pkg: cannot write a bin directory for $_name." >&2
+    return 1
+  }
+  _dest="$_ddir/$_name"
+  _ESC=$(printf '\033')
+  _C="${_ESC}[0m"
+  _G="${_ESC}[1;32m"
+  _C2="${_ESC}[1;36m"
+  _D="${_ESC}[2m"
+  _Y="${_ESC}[1;33m"
+  _B="${_ESC}[1m"
+  echo
+  printf '%s%s%s\n' "$_B" "pkg: installing $_name (Nibras bundled pack, offline)" "$_C"
+  echo
+  printf '  %s(1/1) Installing %s (1.0.0-nibras)%s\n' "$_C2" "$_name" "$_C"
+  _bar() {
+    _p=$1
+    _msg=$2
+    _w=24
+    _f=$((_p * _w / 100))
+    _i=0
+    printf '  %s[' "$_D"
+    while [ "$_i" -lt "$_w" ]; do
+      if [ "$_i" -lt "$_f" ]; then
+        printf '%s█' "$_C2"
+      else
+        printf '%s░' "$_D"
+      fi
+      _i=$((_i + 1))
+    done
+    printf '%s]%s %s%3s%%%s  %s\n' "$_D" "$_C" "$_Y" "$_p" "$_C" "$_msg"
+  }
+  _bar 8 "reading bundled pack"
+  sleept 0.25
+  printf '%s[1A%s[2K' "$_ESC" "$_ESC"
+  _bar 36 "unpacking"
+  sleept 0.3
+  printf '%s[1A%s[2K' "$_ESC" "$_ESC"
+  _bar 68 "installing $_dest"
+  cp "$_src" "$_dest" && chmod 755 "$_dest" || {
+    echo "pkg: failed to install $_name to $_dest" >&2
+    return 1
+  }
+  if [ "$_name" = nibras-show ] && [ ! -e "$_ddir/show" ]; then
+    if ! command -v show >/dev/null 2>&1; then
+      ln -sf "$_name" "$_ddir/show" 2>/dev/null || {
+        printf '#!/bin/sh\nexec nibras-show "$@"\n' > "$_ddir/show"
+        chmod 755 "$_ddir/show"
+      }
+    fi
   fi
-  # Keep `toilet` as a typed command after figlet is installed.
-  if [ -x /usr/local/bin/toilet ] || [ -x /usr/bin/figlet ]; then
-    :
-  fi
+  sleept 0.3
+  printf '%s[1A%s[2K' "$_ESC" "$_ESC"
+  _bar 100 "done"
+  echo
+  printf '%sOK:%s 1 package installed.\n' "$_G" "$_C"
+  printf '%s  run:%s  nibras-show    %s(or:%s nibras show%s)%s\n' "$_D" "$_C" "$_D" "$_C" "$_D" "$_C"
+  echo
   return 0
 }
 
+info_nibras_pack() {
+  _ESC=$(printf '\033')
+  printf '%s%s 1.0.0-nibras%s (bundled, offline)\n' "${_ESC}[1m" "$1" "${_ESC}[0m"
+  printf '  Nibras Terminal exclusive colorful demo. No network, no extra packages.\n'
+  printf '  Install:  pkg install %s -y\n' "$1"
+  printf '  Run:      %s\n' "$1"
+  printf '  Alias:    nibras show\n'
+}
+
+remove_nibras_pack() {
+  _name=$1
+  _removed=0
+  for _d in /usr/local/bin "$HOME/bin"; do
+    if [ -e "$_d/$_name" ]; then
+      rm -f "$_d/$_name"
+      _removed=1
+    fi
+    if [ -L "$_d/show" ] || [ -f "$_d/show" ]; then
+      # Only drop the short name if it points at this pack.
+      _t=$(readlink "$_d/show" 2>/dev/null || true)
+      case "$_t" in
+        "$_name"|*/"$_name") rm -f "$_d/show" ;;
+      esac
+    fi
+  done
+  if [ "$_removed" = 1 ]; then
+    echo "pkg: uninstalled $_name (bundled pack)"
+    return 0
+  fi
+  echo "pkg: $_name is not installed"
+  return 1
+}
+
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
+# Bundled packs work on every backend (apk/apt/pacman/dnf) and in the Android shell,
+# including `pkg install nibras-show -y` with no network.
+case "$cmd" in
+  install|i|add|in)
+    _flags=$(strip_flags "$@")
+    # shellcheck disable=SC2086
+    set -- $_flags
+    BUNDLED_DID=
+    _keep=
+    for _p in "$@"; do
+      case "$_p" in
+        nibras-show)
+          install_nibras_pack nibras-show || exit 1
+          BUNDLED_DID=1
+          ;;
+        *) _keep="$_keep $_p" ;;
+      esac
+    done
+    # shellcheck disable=SC2086
+    set -- $_keep
+    if [ $# -eq 0 ]; then
+      [ -n "$BUNDLED_DID" ] && exit 0
+      echo "pkg: usage: pkg install <package>…"
+      exit 1
+    fi
+    ;;
+  uninstall|remove|rm|del|un)
+    _flags=$(strip_flags "$@")
+    # shellcheck disable=SC2086
+    set -- $_flags
+    BUNDLED_DID=
+    _keep=
+    for _p in "$@"; do
+      case "$_p" in
+        nibras-show)
+          remove_nibras_pack nibras-show || exit 1
+          BUNDLED_DID=1
+          ;;
+        *) _keep="$_keep $_p" ;;
+      esac
+    done
+    # shellcheck disable=SC2086
+    set -- $_keep
+    if [ $# -eq 0 ]; then
+      [ -n "$BUNDLED_DID" ] && exit 0
+      echo "pkg: usage: pkg uninstall <package>…"
+      exit 1
+    fi
+    ;;
+  search|se|s)
+    _flags=$(strip_flags "$@")
+    # shellcheck disable=SC2086
+    set -- $_flags
+    _q="$*"
+    case "$_q" in
+      *nibras-show*|nibras|show)
+        echo "nibras-show-1.0.0-nibras - Colorful Nibras Terminal demo (bundled, offline)"
+        # If the query is only the bundled pack, do not hit the network.
+        case "$_q" in
+          nibras-show|nibras-show-1.0.0-nibras) exit 0 ;;
+        esac
+        ;;
+    esac
+    ;;
+  show|info|sh)
+    _flags=$(strip_flags "$@")
+    # shellcheck disable=SC2086
+    set -- $_flags
+    BUNDLED_DID=
+    _keep=
+    for _p in "$@"; do
+      case "$_p" in
+        nibras-show)
+          info_nibras_pack nibras-show
+          BUNDLED_DID=1
+          ;;
+        *) _keep="$_keep $_p" ;;
+      esac
+    done
+    # shellcheck disable=SC2086
+    set -- $_keep
+    [ $# -eq 0 ] && [ -n "$BUNDLED_DID" ] && exit 0
+    ;;
+esac
+
 if command -v apk >/dev/null 2>&1; then
   case "$cmd" in
     install|i|add|in) apk_install "$@"; exit $? ;;

@@ -1,0 +1,8 @@
+#!/bin/sh
+# On Alpine, apt/apt-get are aliases of pkg so Termux-style commands work (including -y).
+if command -v apk >/dev/null 2>&1; then
+  echo "Alpine: apt → pkg (apk)" >&2
+  exec pkg "$@"
+fi
+echo "apt is not available in this environment. Try: pkg $*" >&2
+exit 1

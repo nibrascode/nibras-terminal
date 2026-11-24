@@ -3,7 +3,7 @@
     <string name="boot_extracting">Preparando %1$s…</string>
     <string name="boot_extracting_n">Preparando %1$s… %2$d archivos</string>
     <string name="boot_failed">Falló la preparación: %s. Abriendo el shell de Android.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaquetes:  install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nMenú:      nibras  ·  Tienda en el panel izquierdo\nEjemplos:  video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nAyuda:     ask \"cómo …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nTeléfono:  nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  almacenamiento: nibras-setup-storage\nIdioma:    lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaquetes:  install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nMenú:      nibras  ·  Tienda en el panel izquierdo\nEjemplos:  video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nAyuda:     ask \"cómo …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nTeléfono:  nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  almacenamiento: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nIdioma:    lang\n</string>
     <string name="drawer_sessions">Sesiones</string>
     <string name="new_session">Nueva sesión</string>
     <string name="new_session_in">Nueva sesión en…</string>

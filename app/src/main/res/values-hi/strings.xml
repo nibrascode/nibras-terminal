@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s तैयार किया जा रहा है…</string>
     <string name="boot_extracting_n">%1$s तैयार किया जा रहा है… %2$d फ़ाइलें</string>
     <string name="boot_failed">तैयारी विफल: %s। Android शेल खुल रहा है।</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nपैकेज:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nमेनू:      nibras  ·  बाएँ ड्रॉअर में स्टोर\nउदाहरण:   video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nमदद:       ask \"मैं कैसे …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nफ़ोन:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  स्टोरेज: nibras-setup-storage\nभाषा:      lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nपैकेज:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nमेनू:      nibras  ·  बाएँ ड्रॉअर में स्टोर\nउदाहरण:   video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nमदद:       ask \"मैं कैसे …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nफ़ोन:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  स्टोरेज: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nभाषा:      lang\n</string>
     <string name="drawer_sessions">सत्र</string>
     <string name="new_session">नया सत्र</string>
     <string name="new_session_in">नया सत्र यहाँ…</string>

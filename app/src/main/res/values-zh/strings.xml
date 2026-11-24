@@ -3,7 +3,7 @@
     <string name="boot_extracting">正在准备 %1$s…</string>
     <string name="boot_extracting_n">正在准备 %1$s… %2$d 个文件</string>
     <string name="boot_failed">准备失败：%s。正在打开 Android shell。</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\n软件包：  install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\n菜单：    nibras  ·  左侧抽屉中的商店\n示例：    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\n帮助：    ask \"如何 …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n手机：    nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  存储：nibras-setup-storage\n语言：    lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\n软件包：  install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\n菜单：    nibras  ·  左侧抽屉中的商店\n示例：    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\n帮助：    ask \"如何 …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n手机：    nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  存储：nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\n语言：    lang\n</string>
     <string name="drawer_sessions">会话</string>
     <string name="new_session">新会话</string>
     <string name="new_session_in">新会话于…</string>

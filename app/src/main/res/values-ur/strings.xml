@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s تیار کیا جا رہا ہے…</string>
     <string name="boot_extracting_n">%1$s تیار کیا جا رہا ہے… %2$d فائلیں</string>
     <string name="boot_failed">تیاری ناکام: %s۔ اینڈرائیڈ شیل کھل رہا ہے۔</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nپیکیج:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nمینو:      nibras  ·  اسٹور بائیں دراز میں\nمثالیں:    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nمدد:       ask \"میں کیسے …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nفون:       nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  اسٹوریج: nibras-setup-storage\nزبان:      lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nپیکیج:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nمینو:      nibras  ·  اسٹور بائیں دراز میں\nمثالیں:    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nمدد:       ask \"میں کیسے …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nفون:       nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  اسٹوریج: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nزبان:      lang\n</string>
     <string name="drawer_sessions">سیشنز</string>
     <string name="new_session">نیا سیشن</string>
     <string name="new_session_in">نیا سیشن اس میں…</string>

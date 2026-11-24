@@ -54,8 +54,25 @@ install() {
 }
 # Friendly help when a command is missing (bash / zsh).
 __nibras_native() { _k=$(nibras-alias --lookup "$1" 2>/dev/null); [ -n "$_k" ] || return 1; shift; nibras-alias --run "$_k" "$@"; }
-command_not_found_handle() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
-command_not_found_handler() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; nibras-kit fix "$1"; return 127; }
+__nibras_suggest_pkg() {
+  _c=$1; shift
+  if command -v apk >/dev/null 2>&1; then
+    _p=$(apk search -x -q "cmd:$_c" 2>/dev/null | sed 's/-[0-9][0-9A-Za-z._]*-r[0-9][0-9]*$//' | head -n 1)
+    if [ -n "$_p" ]; then
+      echo "The program $_c is not installed. Install it by executing:"
+      echo "  pkg install $_p"
+      if [ -t 0 ]; then
+        printf 'Install now? [y/N] '
+        read _ans || _ans=
+        case "$_ans" in y|Y) pkg install -y "$_p" && exec "$_c" "$@" ;; esac
+      fi
+      return 0
+    fi
+  fi
+  return 1
+}
+command_not_found_handle() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; __nibras_suggest_pkg "$@" && return 127; nibras-kit fix "$1"; return 127; }
+command_not_found_handler() { __nibras_native "$@" && return 0; nibras-phrase --try "$*" && return 0; nibras-kit guess "$@" 2>/dev/null && return 0; __nibras_suggest_pkg "$@" && return 127; nibras-kit fix "$1"; return 127; }
 # Git asks the phone, not the terminal. The password stays in the phone keystore.
 export GIT_ASKPASS="${GIT_ASKPASS:-/usr/local/bin/nibras-git-ask}"
 # help: Nibras command list plus the command names in your language (overrides the shell builtin).

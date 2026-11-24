@@ -15,5 +15,13 @@ case "${1:-menu}" in
   need) shift; exec nibras-need "$@" ;;
   install|add) shift; exec nibras-kit install "$@" ;;
   video|audio|image|pdf|download|dl|web|git|py|python|node|backup|net|ocr) n=$1; shift; exec nibras-kit "$n" "$@" ;;
-  *) n=$1; shift; command -v "nibras-$n" >/dev/null 2>&1 && exec "nibras-$n" "$@"; echo "nibras: $n?"; exec nibras-help ;;
+  *) n=$1; shift
+     if command -v "nibras-$n" >/dev/null 2>&1; then
+       _p=$(command -v "nibras-$n")
+       # Android 10+ cannot exec() scripts in app storage; fall back to sh.
+       exec "$_p" "$@" || exec sh "$_p" "$@"
+     fi
+     echo "nibras: $n?"
+     exec nibras-help
+     ;;
 esac

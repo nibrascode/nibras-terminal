@@ -15,3 +15,17 @@ again() { line=$(sh "$NB/nibras-work" again-line) || return 1; printf '%s\n' "$l
 clone() { git clone "$@" || return; last=; for a in "$@"; do last=$a; done; if [ -d "$last" ]; then cd "$last"; return; fi; base=$(basename "$last" .git); [ -d "$base" ] && cd "$base"; }
 palette() { c=$(sh "$NB/nibras-work" palette-pick) || return 1; "$c"; }
 incognito() { export NIBRAS_INCOGNITO=1 HISTFILE=/dev/null; if [ -n "${NIBRAS_SESSION:-}" ]; then : > "$HOME/.nibras-incognito-$NIBRAS_SESSION"; fi; echo "this session is not saved and not written to history"; }
+
+# nibras-show is a bundled pack. The file is copied to $HOME/bin only after
+# `pkg install nibras-show`. This function is always defined so the same-line
+# `pkg install nibras-show -y && nibras-show` works in the Android shell, where
+# exec() of files in app storage is blocked.
+nibras-show() {
+  if [ -f "$HOME/bin/nibras-show" ]; then
+    sh "$HOME/bin/nibras-show" "$@"
+  else
+    echo "pkg: nibras-show is not installed yet. Run:  pkg install nibras-show -y"
+    return 1
+  fi
+}
+

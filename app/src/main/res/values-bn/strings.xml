@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s প্রস্তুত হচ্ছে…</string>
     <string name="boot_extracting_n">%1$s প্রস্তুত হচ্ছে… %2$dটি ফাইল</string>
     <string name="boot_failed">প্রস্তুতি ব্যর্থ: %s। Android শেল খোলা হচ্ছে।</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nপ্যাকেজ:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nমেনু:      nibras  ·  বাম ড্রয়ারে স্টোর\nউদাহরণ:   video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nসাহায্য:   ask \"কীভাবে …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nফোন:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  স্টোরেজ: nibras-setup-storage\nভাষা:      lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nপ্যাকেজ:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nমেনু:      nibras  ·  বাম ড্রয়ারে স্টোর\nউদাহরণ:   video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nসাহায্য:   ask \"কীভাবে …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nফোন:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  স্টোরেজ: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nভাষা:      lang\n</string>
     <string name="drawer_sessions">সেশন</string>
     <string name="new_session">নতুন সেশন</string>
     <string name="new_session_in">নতুন সেশন এখানে…</string>

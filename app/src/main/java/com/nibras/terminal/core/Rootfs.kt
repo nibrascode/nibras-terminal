@@ -94,12 +94,12 @@ object Rootfs {
         val root = dir(context, id)
         fun f(path: String) = File(root, path.removePrefix("/"))
         listOf("root", "root/.nibras", "root/storage", "root/downloads", "tmp", "etc/nibras", "etc/profile.d",
-            "usr/local/bin", "usr/local/share/nibras", ".nibras/proc", "run", "var/tmp").forEach { f(it).mkdirs() }
+            "usr/local/bin", "usr/local/share/nibras", "usr/local/share/nibras/packs", ".nibras/proc", "run", "var/tmp").forEach { f(it).mkdirs() }
         chmod(f("tmp"), "1777".toInt(8))
         chmod(f("var/tmp"), "1777".toInt(8))
         chmod(f("root"), "700".toInt(8))
 
-        writeReplacing(f("etc/resolv.conf"), "nameserver 8.8.8.8\nnameserver 1.1.1.1\n")
+        writeReplacing(f("etc/resolv.conf"), resolvConf(context))
         val hosts = f("etc/hosts")
         if (!hosts.isFile || hosts.length() == 0L) {
             writeReplacing(hosts, "127.0.0.1 localhost\n::1 localhost ip6-localhost ip6-loopback\n")
@@ -128,6 +128,13 @@ object Rootfs {
         writeReplacing(f("etc/profile.d/nibras.sh"), guest(context, "profile.sh"))
         exe(f("usr/local/bin/nibras-login"), guest(context, "nibras-login"))
         exe(f("usr/local/bin/pkg"), guest(context, "pkg"))
+        // Bundled packs stay off PATH until `pkg install <name>` copies them to /usr/local/bin.
+        exe(f("usr/local/share/nibras/packs/nibras-show"), guest(context, "nibras-show"))
+        // apt/apt-get wrappers so Termux-style commands work on Alpine (only when apk is present).
+        if (f("sbin/apk").isFile || f("usr/bin/apk").isFile) {
+            exe(f("usr/local/bin/apt"), guest(context, "apt"))
+            exe(f("usr/local/bin/apt-get"), guest(context, "apt-get"))
+        }
         exe(f("usr/local/bin/toilet"), guest(context, "toilet"))
         // Seed essential terminfo so curses apps (cmatrix, cacafire) work before
         // ncurses-terminfo-base can be fetched. Alpine minirootfs ships none.
@@ -305,6 +312,11 @@ object Rootfs {
         val bin = File(home, "bin").apply { mkdirs() }
         runCatching { exe(File(bin, "nibras-rish"), guest(context, "nibras-rish")) }
         runCatching { exe(File(bin, "pkg"), guest(context, "pkg")) }
+        // Bundled packs stay off PATH until `pkg install <name>` copies them to ~/bin.
+        runCatching {
+            val packs = File(home, ".nibras/packs").apply { mkdirs() }
+            exe(File(packs, "nibras-show"), guest(context, "nibras-show"))
+        }
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
         runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
         writeAndroidRc(context)
@@ -463,6 +475,33 @@ object Rootfs {
             append("aid_all_a${appId - 10000}:x:${appId + 40000}:root\n")
         }
         writeReplacing(group, text.trimEnd('\n') + "\n" + extra)
+    }
+
+
+    /** Phone DNS first, then public resolvers. Written into every rootfs. */
+    private fun resolvConf(context: Context): String {
+        val servers = linkedSetOf<String>()
+        runCatching {
+            val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE)
+                as? android.net.ConnectivityManager
+            cm?.allNetworks?.forEach { n ->
+                cm.getLinkProperties(n)?.dnsServers?.forEach { addr ->
+                    addr.hostAddress?.let { if (it.isNotBlank()) servers += it }
+                }
+            }
+        }
+        if (servers.isEmpty()) {
+            File("/etc/resolv.conf").takeIf { it.isFile }?.readLines()?.forEach { line ->
+                val t = line.trim()
+                if (t.startsWith("nameserver ")) {
+                    val ip = t.substringAfter("nameserver ").trim()
+                    if (ip.isNotBlank()) servers += ip
+                }
+            }
+        }
+        servers += "8.8.8.8"
+        servers += "1.1.1.1"
+        return servers.take(4).joinToString("") { "nameserver $it\n" }
     }
 
     private fun writeReplacing(file: File, text: String) {

@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s 준비 중…</string>
     <string name="boot_extracting_n">%1$s 준비 중… 파일 %2$d개</string>
     <string name="boot_failed">준비 실패: %s. Android 셸을 엽니다.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\n패키지:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\n메뉴:     nibras  ·  왼쪽 서랍의 스토어\n예시:     video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\n도움말:   ask \"어떻게 …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n휴대폰:   nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  저장소: nibras-setup-storage\n언어:     lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\n패키지:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\n메뉴:     nibras  ·  왼쪽 서랍의 스토어\n예시:     video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\n도움말:   ask \"어떻게 …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n휴대폰:   nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  저장소: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\n언어:     lang\n</string>
     <string name="drawer_sessions">세션</string>
     <string name="new_session">새 세션</string>
     <string name="new_session_in">새 세션 위치…</string>

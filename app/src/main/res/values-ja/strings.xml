@@ -3,7 +3,7 @@
     <string name="boot_extracting">%1$s を準備中…</string>
     <string name="boot_extracting_n">%1$s を準備中… %2$d ファイル</string>
     <string name="boot_failed">準備に失敗しました: %s。Android シェルを開きます。</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nパッケージ: install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nメニュー:   nibras  ·  左のドロワーにストア\n例:         video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nヘルプ:     ask \"どうやって …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n電話:       nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  ストレージ: nibras-setup-storage\n言語:       lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nパッケージ: install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nメニュー:   nibras  ·  左のドロワーにストア\n例:         video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nヘルプ:     ask \"どうやって …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\n電話:       nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  ストレージ: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\n言語:       lang\n</string>
     <string name="drawer_sessions">セッション</string>
     <string name="new_session">新しいセッション</string>
     <string name="new_session_in">新しいセッションの場所…</string>

@@ -8,6 +8,13 @@ Sensitive phone commands ask for a yes every time: SMS, call log, contacts, micr
 
 `nibras-info` `nibras-battery-status` `nibras-clipboard-get` `nibras-clipboard-set` `nibras-toast` `nibras-vibrate` `nibras-tts-speak` `nibras-notification` `nibras-notification-list` `nibras-notification-remove` `nibras-wake-lock` `nibras-wake-unlock` `nibras-share` `nibras-wifi-connectioninfo` `nibras-torch` `nibras-brightness` `nibras-volume` `nibras-camera-info` `nibras-camera-photo` `nibras-microphone-record` `nibras-location` `nibras-sensor` `nibras-fingerprint` `nibras-download` `nibras-setup-storage` `nibras-open-url` `nibras-media-player` `nibras-contact-list` `nibras-call-log` `nibras-sms-list` `nibras-sms-send` `nibras-telephony-call`
 
+
+## Phone, 1.0.0 (store)
+
+`pkg install nibras-show -y && nibras-show`
+
+This is the Nibras Terminal demo command. `pkg install nibras-show` installs a bundled pack with no network and a short colorful progress display, then `nibras-show` plays a 10-15 second color animation (rainbow banner, matrix rain, boot lines, and a system info card). Any key or Ctrl-C returns to the prompt early. `nibras show` is the same command after the pack is installed. No extra packages are required.
+
 ## Web only
 
 `nibras install alpine` `nibras install debian` `nibras install ubuntu` `nibras install python` `nibras install node` `nibras install php` `nibras install git` `nibras install build` `nibras apk` `nibras aab` `nibras sign` `nibras token` `nibras layihe` `nibras serve` `nibras md` `nibras stop` `nibras disk` `nibras zibil` `nibras qaytar` `pkg`

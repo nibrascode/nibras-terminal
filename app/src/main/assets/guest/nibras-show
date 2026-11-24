@@ -1,0 +1,389 @@
+#!/bin/sh
+# nibras-show -- Nibras Terminal exclusive demo. No network, no extra packages.
+# Also run as: nibras show    after:  pkg install nibras-show -y
+# About 10-15 seconds, then the prompt returns. Any key or Ctrl-C exits early.
+
+set -u
+
+if [ "${NIBRAS_SHOW_FAST:-}" = 1 ]; then
+  D_RAIN=0
+  D_BOOT=0
+  D_HOLD=0
+  D_FADE=0
+else
+  D_RAIN=0.07
+  D_BOOT=0.18
+  D_HOLD=1.2
+  D_FADE=0.12
+fi
+
+ESC=$(printf '\033')
+C_RESET="${ESC}[0m"
+C_DIM="${ESC}[2m"
+C_BOLD="${ESC}[1m"
+C_GREEN="${ESC}[38;2;80;255;120m"
+C_GOLD="${ESC}[38;2;255;200;60m"
+C_CYAN="${ESC}[38;2;80;220;255m"
+C_WHITE="${ESC}[38;2;240;240;240m"
+C_MUTED="${ESC}[38;2;140;150;170m"
+
+STTY_SAVED=
+USE_ALT=
+cleanup() {
+  trap - INT TERM EXIT
+  printf '\033[?25h'
+  [ -n "$USE_ALT" ] && printf '\033[?1049l'
+  printf '\033[0m'
+  [ -n "$STTY_SAVED" ] && stty "$STTY_SAVED" 2>/dev/null
+}
+trap 'cleanup; exit 0' INT TERM
+trap 'cleanup' EXIT
+
+sleept() {
+  sleep "$1" 2>/dev/null && return 0
+  case "$1" in
+    0|0.*) return 0 ;;
+    *) sleep 1 ;;
+  esac
+}
+
+poll_key() {
+  [ -t 0 ] || return 1
+  _ch=$(dd bs=1 count=1 2>/dev/null) || return 1
+  [ -n "$_ch" ]
+}
+
+delay() {
+  if poll_key; then return 1; fi
+  case "$1" in
+    0|0.0|'') return 0 ;;
+  esac
+  sleept "$1"
+  if poll_key; then return 1; fi
+  return 0
+}
+
+paint_line() {
+  LINE=$1
+  export LINE
+  if command -v awk >/dev/null 2>&1; then
+    awk '
+      BEGIN {
+        s = ENVIRON["LINE"]
+        n = length(s)
+        split("255;80;60 255;180;40 255;230;70 40;210;100 40;210;210 80;140;255 210;80;255", pal, " ")
+        pn = 7
+        for (i = 1; i <= n; i++) {
+          ch = substr(s, i, 1)
+          if (ch == " ") { printf " "; continue }
+          p = int((i - 1) * pn / (n > 1 ? n : 1)) + 1
+          if (p > pn) p = pn
+          printf "%c[1;38;2;%sm%s", 27, pal[p], ch
+        }
+        printf "%c[0m\n", 27
+      }
+    '
+  else
+    printf '%s%s%s\n' "$C_GOLD" "$LINE" "$C_RESET"
+  fi
+}
+
+cls() { printf '\033[2J\033[H'; }
+hide() { printf '\033[?25l'; }
+home() { printf '\033[H'; }
+
+fact_device() {
+  _d=
+  if command -v getprop >/dev/null 2>&1; then
+    _d=$(getprop ro.product.model 2>/dev/null)
+    [ -z "$_d" ] && _d=$(getprop ro.product.marketname 2>/dev/null)
+  elif [ -x /system/bin/getprop ]; then
+    _d=$(/system/bin/getprop ro.product.model 2>/dev/null)
+  fi
+  if [ -n "$_d" ]; then printf '%s' "$_d"; return; fi
+  uname -n 2>/dev/null || printf 'Nibras'
+}
+
+fact_android() {
+  _v=
+  if command -v getprop >/dev/null 2>&1; then
+    _v=$(getprop ro.build.version.release 2>/dev/null)
+  elif [ -x /system/bin/getprop ]; then
+    _v=$(/system/bin/getprop ro.build.version.release 2>/dev/null)
+  fi
+  if [ -n "$_v" ]; then printf 'Android %s' "$_v"; return; fi
+  printf 'Linux %s' "$(uname -r 2>/dev/null | cut -d- -f1)"
+}
+
+fact_arch() {
+  if [ -n "${NIBRAS_ABI:-}" ]; then
+    printf '%s' "$NIBRAS_ABI"
+  else
+    uname -m 2>/dev/null || printf 'unknown'
+  fi
+}
+
+fact_distro() {
+  if [ -n "${NIBRAS_ENV:-}" ]; then
+    case "$NIBRAS_ENV" in
+      android) printf 'Android shell' ;;
+      *) printf '%s' "$NIBRAS_ENV" ;;
+    esac
+    return
+  fi
+  if [ -f /etc/os-release ]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release 2>/dev/null
+    printf '%s' "${PRETTY_NAME:-${NAME:-Linux}}"
+    return
+  fi
+  printf 'Linux'
+}
+
+fact_uptime() {
+  if [ -r /proc/uptime ]; then
+    _s=$(cut -d. -f1 /proc/uptime)
+    _h=$((_s / 3600))
+    _m=$(((_s % 3600) / 60))
+    if [ "$_h" -gt 0 ]; then
+      printf '%sh %sm' "$_h" "$_m"
+    else
+      printf '%sm' "$_m"
+    fi
+    return
+  fi
+  printf '-'
+}
+
+fact_battery() {
+  _b=
+  if command -v nibras-battery-status >/dev/null 2>&1; then
+    _b=$(nibras-battery-status 2>/dev/null)
+  elif command -v nibras-api >/dev/null 2>&1; then
+    _b=$(nibras-api battery-status 2>/dev/null)
+  fi
+  if [ -n "$_b" ]; then
+    _p=$(printf '%s' "$_b" | tr ',{}":' '     ' | awk '{
+      for (i = 1; i <= NF; i++) if ($i == "percentage" || $i == "percent") { print $(i + 1); exit }
+    }')
+    _st=$(printf '%s' "$_b" | tr ',{}":' '     ' | awk '{
+      for (i = 1; i <= NF; i++) if ($i == "status") { print $(i + 1); exit }
+    }')
+    if [ -n "$_p" ]; then
+      printf '%s%%' "$_p"
+      [ -n "$_st" ] && printf ' %s' "$_st"
+      return
+    fi
+  fi
+  if [ -r /sys/class/power_supply/battery/capacity ]; then
+    printf '%s%%' "$(cat /sys/class/power_supply/battery/capacity)"
+    return
+  fi
+  printf '-'
+}
+
+clip() {
+  # trim to $2 chars
+  _s=$1
+  _n=$2
+  _len=${#_s}
+  if [ "$_len" -gt "$_n" ]; then
+    printf '%s' "$_s" | cut -c1-"$_n"
+  else
+    printf '%s' "$_s"
+  fi
+}
+
+BANNER_1=' _   _ ___ ____  ____      _    ____  '
+BANNER_2='| \ | |_ _| __ )|  _ \    / \  / ___| '
+BANNER_3='|  \| || ||  _ \| |_) |  / _ \ \___ \ '
+BANNER_4='| |\  || || |_) |  _ <  / ___ \ ___) |'
+BANNER_5='|_| \_|___|____/|_| \_\/_/   \_\____/ '
+TITLE_1=' _____ _____ ____  __  __ ___ _   _    _    _     '
+TITLE_2='|_   _| ____|  _ \|  \/  |_ _| \ | |  / \  | |    '
+TITLE_3='  | | |  _| | |_) | |\/| || ||  \| | / _ \ | |    '
+TITLE_4='  | | | |___|  _ <| |  | || || |\  |/ ___ \| |___ '
+TITLE_5='  |_| |_____|_| \_\_|  |_|___|_| \_/_/   \_\_____|'
+
+draw_banner() {
+  printf '\n'
+  paint_line "$BANNER_1"
+  paint_line "$BANNER_2"
+  paint_line "$BANNER_3"
+  paint_line "$BANNER_4"
+  paint_line "$BANNER_5"
+  printf '\n'
+  paint_line "$TITLE_1"
+  paint_line "$TITLE_2"
+  paint_line "$TITLE_3"
+  paint_line "$TITLE_4"
+  paint_line "$TITLE_5"
+  printf '\n'
+}
+
+matrix_rain() {
+  _rows=12
+  _cols=56
+  _frames=16
+  _f=0
+  while [ "$_f" -lt "$_frames" ]; do
+    home
+    printf '  %sNibras Terminal%s\n\n' "$C_DIM" "$C_RESET"
+    if command -v awk >/dev/null 2>&1; then
+      awk -v rows="$_rows" -v cols="$_cols" -v frame="$_f" -v seed="${_f}${RANDOM:-1}" '
+        BEGIN {
+          srand(seed + 1)
+          chars = "01NIBRAS#*+=<>|"
+          clen = length(chars)
+          for (r = 0; r < rows; r++) {
+            printf "  "
+            for (c = 0; c < cols; c++) {
+              v = (c * 7 + r * 3 + frame * 5) % 23
+              if (v < 10) {
+                ch = substr(chars, (c + r + frame) % clen + 1, 1)
+                if (v == 0) printf "%c[1;38;2;200;255;200m%s%c[0m", 27, ch, 27
+                else if (v < 3) printf "%c[38;2;80;255;120m%s%c[0m", 27, ch, 27
+                else printf "%c[2;38;2;20;140;50m%s%c[0m", 27, ch, 27
+              } else printf " "
+            }
+            printf "\n"
+          }
+        }
+      '
+    else
+      _r=0
+      while [ "$_r" -lt "$_rows" ]; do
+        printf '  '
+        _c=0
+        while [ "$_c" -lt 40 ]; do
+          _v=$(((_c * 7 + _r * 3 + _f * 5) % 23))
+          if [ "$_v" -lt 8 ]; then
+            printf '%s%s%s' "$C_GREEN" "$((_c % 2))" "$C_RESET"
+          else
+            printf ' '
+          fi
+          _c=$((_c + 1))
+        done
+        printf '\n'
+        _r=$((_r + 1))
+      done
+    fi
+    _f=$((_f + 1))
+    delay "$D_RAIN" || return 1
+  done
+  return 0
+}
+
+bar() {
+  _p=$1
+  _lab=$2
+  _w=28
+  _f=$((_p * _w / 100))
+  _i=0
+  printf '  %s[' "$C_DIM"
+  while [ "$_i" -lt "$_w" ]; do
+    if [ "$_i" -lt "$_f" ]; then
+      printf '%s█%s' "$C_CYAN" "$C_RESET"
+    else
+      printf '%s░%s' "$C_DIM" "$C_RESET"
+    fi
+    _i=$((_i + 1))
+  done
+  printf '%s]%s %s%3s%%%s  %s\n' "$C_DIM" "$C_RESET" "$C_GOLD" "$_p" "$C_RESET" "$_lab"
+}
+
+draw_card() {
+  _dev=$(clip "$(fact_device)" 28)
+  _and=$(clip "$(fact_android)" 28)
+  _arch=$(clip "$(fact_arch)" 28)
+  _dist=$(clip "$(fact_distro)" 28)
+  _up=$(clip "$(fact_uptime)" 28)
+  _bat=$(clip "$(fact_battery)" 28)
+  # Inner width 41: "  " + 10-char label + 28-char value + " "
+  _rule() {
+    printf '  %s+' "$C_CYAN"
+    _i=0
+    while [ "$_i" -lt 41 ]; do
+      printf '-'
+      _i=$((_i + 1))
+    done
+    printf '+%s\n' "$C_RESET"
+  }
+  _row() {
+    printf '  %s|%s  %s%-10s%s%s%-28s%s %s|%s\n'       "$C_CYAN" "$C_RESET" "$C_MUTED" "$1" "$C_RESET" "$C_WHITE" "$2" "$C_RESET" "$C_CYAN" "$C_RESET"
+  }
+  printf '\n'
+  _rule
+  printf '  %s|%s  %sSYSTEM%s%33s%s|%s\n' "$C_CYAN" "$C_RESET" "$C_GOLD" "$C_RESET" "" "$C_CYAN" "$C_RESET"
+  _row Device "$_dev"
+  _row System "$_and"
+  _row Arch "$_arch"
+  _row Distro "$_dist"
+  _row Uptime "$_up"
+  _row Battery "$_bat"
+  _rule
+}
+
+sparkle() {
+  _n=0
+  while [ "$_n" -lt 6 ]; do
+    cls
+    printf '\n'
+    if [ $((_n % 2)) -eq 0 ]; then
+      printf '%s' "$C_BOLD"
+    else
+      printf '%s' "$C_DIM"
+    fi
+    draw_banner
+    printf '%s' "$C_RESET"
+    printf '  %s  *    +      *         *    +       *%s\n' "$C_GOLD" "$C_RESET"
+    printf '\n  %s  Thank you for running Nibras Terminal.%s\n' "$C_MUTED" "$C_RESET"
+    _n=$((_n + 1))
+    delay "$D_FADE" || return 1
+  done
+  return 0
+}
+
+# ----- main -----
+if [ -t 0 ] && command -v stty >/dev/null 2>&1; then
+  STTY_SAVED=$(stty -g 2>/dev/null) || STTY_SAVED=
+  stty -echo -icanon min 0 time 0 2>/dev/null || STTY_SAVED=
+fi
+
+if [ -t 1 ] && [ -z "${NIBRAS_SHOW_RECORD:-}" ]; then
+  printf '\033[?1049h'
+  USE_ALT=1
+fi
+hide
+cls
+
+matrix_rain || { cleanup; exit 0; }
+
+cls
+draw_banner
+delay "$D_BOOT" || { cleanup; exit 0; }
+
+printf '  %sbooting Nibras services...%s\n\n' "$C_MUTED" "$C_RESET"
+bar 20 "kernel"
+delay "$D_BOOT" || { cleanup; exit 0; }
+printf '\033[1A\033[2K'
+bar 45 "userspace"
+delay "$D_BOOT" || { cleanup; exit 0; }
+printf '\033[1A\033[2K'
+bar 70 "toolkit"
+delay "$D_BOOT" || { cleanup; exit 0; }
+printf '\033[1A\033[2K'
+bar 100 "ready"
+printf '\n'
+printf '  %s*%s  environment ready\n' "$C_GREEN" "$C_RESET"
+printf '  %s*%s  colors: truecolor 256\n' "$C_GREEN" "$C_RESET"
+printf '  %s*%s  offline demo pack\n' "$C_GREEN" "$C_RESET"
+delay "$D_BOOT" || { cleanup; exit 0; }
+
+draw_card
+delay "$D_HOLD" || { cleanup; exit 0; }
+
+sparkle || { cleanup; exit 0; }
+
+cleanup
+exit 0

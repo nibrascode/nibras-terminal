@@ -3,7 +3,7 @@
     <string name="boot_extracting">در حال آماده‌سازی %1$s…</string>
     <string name="boot_extracting_n">در حال آماده‌سازی %1$s… %2$d فایل</string>
     <string name="boot_failed">آماده‌سازی ناموفق بود: %s. پوستهٔ اندروید باز می‌شود.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nبسته‌ها:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nمنو:       nibras  ·  فروشگاه در منوی کناری\nنمونه‌ها:  video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nراهنما:    ask \"چطور …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nگوشی:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  حافظه: nibras-setup-storage\nزبان:      lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nبسته‌ها:   install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nمنو:       nibras  ·  فروشگاه در منوی کناری\nنمونه‌ها:  video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nراهنما:    ask \"چطور …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nگوشی:      nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  حافظه: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nزبان:      lang\n</string>
     <string name="drawer_sessions">نشست‌ها</string>
     <string name="new_session">نشست جدید</string>
     <string name="new_session_in">نشست جدید در…</string>

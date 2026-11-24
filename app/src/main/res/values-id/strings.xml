@@ -3,7 +3,7 @@
     <string name="boot_extracting">Menyiapkan %1$s…</string>
     <string name="boot_extracting_n">Menyiapkan %1$s… %2$d berkas</string>
     <string name="boot_failed">Penyiapan gagal: %s. Membuka shell Android.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaket:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nMenu:      nibras  ·  Toko di laci kiri\nContoh:    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nBantuan:   ask \"bagaimana …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nPonsel:    nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  penyimpanan: nibras-setup-storage\nBahasa:    lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nPaket:     install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nMenu:      nibras  ·  Toko di laci kiri\nContoh:    video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nBantuan:   ask \"bagaimana …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nPonsel:    nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  penyimpanan: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nBahasa:    lang\n</string>
     <string name="drawer_sessions">Sesi</string>
     <string name="new_session">Sesi baru</string>
     <string name="new_session_in">Sesi baru di…</string>

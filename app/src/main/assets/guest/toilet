@@ -1,10 +1,24 @@
 #!/bin/sh
 # Alpine Linux does not package "toilet". This shim makes `toilet -f big TEXT` work via figlet.
-if [ -x /usr/bin/toilet ]; then
+# Toilet-only flags (--gay, --metal, -F …) are dropped because figlet does not support them.
+if [ -x /usr/bin/toilet ] && [ "/usr/bin/toilet" != "$0" ]; then
   exec /usr/bin/toilet "$@"
 fi
 if command -v figlet >/dev/null 2>&1; then
+  skip=
+  _out=
+  for _a in "$@"; do
+    if [ -n "$skip" ]; then skip=; continue; fi
+    case "$_a" in
+      --gay|--metal|--irc|--html|--svg|--crop|--flip|--flop|--180|--left|--right|--border) ;;
+      -F|--filter|--export) skip=1 ;;
+      -F*|--filter=*|--export=*) ;;
+      *) _out="$_out $_a" ;;
+    esac
+  done
+  # shellcheck disable=SC2086
+  set -- $_out
   exec figlet "$@"
 fi
-echo "toilet: figlet is not installed yet. Run:  pkg install toilet -y" >&2
+echo "toilet: figlet is not installed yet. Run:  pkg install figlet" >&2
 exit 1

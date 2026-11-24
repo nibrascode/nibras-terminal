@@ -3,7 +3,7 @@
     <string name="boot_extracting">جارٍ تجهيز %1$s…</string>
     <string name="boot_extracting_n">جارٍ تجهيز %1$s… %2$d ملف</string>
     <string name="boot_failed">فشل التجهيز: %s. يُفتح موجّه أندرويد.</string>
-    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nالحزم:      install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nالقائمة:    nibras  ·  المتجر في القائمة الجانبية\nأمثلة:      video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nالمساعدة:  ask \"كيف أفعل …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nالهاتف:     nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  التخزين: nibras-setup-storage\nاللغة:      lang\n</string>
+    <string name="motd">\u001b[1;33mNibras Terminal\u001b[0m · %1$s · %2$s\n\nالحزم:      install &lt;pack&gt;  (video, download, pdf, apk, python…)  ·  pkg install &lt;name&gt;\nالقائمة:    nibras  ·  المتجر في القائمة الجانبية\nأمثلة:      video merge a.mp4 b.mp4 · download &lt;url&gt; · pdf merge · image resize · ocr\nالمساعدة:  ask \"كيف أفعل …\"  ·  explain &lt;command&gt;  ·  learn  ·  nibras-help\nالهاتف:     nibras-clipboard-get, nibras-battery-status, nibras-toast …  ·  التخزين: nibras-setup-storage\nDemo:      pkg install nibras-show -y &amp;&amp; nibras-show\nاللغة:      lang\n</string>
     <string name="drawer_sessions">الجلسات</string>
     <string name="new_session">جلسة جديدة</string>
     <string name="new_session_in">جلسة جديدة في…</string>
