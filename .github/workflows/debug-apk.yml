@@ -262,13 +262,17 @@ jobs:
           printf '%s\n' "$CODE" > dist/version.txt
           cp app/build/outputs/apk/store/release/app-store-release.apk dist/app-release.apk
           # AGP writes bundles under flavorType (storeRelease), not flavor/type (store/release).
-          AAB=$(ls app/build/outputs/bundle/storeRelease/app-store-release.aab \
-                   app/build/outputs/bundle/store/release/app-store-release.aab 2>/dev/null | head -1)
+          AAB=
+          for p in app/build/outputs/bundle/storeRelease/app-store-release.aab \
+                   app/build/outputs/bundle/store/release/app-store-release.aab; do
+            if [ -f "$p" ]; then AAB=$p; break; fi
+          done
           if [ -z "$AAB" ]; then
-            echo "pkg: signed AAB not found under app/build/outputs/bundle/" >&2
+            echo "signed AAB not found under app/build/outputs/bundle/" >&2
             find app/build/outputs/bundle -type f -name '*.aab' -print >&2 || true
             exit 1
           fi
+          echo "Using AAB $AAB"
           cp "$AAB" dist/app-release.aab
       - name: Check ABIs
         run: |
