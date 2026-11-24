@@ -143,7 +143,9 @@ class SettingsActivity : ComponentActivity() {
             Choices(envs, prefs.defaultEnv) { prefs.defaultEnv = it; bump() }
 
             Section(stringResource(R.string.set_storage))
-            if (Rootfs.hasSharedStorage(this@SettingsActivity)) {
+            if (Channel.store) {
+                Text(stringResource(R.string.set_storage_scoped), color = Muted, fontSize = 13.sp)
+            } else if (Rootfs.hasSharedStorage(this@SettingsActivity)) {
                 Text("✓ " + stringResource(R.string.granted), color = Gold)
             } else {
                 TextButton(onClick = { requestStorage() }) { Text(stringResource(R.string.grant), color = Gold) }
@@ -190,6 +192,9 @@ class SettingsActivity : ComponentActivity() {
             val version = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: "?"
             Text(stringResource(R.string.about_text, version, DeviceAbi.label, DeviceAbi.deviceAbis), color = Muted, fontSize = 13.sp)
             Text("github.com/nibrascode/nibras-terminal", color = Muted, fontSize = 13.sp)
+            TextButton(onClick = {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://nibrascode.com/privacy/nibras-terminal")))
+            }) { Text(stringResource(R.string.privacy_policy), color = Gold) }
         }
     }
 

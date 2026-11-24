@@ -89,7 +89,7 @@ class RunCommandService : Service() {
         fun envId(name: String?): String? = when (name?.lowercase()) {
             null, "" -> null
             "android" -> Rootfs.ANDROID
-            else -> Rootfs.all.firstOrNull { it.name.equals(name, true) || it.id == name }?.id
+            else -> Rootfs.offered().firstOrNull { it.name.equals(name, true) || it.id == name }?.id
         }
     }
 

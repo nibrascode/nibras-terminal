@@ -152,6 +152,7 @@ object AppTools {
 
     /** Installs one app from several APK files or a bundle archive (.apks/.xapk/.apkm) with a PackageInstaller session. */
     fun installSplits(context: Context, files: List<File>): String {
+        if (Channel.store) return Channel.unavailable("APK install")
         if (!context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, android.net.Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return "ERR\nAllow \"Install unknown apps\" for Nibras Terminal (screen opened), then run again"

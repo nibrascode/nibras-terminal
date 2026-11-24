@@ -1,5 +1,6 @@
 # Nibras Terminal shell profile (managed by the app; put your own settings in ~/.profile)
 export TERM="${TERM:-xterm-256color}"
+export TERMINFO="${TERMINFO:-/usr/share/terminfo}"
 case ":$PATH:" in *:/usr/local/bin:*) ;; *) PATH="/usr/local/bin:$PATH" ;; esac
 case ":$PATH:" in *:/root/bin:*) ;; *) PATH="/root/bin:$PATH" ;; esac
 [ -d /opt/python/bin ] && case ":$PATH:" in *:/opt/python/bin:*) ;; *) PATH="$PATH:/opt/python/bin" ;; esac

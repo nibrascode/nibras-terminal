@@ -124,8 +124,10 @@ class ApiBridge(private val context: Context, private val host: Host) {
             "wake-lock" -> { host.setWakeLock(true); "OK\nwake lock acquired" }
             "wake-unlock" -> { host.setWakeLock(false); "OK\nwake lock released" }
             "setup-storage" -> {
-                if (Rootfs.hasSharedStorage(context)) "OK\n/sdcard → ~/storage/shared\n" + storageReady(context)
-                else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
+                if (Rootfs.hasSharedStorage(context)) {
+                    val where = if (com.nibras.terminal.Channel.store) "app storage → ~/storage/shared" else "/sdcard → ~/storage/shared"
+                    "OK\n$where\n" + storageReady(context)
+                } else { main.post { host.requestStorage() }; "OK\n" + context.getString(R.string.storage_hint) }
             }
             "edit" -> ui { com.nibras.terminal.EditorActivity.open(context, envId(env), args.ifBlank { "/root/untitled.txt" }) }
             "res-edit" -> ui { com.nibras.terminal.ResEditorActivity.open(context, envId(env), args.ifBlank { pwd }.let { if (it.startsWith("/")) it else "$pwd/$it" }) }
@@ -159,27 +161,28 @@ class ApiBridge(private val context: Context, private val host: Host) {
             }
             "env-install" -> {
                 val id = args.trim().let { if (it.startsWith("rootfs-")) it else "rootfs-$it" }
-                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: $args"
+                if (Rootfs.offered().none { it.id == id }) return "ERR\nunknown environment: $args"
                 if (Rootfs.isReady(context, id)) return "OK\n${Rootfs.name(id)} is installed: nibras-shell ${Rootfs.name(id).lowercase()}"
                 ui { context.startActivity(Intent(context, com.nibras.terminal.PackagesActivity::class.java).putExtra("install", id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 "OK\n${Rootfs.name(id)}: download started in the Environments screen"
             }
             "keystore" -> com.nibras.terminal.KeystoreBridge.run(context, words(raw))
             "am" -> "OK\n" + AmCommand.run(context, words(raw))
-            "env-list" -> "OK\n" + Rootfs.all.joinToString("\n") { e ->
+            "env-list" -> "OK\n" + Rootfs.offered().joinToString("\n") { e ->
                 val ready = Rootfs.isReady(context, e.id)
                 "%-8s %s%s".format(e.id.removePrefix("rootfs-"), if (ready) "installed" else "available", if (Rootfs.pick(context, null) == e.id) " (default)" else "")
             }
             "env-open" -> {
                 val w = words(raw)
                 val id = w.firstOrNull()?.let { if (it.startsWith("rootfs-")) it else "rootfs-$it" } ?: return "ERR\nusage: proot-distro login <name>"
-                if (Rootfs.all.none { it.id == id }) return "ERR\nunknown environment: ${w.first()}"
+                if (Rootfs.offered().none { it.id == id }) return "ERR\nunknown environment: ${w.first()}"
                 if (!Rootfs.isReady(context, id)) return "ERR\n${Rootfs.name(id)} is not installed: proot-distro install ${id.removePrefix("rootfs-")}"
                 val cmd = w.drop(1).joinToString(" ").trim()
                 main.post { host.newSession(id, if (cmd.isEmpty()) null else listOf("/bin/sh", "-c", cmd)) }
                 "OK\n${Rootfs.name(id)}: opened in a new session"
             }
             "install-apk" -> {
+                if (com.nibras.terminal.Channel.store) return com.nibras.terminal.Channel.unavailable("APK install")
                 val f = com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), args.let { if (it.startsWith("/")) it else "$pwd/$it" })
                 if (f == null || !f.isFile) return "ERR\nno such APK: $args"
                 val warn = com.nibras.terminal.ApkInspect.replaceWarning(context, f)
@@ -198,6 +201,7 @@ class ApiBridge(private val context: Context, private val host: Host) {
             }
             "apps" -> com.nibras.terminal.AppTools.apps(context, words(raw)) { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") }
             "install-apks" -> {
+                if (com.nibras.terminal.Channel.store) return com.nibras.terminal.Channel.unavailable("APK install")
                 val fs = words(raw).map { p -> com.nibras.terminal.ui.HostPaths.toHost(context, envId(env), if (p.startsWith("/")) p else "$pwd/$p") ?: return "ERR\nbad path: $p" }
                 if (fs.isEmpty()) "ERR\nusage: nibras-apk install-split <base.apk split*.apk | app.apks | app.xapk | app.apkm>" else com.nibras.terminal.AppTools.installSplits(context, fs)
             }

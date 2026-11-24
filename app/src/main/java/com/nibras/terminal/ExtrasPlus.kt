@@ -182,6 +182,7 @@ object Updater {
         }
         val ask = PromptActivity.ask(context, "dialog", listOf("confirm", "-t", "Nibras", "-i", "Install $ver over $current? The signature matches the release key."), timeoutSec = 30)
         if (JSONObject(ask).optString("text") != "yes") return "Not installed."
+        if (Channel.store) return "The store version is updated from the app store, not by installing an APK."
         if (!context.packageManager.canRequestPackageInstalls()) {
             context.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             return "Allow \"Install unknown apps\", then run nibras-update again."

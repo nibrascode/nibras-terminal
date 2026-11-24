@@ -300,7 +300,7 @@ class FilesActivity : Activity() {
     private fun trashFiles() = File(Rootfs.homeOf(this, envId), ".local/share/Trash/files")
 
     private fun places() {
-        val envs = Rootfs.all.filter { Rootfs.isReady(this, it.id) }.map { it.id } + Rootfs.ANDROID
+        val envs = Rootfs.offered().filter { Rootfs.isReady(this, it.id) }.map { it.id } + Rootfs.ANDROID
         val acts = mutableListOf<Pair<String, () -> Unit>>()
         envs.forEach { e -> acts += "🐧 " + Rootfs.name(e) to { pane.envId = e; go(Rootfs.homeOf(this, e)) } }
         acts += "📱 /sdcard" to { go(Environment.getExternalStorageDirectory()) }

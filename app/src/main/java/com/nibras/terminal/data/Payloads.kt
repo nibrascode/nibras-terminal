@@ -64,7 +64,7 @@ class CatalogStore(private val context: Context) {
                     ),
                 )
             }
-        }
+        }.filterNot { com.nibras.terminal.Channel.blockedEnv(it.id) || com.nibras.terminal.Channel.blockedEnv(it.name) }
     }
 }
 

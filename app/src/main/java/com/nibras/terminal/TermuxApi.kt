@@ -146,7 +146,14 @@ object TermuxApi {
     private fun Call.emit(s: String) { out.write(s.toByteArray()); if (!s.endsWith("\n")) out.write('\n'.code); out.flush() }
 
     /** Runs [name]; writes "OK\n…" / "ERR\n…" / "B64\n…" to [Call.out]. */
+    private val storeBlocked = setOf("sms-send", "sms-list", "sms-inbox", "call-log", "notification-list")
+
     fun run(c: Call, name: String) {
+        if (com.nibras.terminal.Channel.store && name in storeBlocked) {
+            c.out.write((com.nibras.terminal.Channel.unavailable(name) + "\n").toByteArray())
+            runCatching { c.out.flush() }
+            return
+        }
         try {
             val result = dispatch(c, name)
             if (result != null) { c.out.write("OK\n".toByteArray()); if (result.isNotEmpty()) c.emit(result) else c.out.flush() }
@@ -871,7 +878,7 @@ object TermuxApi {
             appendLine("ABIs: ${Build.SUPPORTED_ABIS.joinToString(",")} · app: ${com.nibras.terminal.core.DeviceAbi.current}")
             appendLine("Kernel: ${System.getProperty("os.version")}")
             appendLine("Shared storage: ${if (com.nibras.terminal.core.Rootfs.hasSharedStorage(c.context)) "granted" else "not granted (nibras-setup-storage)"}")
-            appendLine("Environments: ${com.nibras.terminal.core.Rootfs.all.filter { com.nibras.terminal.core.Rootfs.isReady(c.context, it.id) }.joinToString { it.name }}")
+            appendLine("Environments: ${com.nibras.terminal.core.Rootfs.offered().filter { com.nibras.terminal.core.Rootfs.isReady(c.context, it.id) }.joinToString { it.name }}")
             appendLine("External apps (RUN_COMMAND): ${if (Automation.allowed(c.context)) "allowed" else "off"}")
             append("Notification access: ${if (NotesListener.instance != null) "on" else "off"}")
         }

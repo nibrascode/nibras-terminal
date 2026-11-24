@@ -257,11 +257,11 @@ jobs:
           set -a
           . ./nibras-signing.env
           set +a
-          ./gradlew --no-daemon -Psdk="$SDK" assembleRelease bundleRelease testDebugUnitTest
+          ./gradlew --no-daemon -Psdk="$SDK" assembleStoreRelease bundleStoreRelease testStoreDebugUnitTest
           mkdir -p dist
           printf '%s\n' "$CODE" > dist/version.txt
-          cp app/build/outputs/apk/release/app-release.apk dist/
-          cp app/build/outputs/bundle/release/app-release.aab dist/
+          cp app/build/outputs/apk/store/release/app-store-release.apk dist/app-release.apk
+          cp app/build/outputs/bundle/store/release/app-store-release.aab dist/app-release.aab
       - name: Check ABIs
         run: |
           APK=dist/app-release.apk

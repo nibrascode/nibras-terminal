@@ -68,11 +68,11 @@ object Work {
         val raw = name?.trim()?.lowercase().orEmpty()
         if (raw.isEmpty()) {
             val id = Rootfs.pick(context, null)
-            return "OK\n" + Rootfs.name(id) + "\n" + Rootfs.all.joinToString(" ") { it.id.removePrefix("rootfs-") } + " android"
+            return "OK\n" + Rootfs.name(id) + "\n" + Rootfs.offered().joinToString(" ") { it.id.removePrefix("rootfs-") } + " android"
         }
         val id = if (raw == "android") Rootfs.ANDROID else {
             val full = if (raw.startsWith("rootfs-")) raw else "rootfs-$raw"
-            if (Rootfs.all.none { it.id == full }) return "ERR\nunknown: $raw"
+            if (Rootfs.offered().none { it.id == full }) return "ERR\nunknown: $raw"
             if (!Rootfs.isReady(context, full)) return "ERR\nnot installed: $raw"
             full
         }

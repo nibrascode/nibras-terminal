@@ -79,6 +79,8 @@
     <string name="set_notifications">Bildirimler</string>
     <string name="about">Hakkında</string>
     <string name="about_text">Sürüm %1$s · %2$s · cihaz ABI: %3$s</string>
+    <string name="privacy_policy">Gizlilik politikası</string>
+    <string name="set_storage_scoped">Bu sürüm uygulamanın kendi klasörünü (~/storage) kullanır; tüm dosyalara erişim yoktur.</string>
     <string name="set_custom_hint">Kendi renk, yazı tipi ve tuşların: ~/.nibras/colors.properties, ~/.nibras/font.ttf, ~/.nibras/extra-keys, sonra nibras-reload-settings.</string>
     <string name="widget_label">Nibras kısayolları</string>
     <string name="widget_empty">Betikleri ~/.shortcuts klasörüne koy</string>

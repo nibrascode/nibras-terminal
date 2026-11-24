@@ -342,7 +342,9 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
         }, LinearLayout.LayoutParams(lp))
         val tools3 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         tools3.addView(button(getString(R.string.tool_store)) { drawer.closeDrawers(); startActivity(Intent(this, StoreActivity::class.java)) }, LinearLayout.LayoutParams(lp))
-        tools3.addView(button(getString(R.string.tool_float)) { drawer.closeDrawers(); FloatService.start(this) }, LinearLayout.LayoutParams(lp))
+        if (!Channel.store) {
+            tools3.addView(button(getString(R.string.tool_float)) { drawer.closeDrawers(); FloatService.start(this) }, LinearLayout.LayoutParams(lp))
+        }
         tools3.addView(button("🎤 " + getString(R.string.tool_voice)) { drawer.closeDrawers(); voiceInput() }, LinearLayout.LayoutParams(lp))
         val tools4 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         tools4.addView(button("🎬 " + getString(R.string.tools_media)) { drawer.closeDrawers(); startActivity(Intent(this, MediaActivity::class.java)) }, LinearLayout.LayoutParams(lp))
@@ -1137,6 +1139,7 @@ class MainActivity : Activity(), ServiceConnection, TerminalService.Ui {
     }
 
     override fun requestStorage() {
+        if (Channel.store) return
         runOnUiThread {
             if (Build.VERSION.SDK_INT >= 30) {
                 val app = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:$packageName"))

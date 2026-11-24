@@ -53,9 +53,9 @@ object PhoneBridge {
             "nibras-microphone-record" -> Manifest.permission.RECORD_AUDIO
             "nibras-location" -> Manifest.permission.ACCESS_FINE_LOCATION
             "nibras-contact-list" -> Manifest.permission.READ_CONTACTS
-            "nibras-call-log" -> Manifest.permission.READ_CALL_LOG
-            "nibras-sms-list" -> Manifest.permission.READ_SMS
-            "nibras-sms-send" -> Manifest.permission.SEND_SMS
+            "nibras-call-log" -> if (Channel.store) null else Manifest.permission.READ_CALL_LOG
+            "nibras-sms-list" -> if (Channel.store) null else Manifest.permission.READ_SMS
+            "nibras-sms-send" -> if (Channel.store) null else Manifest.permission.SEND_SMS
             "nibras-notification", "nibras-notification-list", "nibras-notification-remove" ->
                 if (Build.VERSION.SDK_INT >= 33) Manifest.permission.POST_NOTIFICATIONS else null
             else -> null
@@ -68,6 +68,9 @@ object PhoneBridge {
         val cmd = line.substringBefore(" ")
         val rest = line.substringAfter(" ", "").trim()
         if (!cmd.startsWith("nibras-")) return null
+        if (Channel.store && cmd in setOf("nibras-sms-list", "nibras-sms-send", "nibras-call-log", "nibras-notification-list")) {
+            return Channel.unavailable(cmd).removePrefix("ERR\n")
+        }
         val detail = when (cmd) {
             "nibras-sms-send" -> rest.substringBefore(" ").take(24) + "\n" + rest.substringAfter(" ", "").replace("\n", " ").take(80)
             else -> ""

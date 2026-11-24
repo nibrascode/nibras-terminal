@@ -85,6 +85,8 @@
     <string name="set_notifications">Notifications</string>
     <string name="about">About</string>
     <string name="about_text">Version %1$s · %2$s · device ABIs: %3$s</string>
+    <string name="privacy_policy">Privacy policy</string>
+    <string name="set_storage_scoped">This version uses the app folder (~/storage), not access to all files.</string>
     <string name="set_custom_hint">Your own colors, font and keys: ~/.nibras/colors.properties, ~/.nibras/font.ttf, ~/.nibras/extra-keys, then run nibras-reload-settings.</string>
     <string name="widget_label">Nibras shortcuts</string>
     <string name="widget_empty">Put scripts in ~/.shortcuts</string>

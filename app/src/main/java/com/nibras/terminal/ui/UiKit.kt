@@ -75,7 +75,7 @@ object Ui {
 /** Maps a guest path (as seen inside an environment) to the real file, staying inside the rootfs. */
 object HostPaths {
     fun envId(context: Context, envName: String?): String =
-        Rootfs.all.firstOrNull { it.name.equals(envName, ignoreCase = true) || it.id == envName }?.id
+        Rootfs.offered().firstOrNull { it.name.equals(envName, ignoreCase = true) || it.id == envName }?.id
             ?: if (envName.equals("android", true)) Rootfs.ANDROID else Rootfs.pick(context, null)
 
     fun toHost(context: Context, envId: String, guest: String): File? {

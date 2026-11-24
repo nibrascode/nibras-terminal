@@ -1,5 +1,8 @@
 #!/bin/sh
 # Nibras package manager front-end for apk (Alpine), apt (Debian/Ubuntu/Kali), pacman (Arch) and dnf (Fedora).
+# Accepts apt-style flags (-y, --yes, -q) on every backend. Maps common names on Alpine
+# (toilet → figlet + shim, libcaca → libcaca-apps for cacafire). Prints progress to stdout
+# so a missing package or a rejected flag is never silent.
 usage() {
   cat <<'U'
 Usage: pkg <command> [packages]
@@ -15,17 +18,136 @@ Usage: pkg <command> [packages]
   clean                 clear the download cache
 U
 }
+
+# Drop flags that apt/pacman users type, which apk (and some others) reject.
+# apk-tools 3 treats unknown short options as errors and installs nothing.
+strip_flags() {
+  _out=
+  for _a in "$@"; do
+    case "$_a" in
+      -y|--yes|--assume-yes|--yes-unauthenticated) ;;
+      -q|--quiet|-qq) ;;
+      --noconfirm|--no-confirm|--needed) ;;
+      --no-install-recommends|--install-recommends) ;;
+      --allow-unauthenticated|--allow-downgrades|--fix-missing|--fix-broken|-f) ;;
+      --no-cache) ;;
+      *) _out="$_out $_a" ;;
+    esac
+  done
+  # Word-split is intentional: package names do not contain spaces.
+  # shellcheck disable=SC2086
+  set -- $_out
+  printf '%s\n' "$_out"
+}
+
+apk_ensure_community() {
+  [ -f /etc/apk/repositories ] || return 0
+  if grep -qE '/alpine/[^/]+/main' /etc/apk/repositories && ! grep -qE '/alpine/[^/]+/community' /etc/apk/repositories; then
+    rel=$(grep -E '/alpine/[^/]+/main' /etc/apk/repositories | head -n1 | sed 's|/main.*||')
+    if [ -n "$rel" ]; then
+      echo "pkg: enabling the Alpine community repository (needed for cmatrix, figlet, cacafire)."
+      printf '%s/community\n' "$rel" >> /etc/apk/repositories
+    fi
+  fi
+}
+
+apk_need_index() {
+  apk_ensure_community
+  if ls /var/cache/apk/APKINDEX* >/dev/null 2>&1 || ls /etc/apk/cache/APKINDEX* >/dev/null 2>&1; then
+    return 0
+  fi
+  # apk-tools 3 may keep the fetched index under /lib/apk or /var/lib/apk.
+  if ls /lib/apk/db/fetched 2>/dev/null | grep -q .; then
+    return 0
+  fi
+  echo "pkg: updating the package index (first install, needs internet)…"
+  if ! apk update; then
+    echo "pkg: could not update the package index. Check the internet connection and try: pkg update" >&2
+    return 1
+  fi
+}
+
+# Map names people copy from Debian/Termux to Alpine packages. Keep the command they typed working.
+apk_map_pkgs() {
+  _out=
+  _need_toilet=
+  _need_terminfo=
+  for _a in "$@"; do
+    case "$_a" in
+      toilet|toilet-fonts)
+        echo "pkg: Alpine has no 'toilet' package. Installing figlet and a toilet command so 'toilet -f big TEXT' works."
+        _out="$_out figlet"
+        _need_toilet=1
+        ;;
+      libcaca|libcaca-utils)
+        echo "pkg: cacafire is in the Alpine package 'libcaca-apps' (not '$_a'). Installing libcaca-apps."
+        _out="$_out libcaca-apps"
+        _need_terminfo=1
+        ;;
+      libcaca-apps|cmatrix|htop|tmux|vim|nano|mc|ncmpc|ncdu)
+        _out="$_out $_a"
+        _need_terminfo=1
+        ;;
+      "") ;;
+      *) _out="$_out $_a" ;;
+    esac
+  done
+  if [ -n "$_need_terminfo" ] || [ -n "$_need_toilet" ]; then
+    _out="$_out ncurses-terminfo-base"
+  fi
+  printf '%s\n' "$_out"
+}
+
+apk_install() {
+  _flags=$(strip_flags "$@")
+  # shellcheck disable=SC2086
+  set -- $_flags
+  if [ $# -eq 0 ]; then
+    echo "pkg: usage: pkg install <package>…"
+    return 1
+  fi
+  _mapped=$(apk_map_pkgs "$@")
+  # shellcheck disable=SC2086
+  set -- $_mapped
+  apk_need_index || return 1
+  echo "pkg: installing $* …"
+  if ! apk add "$@"; then
+    echo "pkg: install failed."
+    for _p in "$@"; do
+      case "$_p" in
+        ncurses-terminfo-base|figlet) continue ;;
+      esac
+      if ! apk info -e "$_p" >/dev/null 2>&1; then
+        echo "pkg: '$_p' is not available in this environment's repositories."
+        _sug=$(apk search -q "$_p" 2>/dev/null | head -n 8)
+        if [ -n "$_sug" ]; then
+          echo "pkg: similar packages:"
+          printf '%s\n' "$_sug" | sed 's/^/  /'
+        else
+          echo "pkg: try:  pkg search $_p"
+        fi
+      fi
+    done
+    return 1
+  fi
+  # Keep `toilet` as a typed command after figlet is installed.
+  if [ -x /usr/local/bin/toilet ] || [ -x /usr/bin/figlet ]; then
+    :
+  fi
+  return 0
+}
+
 cmd="${1:-help}"; [ $# -gt 0 ] && shift
 if command -v apk >/dev/null 2>&1; then
   case "$cmd" in
-    install|i|add|in) exec apk add "$@" ;;
-    uninstall|remove|rm|del|un) exec apk del "$@" ;;
-    update|up) exec apk update ;;
-    upgrade|ug) apk update && exec apk upgrade "$@" ;;
-    search|se|s) exec apk search -v "$@" ;;
-    show|info|sh) exec apk info -a "$@" ;;
+    install|i|add|in) apk_install "$@"; exit $? ;;
+    uninstall|remove|rm|del|un) set -- $(strip_flags "$@"); exec apk del "$@" ;;
+    update|up) apk_ensure_community; exec apk update ;;
+    upgrade|ug) set -- $(strip_flags "$@"); apk_need_index; apk update && exec apk upgrade "$@" ;;
+    search|se|s) set -- $(strip_flags "$@"); apk_need_index; exec apk search -v "$@" ;;
+    show|info|sh) set -- $(strip_flags "$@"); exec apk info -a "$@" ;;
     list-installed|list|li) exec apk info -vv ;;
-    list-all|la) exec apk search -q ;;
+    list-all|la) apk_need_index; exec apk search -q ;;
     files) exec apk info -L "$@" ;;
     clean|cl) exec apk cache clean ;;
     help|-h|--help) usage ;;
@@ -35,11 +157,11 @@ elif command -v apt-get >/dev/null 2>&1; then
   export DEBIAN_FRONTEND="${DEBIAN_FRONTEND:-noninteractive}"
   need_update() { ! ls /var/lib/apt/lists/*_Packages >/dev/null 2>&1; }
   case "$cmd" in
-    install|i|add|in) need_update && apt-get update; exec apt-get install -y "$@" ;;
-    uninstall|remove|rm|del|un) exec apt-get remove -y "$@" ;;
+    install|i|add|in) set -- $(strip_flags "$@"); need_update && { echo "pkg: updating the package index…"; apt-get update; }; echo "pkg: installing $* …"; exec apt-get install -y "$@" ;;
+    uninstall|remove|rm|del|un) set -- $(strip_flags "$@"); exec apt-get remove -y "$@" ;;
     update|up) exec apt-get update ;;
-    upgrade|ug) apt-get update && exec apt-get upgrade -y "$@" ;;
-    search|se|s) need_update && apt-get update >/dev/null; exec apt-cache search "$@" ;;
+    upgrade|ug) set -- $(strip_flags "$@"); apt-get update && exec apt-get upgrade -y "$@" ;;
+    search|se|s) set -- $(strip_flags "$@"); need_update && apt-get update >/dev/null; exec apt-cache search "$@" ;;
     show|info|sh) exec apt-cache show "$@" ;;
     list-installed|list|li) exec dpkg-query -W -f='${Package} ${Version}\n' ;;
     list-all|la) need_update && apt-get update >/dev/null; exec apt-cache pkgnames ;;
@@ -59,11 +181,11 @@ elif command -v pacman >/dev/null 2>&1; then
     pkill -f gpg-agent 2>/dev/null; true
   fi
   case "$cmd" in
-    install|i|add|in) [ -d /var/lib/pacman/sync ] && ls /var/lib/pacman/sync/*.db >/dev/null 2>&1 || pacman -Sy --noconfirm; exec pacman -S --needed --noconfirm "$@" ;;
-    uninstall|remove|rm|del|un) exec pacman -R --noconfirm "$@" ;;
+    install|i|add|in) set -- $(strip_flags "$@"); [ -d /var/lib/pacman/sync ] && ls /var/lib/pacman/sync/*.db >/dev/null 2>&1 || pacman -Sy --noconfirm; echo "pkg: installing $* …"; exec pacman -S --needed --noconfirm "$@" ;;
+    uninstall|remove|rm|del|un) set -- $(strip_flags "$@"); exec pacman -R --noconfirm "$@" ;;
     update|up) exec pacman -Sy ;;
     upgrade|ug) exec pacman -Syu --noconfirm ;;
-    search|se|s) exec pacman -Ss "$@" ;;
+    search|se|s) set -- $(strip_flags "$@"); exec pacman -Ss "$@" ;;
     show|info|sh) exec pacman -Si "$@" ;;
     list-installed|list|li) exec pacman -Q ;;
     list-all|la) exec pacman -Sl ;;
@@ -74,11 +196,11 @@ elif command -v pacman >/dev/null 2>&1; then
   esac
 elif command -v dnf >/dev/null 2>&1; then
   case "$cmd" in
-    install|i|add|in) exec dnf install -y "$@" ;;
-    uninstall|remove|rm|del|un) exec dnf remove -y "$@" ;;
+    install|i|add|in) set -- $(strip_flags "$@"); echo "pkg: installing $* …"; exec dnf install -y "$@" ;;
+    uninstall|remove|rm|del|un) set -- $(strip_flags "$@"); exec dnf remove -y "$@" ;;
     update|up) exec dnf makecache ;;
-    upgrade|ug) exec dnf upgrade -y "$@" ;;
-    search|se|s) exec dnf search "$@" ;;
+    upgrade|ug) set -- $(strip_flags "$@"); exec dnf upgrade -y "$@" ;;
+    search|se|s) set -- $(strip_flags "$@"); exec dnf search "$@" ;;
     show|info|sh) exec dnf info "$@" ;;
     list-installed|list|li) exec dnf list --installed ;;
     list-all|la) exec dnf list --available ;;
@@ -88,5 +210,10 @@ elif command -v dnf >/dev/null 2>&1; then
     *) echo "pkg: unknown command: $cmd"; usage; exit 1 ;;
   esac
 else
+  if [ "${NIBRAS_ENV:-}" = "android" ]; then
+    echo "pkg: this is the Android shell, which has no Linux package manager."
+    echo "pkg: open an Alpine session first, then run:  pkg install <package>"
+    exit 1
+  fi
   . /usr/local/share/nibras/msg.sh; nmsg no_pm; exit 1
 fi

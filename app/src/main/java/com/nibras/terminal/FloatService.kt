@@ -33,6 +33,10 @@ import com.termux.view.TerminalViewClient
 class FloatService : Service(), ServiceConnection {
     companion object {
         fun start(context: Context) {
+            if (Channel.store) {
+                Toast.makeText(context, Channel.unavailable("Floating window").removePrefix("ERR\n"), Toast.LENGTH_LONG).show()
+                return
+            }
             if (!Settings.canDrawOverlays(context)) {
                 Toast.makeText(context, R.string.float_permission, Toast.LENGTH_LONG).show()
                 context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))

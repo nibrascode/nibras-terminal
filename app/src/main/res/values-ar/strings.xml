@@ -78,6 +78,8 @@
     <string name="set_notifications">الإشعارات</string>
     <string name="about">حول</string>
     <string name="about_text">الإصدار %1$s · %2$s · معماريات الجهاز: %3$s</string>
+    <string name="privacy_policy">سياسة الخصوصية</string>
+    <string name="set_storage_scoped">يستخدم هذا الإصدار مجلد التطبيق (~/storage) وليس صلاحية كل الملفات.</string>
     <string name="set_custom_hint">ألوانك وخطك ومفاتيحك: ~/.nibras/colors.properties و ~/.nibras/font.ttf و ~/.nibras/extra-keys، ثم شغّل nibras-reload-settings.</string>
     <string name="widget_label">اختصارات Nibras</string>
     <string name="widget_empty">ضع السكربتات في ~/.shortcuts</string>

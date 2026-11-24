@@ -79,6 +79,8 @@
     <string name="set_notifications">Уведомления</string>
     <string name="about">О приложении</string>
     <string name="about_text">Версия %1$s · %2$s · ABI устройства: %3$s</string>
+    <string name="privacy_policy">Политика конфиденциальности</string>
+    <string name="set_storage_scoped">Эта версия использует папку приложения (~/storage), а не доступ ко всем файлам.</string>
     <string name="set_custom_hint">Свои цвета, шрифт и клавиши: ~/.nibras/colors.properties, ~/.nibras/font.ttf, ~/.nibras/extra-keys, затем nibras-reload-settings.</string>
     <string name="widget_label">Ярлыки Nibras</string>
     <string name="widget_empty">Положите скрипты в ~/.shortcuts</string>

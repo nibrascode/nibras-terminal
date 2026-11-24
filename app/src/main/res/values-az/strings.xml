@@ -79,6 +79,8 @@
     <string name="set_notifications">Bildirişlər</string>
     <string name="about">Haqqında</string>
     <string name="about_text">Versiya %1$s · %2$s · cihaz ABI: %3$s</string>
+    <string name="privacy_policy">Məxfilik siyasəti</string>
+    <string name="set_storage_scoped">Bu versiya tətbiqin öz qovluğundan (~/storage) istifadə edir, bütün fayllara giriş yoxdur.</string>
     <string name="set_custom_hint">Öz rəng, şrift və düymələrin: ~/.nibras/colors.properties, ~/.nibras/font.ttf, ~/.nibras/extra-keys, sonra nibras-reload-settings.</string>
     <string name="widget_label">Nibras qısayolları</string>
     <string name="widget_empty">Skriptləri ~/.shortcuts qovluğuna qoy</string>

@@ -30,13 +30,16 @@ object Rootfs {
         Env("rootfs-custom", "Custom"),
     )
 
+    /** Environments shown and offered for install. The store flavor omits Kali/NetHunter. */
+    fun offered() = all.filterNot { com.nibras.terminal.Channel.blockedEnv(it.id) }
+
     fun name(id: String) = all.firstOrNull { it.id == id }?.name ?: if (id == ANDROID) "Android" else id
 
     fun dir(context: Context, id: String) = File(context.filesDir, "unpacked/$id")
 
     fun isReady(context: Context, id: String) = File(dir(context, id), STAMP).isFile
 
-    fun ready(context: Context) = all.filter { isReady(context, it.id) }
+    fun ready(context: Context) = offered().filter { isReady(context, it.id) }
 
     fun nativeDir(context: Context) = File(context.applicationInfo.nativeLibraryDir)
 
@@ -125,6 +128,20 @@ object Rootfs {
         writeReplacing(f("etc/profile.d/nibras.sh"), guest(context, "profile.sh"))
         exe(f("usr/local/bin/nibras-login"), guest(context, "nibras-login"))
         exe(f("usr/local/bin/pkg"), guest(context, "pkg"))
+        exe(f("usr/local/bin/toilet"), guest(context, "toilet"))
+        // Seed essential terminfo so curses apps (cmatrix, cacafire) work before
+        // ncurses-terminfo-base can be fetched. Alpine minirootfs ships none.
+        runCatching {
+            context.assets.list("guest/terminfo")?.forEach { letter ->
+                context.assets.list("guest/terminfo/$letter")?.forEach { name ->
+                    val dest = f("usr/share/terminfo/$letter/$name")
+                    dest.parentFile?.mkdirs()
+                    context.assets.open("guest/terminfo/$letter/$name").use { input ->
+                        dest.outputStream().use { input.copyTo(it) }
+                    }
+                }
+            }
+        }
         exe(f("usr/local/bin/nibras-api"), guest(context, "nibras-api"))
         exe(f("usr/local/bin/nibras-desktop"), guest(context, "nibras-desktop"))
         exe(f("usr/local/bin/nibras-sshd"), guest(context, "nibras-sshd"))
@@ -218,9 +235,20 @@ object Rootfs {
                 }
         }
         // Storage shortcuts like Termux's ~/storage (work after "nibras-setup-storage").
-        mapOf("shared" to "/sdcard", "downloads" to "/sdcard/Download", "dcim" to "/sdcard/DCIM",
-            "pictures" to "/sdcard/Pictures", "music" to "/sdcard/Music", "movies" to "/sdcard/Movies",
-            "documents" to "/sdcard/Documents").forEach { (name, target) ->
+        // The store flavor uses the app's own folder, not all-files access to /sdcard.
+        val storeRoot = if (com.nibras.terminal.Channel.store) scopedStorageDir(context) else null
+        if (storeRoot != null) {
+            listOf("shared", "downloads", "dcim", "pictures", "music", "movies", "documents").forEach { name ->
+                File(storeRoot, name).mkdirs()
+            }
+        }
+        mapOf("shared" to (storeRoot?.let { File(it, "shared").absolutePath } ?: "/sdcard"),
+            "downloads" to (storeRoot?.let { File(it, "downloads").absolutePath } ?: "/sdcard/Download"),
+            "dcim" to (storeRoot?.let { File(it, "dcim").absolutePath } ?: "/sdcard/DCIM"),
+            "pictures" to (storeRoot?.let { File(it, "pictures").absolutePath } ?: "/sdcard/Pictures"),
+            "music" to (storeRoot?.let { File(it, "music").absolutePath } ?: "/sdcard/Music"),
+            "movies" to (storeRoot?.let { File(it, "movies").absolutePath } ?: "/sdcard/Movies"),
+            "documents" to (storeRoot?.let { File(it, "documents").absolutePath } ?: "/sdcard/Documents")).forEach { (name, target) ->
             val link = f("root/storage/$name").toPath()
             if (!Files.exists(link, java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
                 runCatching { Files.createSymbolicLink(link, Paths.get(target)) }
@@ -276,6 +304,7 @@ object Rootfs {
         val home = File(context.filesDir, "home")
         val bin = File(home, "bin").apply { mkdirs() }
         runCatching { exe(File(bin, "nibras-rish"), guest(context, "nibras-rish")) }
+        runCatching { exe(File(bin, "pkg"), guest(context, "pkg")) }
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
         runCatching { writeReplacing(File(home, ".nibras-motd"), Banner.text("Android", DeviceAbi.label, version)) }
         writeAndroidRc(context)
@@ -401,8 +430,12 @@ object Rootfs {
     }
 
     fun hasSharedStorage(context: Context): Boolean =
-        if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
+        if (com.nibras.terminal.Channel.store) true // scoped app storage, not all-files access
+        else if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager()
         else context.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    fun scopedStorageDir(context: Context): File =
+        File(context.getExternalFilesDir(null), "storage").apply { mkdirs() }
 
     /** Directory inside an unpacked runtime archive that contains [marker] (e.g. bin/python3). */
     fun runtimeHome(context: Context, id: String, marker: String): File? {

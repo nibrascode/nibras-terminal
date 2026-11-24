@@ -1,0 +1,10 @@
+#!/bin/sh
+# Alpine Linux does not package "toilet". This shim makes `toilet -f big TEXT` work via figlet.
+if [ -x /usr/bin/toilet ]; then
+  exec /usr/bin/toilet "$@"
+fi
+if command -v figlet >/dev/null 2>&1; then
+  exec figlet "$@"
+fi
+echo "toilet: figlet is not installed yet. Run:  pkg install toilet -y" >&2
+exit 1

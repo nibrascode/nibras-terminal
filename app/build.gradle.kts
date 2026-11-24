@@ -24,6 +24,19 @@ android {
         }
     }
 
+    flavorDimensions += "channel"
+    productFlavors {
+        create("full") {
+            dimension = "channel"
+            isDefault = true
+            buildConfigField("boolean", "STORE", "false")
+        }
+        create("store") {
+            dimension = "channel"
+            buildConfigField("boolean", "STORE", "true")
+        }
+    }
+
     signingConfigs {
         create("release") {
             val store = System.getenv("NIBRAS_STORE_FILE").orEmpty()
@@ -61,6 +74,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     testOptions {
